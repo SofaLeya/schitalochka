@@ -709,6 +709,98 @@ function viewHist(){
   return '<div class="top"><h1>История</h1></div>'+monthNav()+seg+body;
 }
 
+/* ---------- разбор месяца ---------- */
+var rvCands=[];
+function reviewCard(){
+  var ym=vym,curYM=T.slice(0,7);if(ym>curYM)return '';
+  var cur=ym===curYM,a=ym.split('-'),n=dim(+a[0],+a[1]-1),d=cur?parseInt(T.slice(8),10):n,left=n-d;
+  function ex(m,upto){return S.entries.filter(function(x){return x.type==='e'&&!x.skip&&!x.demo&&x.date.slice(0,7)===m&&(!upto||parseInt(x.date.slice(8),10)<=upto)})}
+  function tot(l){return l.reduce(function(s,x){return s+x.amt},0)}
+  function byCat(l){var o={};l.forEach(function(x){o[x.cat]=(o[x.cat]||0)+x.amt});return o}
+  function cname(k){return (CMAP[k]||CMAP.other).name}
+  function ccol(k){return (CMAP[k]||CMAP.other).color}
+  function pct(x){return Math.round(x*100)+'%'}
+  var list=ex(ym),spent=tot(list);
+  var prev=[];for(var k=1;k<=6&&prev.length<3;k++){var pm=nextYM(ym,-k);if(ex(pm).length)prev.push(pm)}
+  var H='<div class="card"><h2>Разбор месяца</h2>';
+  if(!list.length&&!prev.length)return H+'<p class="empty">Появится, когда будут записи трат.</p></div>';
+  var big=list.filter(function(x){return x.amt>=3000&&x.amt>=spent*0.15}),bigSum=tot(big);
+  var fc=cur&&d>0?spent+((spent-bigSum)/d)*left:spent;
+  var base=null,baseTo=null,baseCat={};
+  if(prev.length){
+    base=prev.reduce(function(s,m){return s+tot(ex(m))},0)/prev.length;
+    baseTo=prev.reduce(function(s,m){return s+tot(ex(m,cur?d:0))},0)/prev.length;
+    prev.forEach(function(m){var c=byCat(ex(m,cur?d:0));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
+  }
+  var curCat=byCat(list),tips=[];
+  /* 1. итог или прогноз */
+  var cmp='';
+  if(base!==null&&base>0){
+    var ref=cur?fc:spent,df=ref-base,rel=df/base;
+    cmp=Math.abs(rel)<0.05?'Примерно как обычно ('+money(base)+' в среднем за '+prev.length+' мес.).'
+      :(df>0?'На '+money(df)+' больше':'На '+money(-df)+' меньше')+' обычного ('+money(base)+' в среднем за '+prev.length+' мес.), '+(df>0?'+':'−')+pct(Math.abs(rel))+'.';
+  }else cmp='Сравнивать пока не с чем: сравнение появится, когда накопится хотя бы один прошлый месяц с записями.';
+  H+='<div class="note '+(base&&(cur?fc:spent)>base*1.1?'warn':base&&(cur?fc:spent)<base*0.95?'good':'info')+'"><b>'+(cur?'Прогноз на месяц: около '+money(fc):'Итог месяца: '+money(spent))+'</b><span class="fine">'+
+    (cur?'Потрачено '+money(spent)+' за '+d+' дн., осталось '+left+' дн.'+(bigSum?' Крупные разовые траты ('+money(bigSum)+') в прогнозе не повторяются.':'')+' ':'')+cmp+'</span></div>';
+  /* 2. категории */
+  var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});
+  var ch=Object.keys(keys).map(function(kk){var c=curCat[kk]||0,b=baseCat[kk]||0;return {k:kk,c:c,b:b,df:c-b}});
+  var up=ch.filter(function(x){return x.df>=1000&&(x.b===0||x.df/x.b>=0.3)}).sort(function(p,q){return q.df-p.df}).slice(0,3);
+  var down=ch.filter(function(x){return x.df<=-1000&&x.b>0&&-x.df/x.b>=0.3}).sort(function(p,q){return p.df-q.df}).slice(0,2);
+  if(prev.length&&(up.length||down.length)){
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">Что изменилось'+(cur?' к '+d+'-му числу':'')+' по сравнению с обычным</div><div class="list">'+
+      up.concat(down).map(function(x){return '<div class="row"><span class="dot" style="background:'+ccol(x.k)+'"></span><div class="grow"><div class="t">'+esc(cname(x.k))+'</div><div class="s">'+money(x.c)+' · обычно '+money(x.b)+'</div></div><span class="amt '+(x.df>0?'out':'in')+'">'+(x.df>0?'+':'−')+money(Math.abs(x.df))+'</span></div>'}).join('')+'</div>';
+  }
+  /* 3. необычные траты */
+  var from=iso(addDays(parse(ym+'-01'),-120)),start=ym+'-01';
+  var odd=list.filter(function(x){
+    var h=S.entries.filter(function(y){return y.type==='e'&&!y.demo&&!y.skip&&y.cat===x.cat&&y.date>=from&&y.date<start}).map(function(y){return y.amt}).sort(function(p,q){return p-q});
+    if(h.length>=3){var med=h[Math.floor(h.length/2)];return x.amt>=Math.max(3*med,2000)}
+    return x.amt>=Math.max(5000,spent*0.2);
+  }).sort(function(p,q){return q.amt-p.amt}).slice(0,3);
+  if(odd.length){
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">Необычно крупные траты</div><div class="list">'+odd.map(function(x){return '<div class="row"><span class="dot" style="background:'+ccol(x.cat)+'"></span><div class="grow"><div class="t">'+esc(x.note||cname(x.cat))+'</div><div class="s">'+esc(cname(x.cat))+' · '+dlabel(x.date)+'</div></div><span class="amt out">'+money(x.amt)+'</span></div>'}).join('')+'</div>';
+  }
+  /* 4. регулярные, но не в плане */
+  rvCands=[];
+  var grp={},months=[ym,nextYM(ym,-1),nextYM(ym,-2),nextYM(ym,-3)];
+  S.entries.forEach(function(x){if(x.type!=='e'||x.demo||x.rid||!x.note||months.indexOf(x.date.slice(0,7))<0)return;var kk=norm(x.note);(grp[kk]=grp[kk]||[]).push(x)});
+  var planned=(S.recur||[]).map(function(r){return norm(r.name)});
+  Object.keys(grp).forEach(function(kk){
+    var g=grp[kk],ms={};g.forEach(function(x){ms[x.date.slice(0,7)]=1});
+    if(Object.keys(ms).length<2||g.length>Object.keys(ms).length*2)return;
+    if(!(ms[ym]||ms[nextYM(ym,-1)]))return;
+    if(planned.some(function(p){return p&&(p===kk||kk.indexOf(p)>=0||p.indexOf(kk)>=0)}))return;
+    var am=g.map(function(x){return x.amt}).sort(function(p,q){return p-q}),med=am[Math.floor(am.length/2)];
+    if(med<100||am.some(function(v){return Math.abs(v-med)>med*0.15}))return;
+    var last=g.slice().sort(function(p,q){return p.date<q.date?1:-1})[0];
+    rvCands.push({name:last.note,amt:Math.round(med),day:parseInt(last.date.slice(8),10),cat:last.cat});
+  });
+  rvCands.sort(function(p,q){return q.amt-p.amt});rvCands=rvCands.slice(0,3);
+  if(rvCands.length){
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">Похоже на регулярные платежи</div><div class="list">'+rvCands.map(function(c,i){return '<div class="row"><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">около '+money(c.amt)+' каждый месяц, примерно '+c.day+'-го</div></div>'+(S.simple?'':'<button class="btn ghost sm" style="flex:none" data-a="rvAddRec" data-id="'+i+'">В платежи</button>')+'</div>'}).join('')+'</div>';
+  }
+  /* 5. копилки */
+  function saved(m){return S.entries.filter(function(x){if(x.type!=='t'||x.date.slice(0,7)!==m)return false;var ta=accById(x.to);return ta&&ta.type==='save'}).reduce(function(s,x){return s+x.amt},0)}
+  var sv=saved(ym),svb=prev.length?prev.reduce(function(s,m){return s+saved(m)},0)/prev.length:0;
+  if(sv||svb)H+='<div class="row" style="margin-top:4px"><div class="grow"><div class="t">Отложено в копилки</div><div class="s">'+(svb?'обычно '+money(svb)+' в месяц':'в этом месяце')+'</div></div><span class="amt in">'+money(sv)+'</span></div>';
+  /* 6. подсказки */
+  if(cur&&base&&left>0){var rem=base-spent;
+    tips.push(rem>0?'Чтобы уложиться в свой обычный месяц ('+money(base)+'), до конца месяца тратить не больше '+money(rem/left)+' в день.':'Уже потрачено больше, чем в обычный месяц ('+money(base)+')'+(bigSum?', в том числе из-за крупных покупок на '+money(bigSum):'')+'. До конца месяца лучше оставить только обязательное.')}
+  var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+x.amt});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
+  if(tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
+  var eat=(curCat.cafe||0)+(curCat.taxi||0),eatB=(baseCat.cafe||0)+(baseCat.taxi||0),bTo=baseTo||0;
+  if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
+    tips.push('Кафе, доставка и такси — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
+  if(!S.simple){var imp=list.filter(function(x){return x.cls==='imp'}).reduce(function(s,x){return s+x.amt},0);
+    if(spent>0&&imp/spent>0.15)tips.push('Импульсивные покупки — '+pct(imp/spent)+' трат ('+money(imp)+'). Попробуй правило суток: хочешь что-то незапланированное — подожди день.')}
+  if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
+  if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
+  if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
+  H+='<p class="fine">Считается по твоим записям. Возвраты и записи с галочкой «не считать в тратах» не учитываются. Для подробного разбора отправь выгрузку Claude.</p>';
+  return H+'</div>';
+}
+
 function viewAn(){
   var me=monthEntries(vym),inc=sum(me,'i'),exp=sum(me,'e'),a=vym.split('-'),n=dim(+a[0],+a[1]-1);
   var per=[];for(var i=0;i<n;i++)per.push(0);
@@ -726,7 +818,7 @@ function viewAn(){
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});
   var diff=inc-exp,ref=refunds(me),net=exp-ref;
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+Math.round(cat[k]/exp*100)+'%</span><span class="amt">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+(cat[k]/cl.length*0+cat[k]/cat[cl[0]]*100)+'%;background:'+c.color+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
-  return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+
+  return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
    '<div class="card"><h2>Для разбора со мной</h2><p class="fine">Соберу траты месяца или всех времён в текст, который удобно вставить в чат.</p><button class="btn" data-a="export">Выгрузить для анализа</button></div>'+
    (S.simple?'<div class="card"><div class="two"><div><div class="fine">Потрачено всего</div><div class="amt out" style="font-size:20px">'+money(exp)+'</div></div><div><div class="fine">Возвраты</div><div class="amt in" style="font-size:20px">'+money(ref)+'</div></div></div><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':'<div class="card"><div class="two"><div><div class="fine">Доходы</div><div class="amt in" style="font-size:20px">'+money(inc)+'</div></div><div><div class="fine">Расходы</div><div class="amt out" style="font-size:20px">'+money(exp)+'</div></div></div>'+
    '<div class="note '+(diff>=0?'good':'bad')+'"><b>'+(diff>=0?'Остаток за месяц ':'Перерасход ')+money(Math.abs(diff))+'</b>'+(inc>0?'<span class="fine">Откладывается '+Math.round(Math.max(0,diff)/inc*100)+'% дохода</span>':'')+'</div></div>')+
@@ -942,7 +1034,7 @@ function planSheet(){
    '</form>');
 }
 
-function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Нажми «Поправить остаток» на главном и впиши, сколько сейчас денег на карте в банке. От этой суммы считаются свободные деньги.</li><li>Нажми на каждую копилку и впиши, сколько там сейчас по банку.</li><li>Дальше просто записывай траты и возвраты.</li></ul></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Дату можно изменить, если вносишь позже.</li><li>«Со счёта»: по умолчанию свободные деньги. Выбирай копилку, только если платила оттуда, например за зубы из «Платежей».</li></ul></div></details><details><summary>Возвраты</summary><div class="hb"><ul><li>Парень вернул часть, магазин вернул деньги, друзья скинулись за пиццу: нажми «+» → «Возврат» и впиши сумму.</li><li>Возврат вычитается из трат месяца. Пример: продукты на 3 000 ₽, внеси трату 3 000 ₽, а когда парень переведёт половину, внеси возврат 1 500 ₽. Чистая трата 1 500 ₽.</li></ul></div></details><details><summary>Что не вносить</summary><div class="hb"><ul><li>Переводы между своими счетами и картами.</li><li>Зарплату, подкопку и платежи по плану.</li><li>Автопополнения Яндекса: вносится только сама покупка.</li><li>Чужие деньги (например, парень перевёл на заказ) или обмен: поставь галочку «Не считать в тратах».</li><li>Ошиблась: открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки</summary><div class="hb"><ul><li>«Подкопка» неприкосновенная и в «Свободные деньги» не входит.</li><li>«Платежи», «Таблы», «Подписки» и другие резервы идут на траты по плану: аренду, зубы, подписки. Когда платишь оттуда, выбери копилку в поле «Со счёта».</li><li>«Отложить» переводит деньги в копилку, «Достать» забирает обратно.</li><li>Остаток копилки можно поправить, нажав на неё и вписав сумму из банка.</li></ul></div></details><details><summary>Копейка</summary><div class="hb"><p>Монстрик на главной. Спит и хочет есть, если за сегодня нет записей. Радуется, если среднее за месяц в плане (1 650 ₽ в день). Грустит, если среднее за месяц выше плана. Один дорогой день его не расстраивает.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История»: все записи по месяцам, листай стрелками.</li><li>«Анализ»: траты, возвраты, чистые расходы, расходы в день и по категориям.</li><li>«Выгрузить для анализа» даёт текст со всеми записями. Вставь его в чат с Claude, и он разберёт месяц.</li></ul></div></details><details><summary>Загрузить записи из банка</summary><div class="hb"><ul><li>Раз в месяц скачай выписку Альфы и сделай скрины Яндекса, отдай Claude и попроси сделать записи для считалочки.</li><li>Полученный файл загрузи в «Настройки» → «Добавить записи из текста».</li><li>Записи допишутся к текущим, ничего не сотрётся. Повторная загрузка дублей не создаёт.</li></ul></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Данные хранятся в браузере. Очистка данных сайта их стирает.</li><li>Если пользуешься файлом, сохрани его в «Загрузки» и всегда открывай оттуда, не из мессенджера.</li><li>Раз в неделю «Настройки» → «Сохранить файл» и отправь себе в «Избранное». Восстановить можно там же.</li><li>Вкладку можно не закрывать. На следующий день страница сама обновит дату.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сейчас включён простой режим: траты, копилки, история и анализ. В настройках можно включить полный: появятся вкладка «Платежи», раскладка выплат, игра с уровнями и прогноз. Данные при переключении не теряются.</p></div></details></div><button type="button" class="btn" data-a="close">Понятно</button>');}
+function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Нажми «Поправить остаток» на главном и впиши, сколько сейчас денег на карте в банке. От этой суммы считаются свободные деньги.</li><li>Нажми на каждую копилку и впиши, сколько там сейчас по банку.</li><li>Дальше просто записывай траты и возвраты.</li></ul></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Дату можно изменить, если вносишь позже.</li><li>«Со счёта»: по умолчанию свободные деньги. Выбирай копилку, только если платила оттуда, например за зубы из «Платежей».</li></ul></div></details><details><summary>Возвраты</summary><div class="hb"><ul><li>Парень вернул часть, магазин вернул деньги, друзья скинулись за пиццу: нажми «+» → «Возврат» и впиши сумму.</li><li>Возврат вычитается из трат месяца. Пример: продукты на 3 000 ₽, внеси трату 3 000 ₽, а когда парень переведёт половину, внеси возврат 1 500 ₽. Чистая трата 1 500 ₽.</li></ul></div></details><details><summary>Что не вносить</summary><div class="hb"><ul><li>Переводы между своими счетами и картами.</li><li>Зарплату, подкопку и платежи по плану.</li><li>Автопополнения Яндекса: вносится только сама покупка.</li><li>Чужие деньги (например, парень перевёл на заказ) или обмен: поставь галочку «Не считать в тратах».</li><li>Ошиблась: открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки</summary><div class="hb"><ul><li>«Подкопка» неприкосновенная и в «Свободные деньги» не входит.</li><li>«Платежи», «Таблы», «Подписки» и другие резервы идут на траты по плану: аренду, зубы, подписки. Когда платишь оттуда, выбери копилку в поле «Со счёта».</li><li>«Отложить» переводит деньги в копилку, «Достать» забирает обратно.</li><li>Остаток копилки можно поправить, нажав на неё и вписав сумму из банка.</li></ul></div></details><details><summary>Копейка</summary><div class="hb"><p>Монстрик на главной. Спит и хочет есть, если за сегодня нет записей. Радуется, если среднее за месяц в плане (1 650 ₽ в день). Грустит, если среднее за месяц выше плана. Один дорогой день его не расстраивает.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История»: все записи по месяцам, листай стрелками.</li><li>«Анализ»: траты, возвраты, чистые расходы, расходы в день и по категориям.</li><li>Вверху «Анализа» — «Разбор месяца»: прогноз до конца месяца, сравнение с твоими обычными месяцами, необычно крупные траты, регулярные платежи, которые стоит внести в план, и подсказки, где сэкономить.</li><li>«Выгрузить для анализа» даёт текст со всеми записями. Вставь его в чат с Claude, и он разберёт месяц.</li></ul></div></details><details><summary>Загрузить записи из банка</summary><div class="hb"><ul><li>Раз в месяц скачай выписку Альфы и сделай скрины Яндекса, отдай Claude и попроси сделать записи для считалочки.</li><li>Полученный файл загрузи в «Настройки» → «Добавить записи из текста».</li><li>Записи допишутся к текущим, ничего не сотрётся. Повторная загрузка дублей не создаёт.</li></ul></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Данные хранятся в браузере. Очистка данных сайта их стирает.</li><li>Если пользуешься файлом, сохрани его в «Загрузки» и всегда открывай оттуда, не из мессенджера.</li><li>Раз в неделю «Настройки» → «Сохранить файл» и отправь себе в «Избранное». Восстановить можно там же.</li><li>Вкладку можно не закрывать. На следующий день страница сама обновит дату.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сейчас включён простой режим: траты, копилки, история и анализ. В настройках можно включить полный: появятся вкладка «Платежи», раскладка выплат, игра с уровнями и прогноз. Данные при переключении не теряются.</p></div></details></div><button type="button" class="btn" data-a="close">Понятно</button>');}
 function settingsSheet(){
   var json=JSON.stringify(S);
   openSheet('<h3>Настройки</h3>'+
@@ -1011,6 +1103,7 @@ document.addEventListener('click',function(ev){
   else if(a==='recon'){sh={rc:true};reconSheet()}
   else if(a==='fixBal'){var fa=accById(id);if(fa){fa.start=(+fa.start||0)+parseFloat(k);save();reconSheet();render()}}
   else if(a==='settings'){sh={confirm:false};settingsSheet()}
+  else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
   else if(a==='ccAdd'){var n1=window.prompt('Название новой категории');if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}}
   else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){var n2=window.prompt('Новое название',c1.name);if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}}}
   else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2&&window.confirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».')){S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat='other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()}}

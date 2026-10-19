@@ -711,9 +711,8 @@ function petSheet(){
 }
 
 function planAsk(){
-  if(S.planAsked||+S.dayLimit>0||S.demo||realCount()<1)return '';
-  var pi=planInfo(),old=S.simple?1650:2000;if(pi.v===old)return '';
-  return '<div class="note info"><b>План теперь считается для тебя</b><span class="fine">Раньше у всех был общий план '+money(old)+' в день. '+(pi.v?'По твоим доходам и платежам выходит '+money(pi.v)+'.':'Посчитай свой: сколько можно тратить в день после обязательных платежей и отложенного.')+'</span><div class="btns" style="margin-top:8px"><button class="btn sm ghost" data-a="planKeep" data-v="'+old+'">Оставить '+money(old)+'</button>'+'<button class="btn sm" data-a="planOpen">Посчитать свой</button>'+'</div></div>';
+  if(S.planAsked||dayLimit()>0||S.demo||realCount()<1)return '';
+  return '<div class="note info"><b>Посчитай свой план на день</b><span class="fine">Сколько можно тратить в день после обязательных платежей и отложенного. Тогда монстрик сможет подсказывать, всё ли в порядке.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="planOpen">Посчитать</button><button class="btn sm ghost" data-a="planLater">Позже</button></div></div>';
 }
 function monsterCard(me,net,dnum){
   var pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===T}),tn=td.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(td),mood,msg;
@@ -1529,6 +1528,7 @@ document.addEventListener('click',function(ev){
   else if(a==='fixBal'){var fa=accById(id);if(fa){fa.start=(+fa.start||0)+parseFloat(k);save();reconSheet();render()}}
   else if(a==='settings'){sh={confirm:false};settingsSheet()}
   else if(a==='planOpen'){sh={dpl:true};dayPlanSheet()}
+  else if(a==='planLater'){S.planAsked=1;save();render()}
   else if(a==='planManual'){var pv=num(document.getElementById('pl_v').value);if(pv>0){S.dayLimit=Math.round(pv);delete S.planCalc;S.planAsked=1;save();closeSheet();render();toast('План: '+money(S.dayLimit)+' в день')}}
   else if(a==='planClear'){delete S.dayLimit;delete S.planCalc;S.planAsked=1;save();closeSheet();render()}
   else if(a==='planKeep'){S.planAsked=1;S.dayLimit=+v;save();render();toast('План оставлен: '+money(+v)+' в день')}

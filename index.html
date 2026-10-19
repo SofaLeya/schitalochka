@@ -161,6 +161,11 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .monster .mt b{font-size:15px}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
 @media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}}
+.mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mopt{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface);border:2px solid transparent;border-radius:16px;padding:10px 6px;text-align:center}
+.mopt.on{border-color:var(--accent);background:var(--surface2)}
+.mopt .mpic{width:84px;height:84px;display:block}
+button.mbox{padding:0;border:0;background:none}
 </style>
 
 <div id="app"></div>
@@ -523,30 +528,7 @@ function game(){
   g.mood=t.n===0?'hungry':(t.exp>t.lim?'sad':'happy');
   return g;
 }
-function pet(L,mood,size){
-  var st=L<3?0:L<5?1:L<8?2:3,s='';
-  var eyes=mood==='hungry'
-    ?'<path d="M44 62 Q50 67 56 62M64 62 Q70 67 76 62" stroke="#1d1830" stroke-width="3" fill="none" stroke-linecap="round"/>'
-    :'<ellipse cx="49" cy="62" rx="6" ry="7" fill="#fff"/><ellipse cx="71" cy="62" rx="6" ry="7" fill="#fff"/><circle cx="50" cy="63" r="3.2" fill="#1d1830"/><circle cx="70" cy="63" r="3.2" fill="#1d1830"/>';
-  var mouth=mood==='happy'?'<path d="M50 78 Q60 90 70 78" stroke="#1d1830" stroke-width="3" fill="none" stroke-linecap="round"/>'
-    :mood==='sad'?'<path d="M51 86 Q60 76 69 86" stroke="#1d1830" stroke-width="3" fill="none" stroke-linecap="round"/>'
-    :'<ellipse cx="60" cy="82" rx="5" ry="6" fill="#1d1830"/>';
-  var cheeks='<circle cx="40" cy="76" r="5" fill="#ff8fb8" opacity=".55"/><circle cx="80" cy="76" r="5" fill="#ff8fb8" opacity=".55"/>';
-  if(st===0){
-    s+='<ellipse cx="60" cy="68" rx="36" ry="44" fill="var(--surface2)" stroke="var(--accent)" stroke-width="4"/>';
-    s+='<circle cx="44" cy="40" r="6" fill="var(--accent)" opacity=".5"/><circle cx="76" cy="46" r="5" fill="var(--accent)" opacity=".5"/><circle cx="60" cy="30" r="4" fill="var(--accent)" opacity=".5"/>';
-    s+=eyes+mouth+cheeks;
-  }else{
-    if(st>=2)s+='<circle cx="30" cy="42" r="12" fill="var(--accent)"/><circle cx="90" cy="42" r="12" fill="var(--accent)"/>';
-    s+='<ellipse cx="60" cy="70" rx="42" ry="38" fill="var(--accent)"/>';
-    s+='<ellipse cx="60" cy="80" rx="26" ry="20" fill="#fff" opacity=".18"/>';
-    s+=eyes+mouth+cheeks;
-    if(st===3)s+='<path d="M38 36 L44 18 L53 30 L60 14 L67 30 L76 18 L82 36 Z" fill="var(--gold)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="60" cy="14" r="3" fill="#fff"/>';
-  }
-  if(mood==='hungry')s+='<text x="92" y="26" font-size="16" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text><text x="100" y="14" font-size="11" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text>';
-  return '<svg viewBox="0 0 120 120" width="'+size+'" height="'+size+'" role="img" aria-label="Копейка, питомец" style="display:block;max-width:100%">'+s+'</svg>';
-}
-var PETMSG={hungry:'Копейка спит и хочет есть. Занеси первую запись за сегодня.',happy:'Копейка довольна: траты сегодня в лимите.',sad:'Копейка грустит: сегодня уже выше дневного лимита.'};
+var PETMSG={hungry:'спит и хочет есть. Занеси первую запись за сегодня.',happy:'радуется: траты сегодня в лимите.',sad:'грустит: сегодня уже выше дневного лимита.'};
 function gameCard(){
   var g=game(),pct=Math.round((g.xp-g.fl)/(g.nx-g.fl)*100),qd=g.quests.filter(function(q){return q.done}).length;
   return '<button class="card game" data-a="tab" data-v="game"><span class="petbox">'+pet(g.L,g.mood,72)+'</span><span class="gi"><span class="gt">Уровень '+g.L+' · '+g.title+'</span><span class="bar"><i style="width:'+pct+'%;background:var(--gold)"></i></span><span class="fine">'+g.xp+' XP · серия '+g.streak+' дн. · задания '+qd+'/3</span></span></button>';
@@ -555,9 +537,9 @@ var STAR='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><pa
 function viewGame(){
   var g=game(),pct=Math.round((g.xp-g.fl)/(g.nx-g.fl)*100),on=g.ach.filter(function(a){return a.on}).length;
   var hero='<div class="card" style="align-items:center;text-align:center;gap:8px"><div style="width:150px;max-width:50%">'+pet(g.L,g.mood,150)+'</div>'+
-   '<div><b style="font-size:18px">Копейка · уровень '+g.L+'</b><div class="fine">'+g.title+'</div></div>'+
+   '<div><b style="font-size:18px">'+esc(petName())+' · уровень '+g.L+'</b><div class="fine">'+g.title+'</div></div>'+
    '<div style="width:100%"><div class="bar"><i style="width:'+pct+'%;background:var(--gold)"></i></div><div class="fine" style="margin-top:6px">'+g.xp+' XP · до уровня '+(g.L+1)+' осталось '+(g.nx-g.xp)+'</div></div>'+
-   '<p class="fine">'+PETMSG[g.mood]+'</p></div>';
+   '<p class="fine">'+esc(petName())+' '+PETMSG[g.mood]+'</p><button class="btn ghost sm" data-a="petPick">Сменить монстрика или имя</button></div>';
   var stats='<div class="card"><div class="stats3"><div><b>'+g.streak+'</b><span class="fine">дней подряд с записями</span></div><div><b>'+g.okDays+'</b><span class="fine">дней в лимите</span></div><div><b>'+g.total+'</b><span class="fine">записей всего</span></div></div></div>';
   var qs='<div class="card"><h2>Задания на сегодня</h2>'+g.quests.map(function(q){
     return '<div class="q'+(q.done?' done':'')+'"><div class="row"><div class="grow t">'+q.t+'</div><span class="chip'+(q.done?' ok':'')+'">'+(q.done?'выполнено':'+25 XP')+'</span></div>'+(q.goal>1?'<div class="bar"><i style="width:'+(q.v/q.goal*100)+'%;background:var(--accent)"></i></div>':'')+'</div>';
@@ -607,32 +589,101 @@ function monthNav(){
 }
 
 /* ---------- views ---------- */
-function monster(mood,size){
-  var eyes=mood==='hungry'
-   ?'<path d="M44 62 Q54 54 64 62M76 62 Q86 54 96 62" stroke="#2b1a3f" stroke-width="4" fill="none" stroke-linecap="round"/>'
-   :'<ellipse cx="54" cy="62" rx="12" ry="14" fill="#fff"/><ellipse cx="86" cy="62" rx="12" ry="14" fill="#fff"/><circle cx="'+(mood==='sad'?55:56)+'" cy="'+(mood==='sad'?67:64)+'" r="6" fill="#2b1a3f"/><circle cx="'+(mood==='sad'?85:88)+'" cy="'+(mood==='sad'?67:64)+'" r="6" fill="#2b1a3f"/><circle cx="58" cy="61" r="2" fill="#fff"/><circle cx="90" cy="61" r="2" fill="#fff"/>';
-  var mouth=mood==='happy'?'<path d="M48 88 Q70 112 92 88 Z" fill="#2b1a3f"/><path d="M60 92 L65 101 L70 92Z" fill="#fff"/><path d="M71 92 L76 101 L81 92Z" fill="#fff"/>'
-   :mood==='sad'?'<path d="M54 100 Q70 84 86 100" stroke="#2b1a3f" stroke-width="4" fill="none" stroke-linecap="round"/>'
-   :'<ellipse cx="70" cy="96" rx="9" ry="11" fill="#2b1a3f"/><path d="M64 100 Q70 108 76 100Z" fill="#ff7ab8"/>';
-  var s='<ellipse cx="70" cy="128" rx="38" ry="6" fill="#000" opacity=".12"/>'+
-   '<path d="M42 30 L34 6 L58 22Z" fill="#ffd166"/><path d="M98 30 L106 6 L82 22Z" fill="#ffd166"/>'+
-   '<ellipse cx="20" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(20 20 88)"/><ellipse cx="120" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(-20 120 88)"/>'+
-   '<path d="M24 86 C18 40 44 18 70 18 C96 18 122 40 116 86 C114 110 96 124 70 124 C44 124 26 110 24 86Z" fill="#ff6fae"/>'+
-   '<ellipse cx="70" cy="104" rx="30" ry="16" fill="#fff" opacity=".2"/>'+
-   '<circle cx="34" cy="48" r="5" fill="#fff" opacity=".25"/><circle cx="104" cy="40" r="4" fill="#fff" opacity=".25"/><circle cx="96" cy="108" r="3" fill="#fff" opacity=".25"/>'+
-   '<circle cx="38" cy="82" r="6" fill="#ff7ab8" opacity=".7"/><circle cx="102" cy="82" r="6" fill="#ff7ab8" opacity=".7"/>'+
-   '<ellipse cx="52" cy="126" rx="12" ry="6" fill="#ffd166"/><ellipse cx="88" cy="126" rx="12" ry="6" fill="#ffd166"/>'+eyes+mouth;
-  if(mood==='hungry')s+='<text x="108" y="30" font-size="18" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text><text x="120" y="16" font-size="12" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text>';
-  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик Копейка" style="display:block;max-width:100%">'+s+'</svg>';
+/* ---------- монстрики ---------- */
+var MONS=[
+ {id:'puff',name:'Пушистик',about:'розовый, с рожками'},
+ {id:'slime',name:'Слизень',about:'мятный, одноглазый'},
+ {id:'ghost',name:'Призрачок',about:'лиловый, с усиками'},
+ {id:'cube',name:'Кубик',about:'оранжевый, с рогом'}
+];
+function petKind(){var k=S&&S.pet&&S.pet.kind;return MONS.some(function(m){return m.id===k})?k:'puff'}
+function petName(){var n=S&&S.pet&&S.pet.name;return n&&String(n).trim()?String(n).trim():'Копейка'}
+var INK='#2b1a3f';
+function mEyes(mood,xs,y,r){
+  var s='';
+  if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
+  var dy=mood==='sad'?r*0.3:0,one=xs.length===1;
+  xs.forEach(function(x,i){var dir=one?0:(i?-1:1);
+    s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*1.15)+'" fill="#fff"/>'+
+      '<circle cx="'+(x+dir*r*0.18)+'" cy="'+(y+dy+r*0.12)+'" r="'+(r*0.55)+'" fill="'+INK+'"/>'+
+      '<circle cx="'+(x+dir*r*0.18+r*0.22)+'" cy="'+(y+dy-r*0.14)+'" r="'+(r*0.2)+'" fill="#fff"/>';
+    if(mood==='sad'){var o=one?1:(i?-1:1);
+      s+=one?'<path d="M'+(x-r)+' '+(y-r*1.35)+' Q'+x+' '+(y-r*1.9)+' '+(x+r)+' '+(y-r*1.35)+'" stroke="'+INK+'" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+        :'<path d="M'+(x-o*r)+' '+(y-r*1.3)+' L'+(x+o*r*0.8)+' '+(y-r*1.8)+'" stroke="'+INK+'" stroke-width="3.5" stroke-linecap="round"/>'}
+  });
+  if(mood==='sad'){var tx=xs[0]-r*0.6,ty=y+r*1.25;s+='<path d="M'+tx+' '+ty+' q-4 7 0 10 q4-3 0-10z" fill="#7cc7ff"/>'}
+  return s;
 }
+function mMouth(mood,cx,cy,w,teeth){
+  if(mood==='happy'){
+    var s='<path d="M'+(cx-w)+' '+cy+' Q'+cx+' '+(cy+w*1.7)+' '+(cx+w)+' '+cy+' Z" fill="'+INK+'"/><ellipse cx="'+cx+'" cy="'+(cy+w*0.6)+'" rx="'+(w*0.42)+'" ry="'+(w*0.2)+'" fill="#ff7ab8"/>';
+    if(teeth==='up')s+='<path d="M'+(cx-w*0.35-5)+' '+(cy+w*0.74)+' l5 -11 l5 11z M'+(cx+w*0.35-5)+' '+(cy+w*0.74)+' l5 -11 l5 11z" fill="#fff"/>';
+    else s+='<path d="M'+(cx-w*0.5-5)+' '+(cy+0.5)+' l5 9 l5 -9z M'+(cx+w*0.5-5)+' '+(cy+0.5)+' l5 9 l5 -9z" fill="#fff"/>';
+    return s;
+  }
+  if(mood==='sad')return '<path d="M'+(cx-w*0.7)+' '+(cy+w*0.55)+' Q'+cx+' '+(cy-w*0.25)+' '+(cx+w*0.7)+' '+(cy+w*0.55)+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  return '<ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.42)+'" ry="'+(w*0.52)+'" fill="'+INK+'"/>';
+}
+function mCheeks(xs,y,c){return xs.map(function(x){return '<ellipse cx="'+x+'" cy="'+y+'" rx="7" ry="5" fill="'+c+'" opacity=".6"/>'}).join('')}
+function monster(mood,size,kind,lvl){
+  kind=kind||petKind();var s='<ellipse cx="70" cy="130" rx="40" ry="6" fill="#000" opacity=".13"/>',crown=[34,30];
+  if(kind==='slime'){
+    s+='<path d="M70 32 Q66 18 70 10" stroke="#1fae82" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="70" cy="9" r="7" fill="#ffd166"/><circle cx="72" cy="7" r="2" fill="#fff"/>'+
+      '<path d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z" fill="#34d3a0"/>'+
+      '<path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>'+
+      '<circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>'+
+      mCheeks([44,96],86,'#1f9e78')+mEyes(mood,[70],64,19)+mMouth(mood,70,94,15,'down');
+    crown=[38,40];
+  }else if(kind==='ghost'){
+    s+='<path d="M54 26 Q46 14 40 8" stroke="#7a5ae8" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="39" cy="7" r="6" fill="#ff8fc7"/>'+
+      '<path d="M86 26 Q94 14 100 8" stroke="#7a5ae8" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="101" cy="7" r="6" fill="#ff8fc7"/>'+
+      '<ellipse cx="22" cy="80" rx="8" ry="13" fill="#9b7bff" transform="rotate(30 22 80)"/><ellipse cx="118" cy="80" rx="8" ry="13" fill="#9b7bff" transform="rotate(-30 118 80)"/>'+
+      '<path d="M28 122 L28 64 C28 36 48 22 70 22 C92 22 112 36 112 64 L112 122 Q103 112 94 122 Q84 132 76 122 Q70 114 64 122 Q56 132 46 122 Q37 112 28 122Z" fill="#9b7bff"/>'+
+      '<path d="M40 52 C42 40 52 32 62 30" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/>'+
+      '<path d="M70 108 l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z" fill="#ffd166" opacity=".9"/>'+
+      mCheeks([44,96],80,'#ff8fc7')+mEyes(mood,[55,85],60,11)+mMouth(mood,70,84,14,'down');
+    crown=[36,26];
+  }else if(kind==='cube'){
+    s+='<path d="M60 38 L70 8 L80 38Z" fill="#fff3d6"/><path d="M66 26 L74 26" stroke="#e8c98a" stroke-width="2"/><path d="M64 32 L76 32" stroke="#e8c98a" stroke-width="2"/>'+
+      '<rect x="14" y="66" width="12" height="20" rx="5" fill="#e8781a"/><rect x="114" y="66" width="12" height="20" rx="5" fill="#e8781a"/>'+
+      '<rect x="40" y="114" width="20" height="14" rx="6" fill="#e8781a"/><rect x="80" y="114" width="20" height="14" rx="6" fill="#e8781a"/>'+
+      '<rect x="22" y="36" width="96" height="84" rx="24" fill="#ff9f43"/>'+
+      '<path d="M22 92 H118 M22 104 H118" stroke="#f08a2a" stroke-width="5" opacity=".6"/>'+
+      '<path d="M36 50 C40 44 48 42 56 42" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>'+
+      mCheeks([38,102],80,'#ff6f61')+mEyes(mood,[53,87],64,12)+mMouth(mood,70,86,20,'up');
+    crown=[30,40];
+  }else{
+    s+='<path d="M42 30 L34 6 L58 22Z" fill="#ffd166"/><path d="M98 30 L106 6 L82 22Z" fill="#ffd166"/>'+
+      '<ellipse cx="20" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(20 20 88)"/><ellipse cx="120" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(-20 120 88)"/>'+
+      '<path d="M24 86 C18 40 44 18 70 18 C96 18 122 40 116 86 C114 110 96 124 70 124 C44 124 26 110 24 86Z" fill="#ff6fae"/>'+
+      '<path d="M58 20 Q62 8 70 14 Q76 4 82 20" fill="#ff6fae"/>'+
+      '<ellipse cx="70" cy="106" rx="30" ry="14" fill="#fff" opacity=".2"/>'+
+      '<circle cx="34" cy="50" r="5" fill="#fff" opacity=".3"/><circle cx="104" cy="44" r="4" fill="#fff" opacity=".3"/><circle cx="98" cy="110" r="3" fill="#fff" opacity=".3"/>'+
+      '<ellipse cx="52" cy="127" rx="12" ry="6" fill="#ffd166"/><ellipse cx="88" cy="127" rx="12" ry="6" fill="#ffd166"/>'+
+      mCheeks([36,104],82,'#ff3d8b')+mEyes(mood,[54,86],62,12)+mMouth(mood,70,90,20,'down');
+    crown=[34,22];
+  }
+  if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
+  if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
+  if(mood==='hungry')s+='<text x="110" y="30" font-size="18" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text><text x="122" y="16" font-size="12" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text>';
+  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" style="display:block;max-width:100%">'+s+'</svg>';
+}
+function pet(L,mood,size){return monster(mood,size,null,L)}
+function petSheet(){
+  var d=sh.d;
+  openSheet('<h3>Твой монстрик</h3><div class="mgrid">'+MONS.map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b><span class="fine">'+m.about+'</span></button>'}).join('')+'</div>'+
+   '<form id="fm" class="f" style="gap:14px" autocomplete="off"><div class="f"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>'+
+   '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div></form>');
+}
+
 function monsterCard(me,net,dnum){
   var lim=dayLimit(),td=S.entries.filter(function(x){return x.date===T}),tn=td.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(td),mood,msg;
   var avg=net/dnum;
-  if(!td.length){mood='hungry';msg='Я голодный! Занеси сегодняшние траты, и я повеселею.'}
+  if(!td.length){mood='hungry';msg='Покорми меня! Занеси сегодняшние траты, и я повеселею.'}
   else if(avg>lim){mood='sad';msg='В среднем за месяц '+money(avg)+' в день, это выше плана '+money(lim)+'. Давай чуть притормозим.'}
-  else if(tn>lim){mood='happy';msg='Сегодня '+money(tn)+', но в среднем за месяц '+money(avg)+' в день, это в плане. Я не расстроен. Когда вернут деньги, внеси возврат.'}
-  else{mood='happy';msg='Сегодня '+money(tn)+' из '+money(lim)+'. '+(tn<=lim*0.7?'Отлично, я доволен!':'Почти предел, но держимся.')}
-  return '<div class="card monster"><span class="mbox">'+monster(mood,96)+'</span><div class="mt"><b>Копейка</b><div class="bub">'+esc(msg)+'</div><span class="fine">В среднем за месяц: '+money(net/dnum)+'/день, план '+money(lim)+'</span></div></div>';
+  else if(tn>lim){mood='happy';msg='Сегодня '+money(tn)+', но в среднем за месяц '+money(avg)+' в день, это в плане. Всё в порядке. Когда вернут деньги, внеси возврат.'}
+  else{mood='happy';msg='Сегодня '+money(tn)+' из '+money(lim)+'. '+(tn<=lim*0.7?'Отлично, мне нравится!':'Почти предел, но держимся.')}
+  return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div><span class="fine">В среднем за месяц: '+money(net/dnum)+'/день, план '+money(lim)+'</span></div></div>';
 }
 function viewHomeSimple(){
   var bal=balance(),ym=T.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(T.slice(8),10);
@@ -1034,7 +1085,7 @@ function planSheet(){
    '</form>');
 }
 
-function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Нажми «Поправить остаток» на главном и впиши, сколько сейчас денег на карте в банке. От этой суммы считаются свободные деньги.</li><li>Нажми на каждую копилку и впиши, сколько там сейчас по банку.</li><li>Дальше просто записывай траты и возвраты.</li></ul></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Дату можно изменить, если вносишь позже.</li><li>«Со счёта»: по умолчанию свободные деньги. Выбирай копилку, только если платила оттуда, например за зубы из «Платежей».</li></ul></div></details><details><summary>Возвраты</summary><div class="hb"><ul><li>Парень вернул часть, магазин вернул деньги, друзья скинулись за пиццу: нажми «+» → «Возврат» и впиши сумму.</li><li>Возврат вычитается из трат месяца. Пример: продукты на 3 000 ₽, внеси трату 3 000 ₽, а когда парень переведёт половину, внеси возврат 1 500 ₽. Чистая трата 1 500 ₽.</li></ul></div></details><details><summary>Что не вносить</summary><div class="hb"><ul><li>Переводы между своими счетами и картами.</li><li>Зарплату, подкопку и платежи по плану.</li><li>Автопополнения Яндекса: вносится только сама покупка.</li><li>Чужие деньги (например, парень перевёл на заказ) или обмен: поставь галочку «Не считать в тратах».</li><li>Ошиблась: открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки</summary><div class="hb"><ul><li>«Подкопка» неприкосновенная и в «Свободные деньги» не входит.</li><li>«Платежи», «Таблы», «Подписки» и другие резервы идут на траты по плану: аренду, зубы, подписки. Когда платишь оттуда, выбери копилку в поле «Со счёта».</li><li>«Отложить» переводит деньги в копилку, «Достать» забирает обратно.</li><li>Остаток копилки можно поправить, нажав на неё и вписав сумму из банка.</li></ul></div></details><details><summary>Копейка</summary><div class="hb"><p>Монстрик на главной. Спит и хочет есть, если за сегодня нет записей. Радуется, если среднее за месяц в плане (1 650 ₽ в день). Грустит, если среднее за месяц выше плана. Один дорогой день его не расстраивает.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История»: все записи по месяцам, листай стрелками.</li><li>«Анализ»: траты, возвраты, чистые расходы, расходы в день и по категориям.</li><li>Вверху «Анализа» — «Разбор месяца»: прогноз до конца месяца, сравнение с твоими обычными месяцами, необычно крупные траты, регулярные платежи, которые стоит внести в план, и подсказки, где сэкономить.</li><li>«Выгрузить для анализа» даёт текст со всеми записями. Вставь его в чат с Claude, и он разберёт месяц.</li></ul></div></details><details><summary>Загрузить записи из банка</summary><div class="hb"><ul><li>Раз в месяц скачай выписку Альфы и сделай скрины Яндекса, отдай Claude и попроси сделать записи для считалочки.</li><li>Полученный файл загрузи в «Настройки» → «Добавить записи из текста».</li><li>Записи допишутся к текущим, ничего не сотрётся. Повторная загрузка дублей не создаёт.</li></ul></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Данные хранятся в браузере. Очистка данных сайта их стирает.</li><li>Если пользуешься файлом, сохрани его в «Загрузки» и всегда открывай оттуда, не из мессенджера.</li><li>Раз в неделю «Настройки» → «Сохранить файл» и отправь себе в «Избранное». Восстановить можно там же.</li><li>Вкладку можно не закрывать. На следующий день страница сама обновит дату.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сейчас включён простой режим: траты, копилки, история и анализ. В настройках можно включить полный: появятся вкладка «Платежи», раскладка выплат, игра с уровнями и прогноз. Данные при переключении не теряются.</p></div></details></div><button type="button" class="btn" data-a="close">Понятно</button>');}
+function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Нажми «Поправить остаток» на главном и впиши, сколько сейчас денег на карте в банке. От этой суммы считаются свободные деньги.</li><li>Нажми на каждую копилку и впиши, сколько там сейчас по банку.</li><li>Дальше просто записывай траты и возвраты.</li></ul></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Дату можно изменить, если вносишь позже.</li><li>«Со счёта»: по умолчанию свободные деньги. Выбирай копилку, только если платила оттуда, например за зубы из «Платежей».</li></ul></div></details><details><summary>Возвраты</summary><div class="hb"><ul><li>Парень вернул часть, магазин вернул деньги, друзья скинулись за пиццу: нажми «+» → «Возврат» и впиши сумму.</li><li>Возврат вычитается из трат месяца. Пример: продукты на 3 000 ₽, внеси трату 3 000 ₽, а когда парень переведёт половину, внеси возврат 1 500 ₽. Чистая трата 1 500 ₽.</li></ul></div></details><details><summary>Что не вносить</summary><div class="hb"><ul><li>Переводы между своими счетами и картами.</li><li>Зарплату, подкопку и платежи по плану.</li><li>Автопополнения Яндекса: вносится только сама покупка.</li><li>Чужие деньги (например, парень перевёл на заказ) или обмен: поставь галочку «Не считать в тратах».</li><li>Ошиблась: открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки</summary><div class="hb"><ul><li>«Подкопка» неприкосновенная и в «Свободные деньги» не входит.</li><li>«Платежи», «Таблы», «Подписки» и другие резервы идут на траты по плану: аренду, зубы, подписки. Когда платишь оттуда, выбери копилку в поле «Со счёта».</li><li>«Отложить» переводит деньги в копилку, «Достать» забирает обратно.</li><li>Остаток копилки можно поправить, нажав на неё и вписав сумму из банка.</li></ul></div></details><details><summary>Монстрик</summary><div class="hb"><p>Монстрик на главной. Нажми на него, чтобы выбрать другого (их четыре) и дать имя. Спит и хочет есть, если за сегодня нет записей. Радуется, если среднее за месяц в плане (1 650 ₽ в день). Грустит, если среднее за месяц выше плана. Один дорогой день его не расстраивает.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История»: все записи по месяцам, листай стрелками.</li><li>«Анализ»: траты, возвраты, чистые расходы, расходы в день и по категориям.</li><li>Вверху «Анализа» — «Разбор месяца»: прогноз до конца месяца, сравнение с твоими обычными месяцами, необычно крупные траты, регулярные платежи, которые стоит внести в план, и подсказки, где сэкономить.</li><li>«Выгрузить для анализа» даёт текст со всеми записями. Вставь его в чат с Claude, и он разберёт месяц.</li></ul></div></details><details><summary>Загрузить записи из банка</summary><div class="hb"><ul><li>Раз в месяц скачай выписку Альфы и сделай скрины Яндекса, отдай Claude и попроси сделать записи для считалочки.</li><li>Полученный файл загрузи в «Настройки» → «Добавить записи из текста».</li><li>Записи допишутся к текущим, ничего не сотрётся. Повторная загрузка дублей не создаёт.</li></ul></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Данные хранятся в браузере. Очистка данных сайта их стирает.</li><li>Если пользуешься файлом, сохрани его в «Загрузки» и всегда открывай оттуда, не из мессенджера.</li><li>Раз в неделю «Настройки» → «Сохранить файл» и отправь себе в «Избранное». Восстановить можно там же.</li><li>Вкладку можно не закрывать. На следующий день страница сама обновит дату.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сейчас включён простой режим: траты, копилки, история и анализ. В настройках можно включить полный: появятся вкладка «Платежи», раскладка выплат, игра с уровнями и прогноз. Данные при переключении не теряются.</p></div></details></div><button type="button" class="btn" data-a="close">Понятно</button>');}
 function settingsSheet(){
   var json=JSON.stringify(S);
   openSheet('<h3>Настройки</h3>'+
@@ -1103,6 +1154,8 @@ document.addEventListener('click',function(ev){
   else if(a==='recon'){sh={rc:true};reconSheet()}
   else if(a==='fixBal'){var fa=accById(id);if(fa){fa.start=(+fa.start||0)+parseFloat(k);save();reconSheet();render()}}
   else if(a==='settings'){sh={confirm:false};settingsSheet()}
+  else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),name:(S.pet&&S.pet.name)||''}};petSheet()}
+  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet()}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
   else if(a==='ccAdd'){var n1=window.prompt('Название новой категории');if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}}
   else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){var n2=window.prompt('Новое название',c1.name);if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}}}
@@ -1155,6 +1208,7 @@ document.addEventListener('click',function(ev){
 document.addEventListener('submit',function(ev){
   ev.preventDefault();
   if(!sh)return;
+  if(sh.pt){S.pet={kind:sh.d.kind,name:document.getElementById('p_name').value.trim().slice(0,20)};save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
   if(document.getElementById('c_from')){
     var fr=document.getElementById('c_from').value;if(!fr)return showErr('Укажите дату.');
     var map={};document.querySelectorAll('select[data-n]').forEach(function(e){map[e.dataset.n]=e.value});

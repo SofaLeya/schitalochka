@@ -584,7 +584,7 @@ function viewGame(){
   var how='<div class="card"><h2>Как получать XP</h2><div class="fine" style="display:flex;flex-direction:column;gap:4px"><span>+10 за день с записями и по +3 за вторую и третью запись</span><span>+20 за день в дневном лимите</span><span>+10 за день без импульсивных трат</span><span>+10 за день без трат из копилок</span><span>+30 за раскладку выплаты по плану</span><span>+5 в день за серию от 3 дней</span><span>+25 за задание, +50 за достижение</span><span>Дни без записей XP не дают, но серия прерывается.</span></div></div>';
   return '<div class="top"><button class="btn ghost sm" data-a="tab" data-v="home">‹ Кошелёк</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+hero+stats+qs+ach+how;
 }
-function announce(b,a){
+function announce(b,a){return;
   if(S.simple)return;
   var m=[];
   if(a.xp>b.xp)m.push('+'+(a.xp-b.xp)+' XP');
@@ -628,33 +628,45 @@ var MONS=[
  {id:'puff',name:'Пушистик',about:'розовый, с рожками'},
  {id:'slime',name:'Слизень',about:'мятный, одноглазый'},
  {id:'ghost',name:'Призрачок',about:'лиловый, с усиками'},
- {id:'cube',name:'Кубик',about:'оранжевый, с рогом'}
+ {id:'cube',name:'Кубик',about:'оранжевый, с рогом'},
+ {id:'rat',name:'Крыска',about:'серая, с хвостиком'},
+ {id:'octo',name:'Осьминожек',about:'красный, с щупальцами'}
 ];
 function petKind(){var k=S&&S.pet&&S.pet.kind;return MONS.some(function(m){return m.id===k})?k:'puff'}
 function petName(){var n=S&&S.pet&&S.pet.name;return n&&String(n).trim()?String(n).trim():'Копейка'}
 var INK='#2b1a3f';
-function mEyes(mood,xs,y,r){
-  var s='';
+function mEyes(mood,xs,y,r,col){
+  var s='',one=xs.length===1;
+  function brow(x,i,kind){var o=one?1:(i?-1:1);
+    if(kind==='worry')return one?'<path d="M'+(x-r)+' '+(y-r*1.35)+' Q'+x+' '+(y-r*1.9)+' '+(x+r)+' '+(y-r*1.35)+'" stroke="'+INK+'" stroke-width="3.5" fill="none" stroke-linecap="round"/>':'<path d="M'+(x-o*r)+' '+(y-r*1.3)+' L'+(x+o*r*0.8)+' '+(y-r*1.8)+'" stroke="'+INK+'" stroke-width="3.5" stroke-linecap="round"/>';
+    if(kind==='raise')return (one||i===1)?'<path d="M'+(x-r*0.9)+' '+(y-r*1.75)+' Q'+x+' '+(y-r*2.25)+' '+(x+r*0.9)+' '+(y-r*1.8)+'" stroke="'+INK+'" stroke-width="3.5" fill="none" stroke-linecap="round"/>':'<path d="M'+(x-r*0.9)+' '+(y-r*1.45)+' L'+(x+r*0.9)+' '+(y-r*1.45)+'" stroke="'+INK+'" stroke-width="3.5" stroke-linecap="round"/>';
+    return ''}
   if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
-  var dy=mood==='sad'?r*0.3:0,one=xs.length===1;
+  if(mood==='joy'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+(y+r*0.3)+' Q'+x+' '+(y-r*1.1)+' '+(x+r)+' '+(y+r*0.3)+'" stroke="'+INK+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>'});return s}
+  var px=0,py=0,lid=false;
+  if(mood==='sad'||mood==='worried')py=r*0.3;
+  if(mood==='think'){px=r*0.3;py=-r*0.35}
   xs.forEach(function(x,i){var dir=one?0:(i?-1:1);
     s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*1.15)+'" fill="#fff"/>'+
-      '<circle cx="'+(x+dir*r*0.18)+'" cy="'+(y+dy+r*0.12)+'" r="'+(r*0.55)+'" fill="'+INK+'"/>'+
-      '<circle cx="'+(x+dir*r*0.18+r*0.22)+'" cy="'+(y+dy-r*0.14)+'" r="'+(r*0.2)+'" fill="#fff"/>';
-    if(mood==='sad'){var o=one?1:(i?-1:1);
-      s+=one?'<path d="M'+(x-r)+' '+(y-r*1.35)+' Q'+x+' '+(y-r*1.9)+' '+(x+r)+' '+(y-r*1.35)+'" stroke="'+INK+'" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
-        :'<path d="M'+(x-o*r)+' '+(y-r*1.3)+' L'+(x+o*r*0.8)+' '+(y-r*1.8)+'" stroke="'+INK+'" stroke-width="3.5" stroke-linecap="round"/>'}
+      '<circle cx="'+(x+dir*r*0.18+px)+'" cy="'+(y+py+r*0.12)+'" r="'+(r*0.55)+'" fill="'+INK+'"/>'+
+      '<circle cx="'+(x+dir*r*0.18+px+r*0.22)+'" cy="'+(y+py-r*0.14)+'" r="'+(r*0.2)+'" fill="#fff"/>';
+    if(lid)s+='<path d="M'+(x-r*1.05)+' '+(y-r*0.15)+' Q'+x+' '+(y-r*1.5)+' '+(x+r*1.05)+' '+(y-r*0.15)+' Z" fill="'+(col||'#bbb')+'"/><path d="M'+(x-r*1.05)+' '+(y-r*0.15)+' Q'+x+' '+(y+r*0.15)+' '+(x+r*1.05)+' '+(y-r*0.15)+'" stroke="'+INK+'" stroke-width="3" fill="none" stroke-linecap="round"/>';
+    if(mood==='sad'||mood==='worried')s+=brow(x,i,'worry');
+    if(mood==='think')s+=brow(x,i,'raise');
   });
   if(mood==='sad'){var tx=xs[0]-r*0.6,ty=y+r*1.25;s+='<path d="M'+tx+' '+ty+' q-4 7 0 10 q4-3 0-10z" fill="#7cc7ff"/>'}
   return s;
 }
 function mMouth(mood,cx,cy,w,teeth){
-  if(mood==='happy'){
+  if(mood==='happy'||mood==='joy'){
     var s='<path d="M'+(cx-w)+' '+cy+' Q'+cx+' '+(cy+w*1.7)+' '+(cx+w)+' '+cy+' Z" fill="'+INK+'"/><ellipse cx="'+cx+'" cy="'+(cy+w*0.6)+'" rx="'+(w*0.42)+'" ry="'+(w*0.2)+'" fill="#ff7ab8"/>';
     if(teeth==='up')s+='<path d="M'+(cx-w*0.35-5)+' '+(cy+w*0.74)+' l5 -11 l5 11z M'+(cx+w*0.35-5)+' '+(cy+w*0.74)+' l5 -11 l5 11z" fill="#fff"/>';
     else s+='<path d="M'+(cx-w*0.5-5)+' '+(cy+0.5)+' l5 9 l5 -9z M'+(cx+w*0.5-5)+' '+(cy+0.5)+' l5 9 l5 -9z" fill="#fff"/>';
     return s;
   }
+  if(mood==='calm')return '<path d="M'+(cx-w*0.6)+' '+(cy+w*0.15)+' Q'+cx+' '+(cy+w*0.8)+' '+(cx+w*0.6)+' '+(cy+w*0.15)+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  if(mood==='think')return '<path d="M'+(cx-w*0.5)+' '+(cy+w*0.45)+' q'+(w*0.25)+' -'+(w*0.25)+' '+(w*0.5)+' 0 t'+(w*0.5)+' 0" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  if(mood==='worried')return '<path d="M'+(cx-w*0.45)+' '+(cy+w*0.55)+' q'+(w*0.22)+' -'+(w*0.2)+' '+(w*0.45)+' 0 t'+(w*0.45)+' 0" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
   if(mood==='sad')return '<path d="M'+(cx-w*0.7)+' '+(cy+w*0.55)+' Q'+cx+' '+(cy-w*0.25)+' '+(cx+w*0.7)+' '+(cy+w*0.55)+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
   return '<ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.42)+'" ry="'+(w*0.52)+'" fill="'+INK+'"/>';
 }
@@ -666,7 +678,7 @@ function monster(mood,size,kind,lvl){
       '<path d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z" fill="#34d3a0"/>'+
       '<path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>'+
       '<circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>'+
-      mCheeks([44,96],86,'#1f9e78')+mEyes(mood,[70],64,19)+mMouth(mood,70,94,15,'down');
+      mCheeks([44,96],86,'#1f9e78')+mEyes(mood,[70],64,19,'#34d3a0')+mMouth(mood,70,94,15,'down');
     crown=[38,40];
   }else if(kind==='ghost'){
     s+='<path d="M54 26 Q46 14 40 8" stroke="#7a5ae8" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="39" cy="7" r="6" fill="#ff8fc7"/>'+
@@ -675,7 +687,7 @@ function monster(mood,size,kind,lvl){
       '<path d="M28 122 L28 64 C28 36 48 22 70 22 C92 22 112 36 112 64 L112 122 Q103 112 94 122 Q84 132 76 122 Q70 114 64 122 Q56 132 46 122 Q37 112 28 122Z" fill="#9b7bff"/>'+
       '<path d="M40 52 C42 40 52 32 62 30" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/>'+
       '<path d="M70 108 l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z" fill="#ffd166" opacity=".9"/>'+
-      mCheeks([44,96],80,'#ff8fc7')+mEyes(mood,[55,85],60,11)+mMouth(mood,70,84,14,'down');
+      mCheeks([44,96],80,'#ff8fc7')+mEyes(mood,[55,85],60,11,'#9b7bff')+mMouth(mood,70,84,14,'down');
     crown=[36,26];
   }else if(kind==='cube'){
     s+='<path d="M60 38 L70 8 L80 38Z" fill="#fff3d6"/><path d="M66 26 L74 26" stroke="#e8c98a" stroke-width="2"/><path d="M64 32 L76 32" stroke="#e8c98a" stroke-width="2"/>'+
@@ -684,8 +696,28 @@ function monster(mood,size,kind,lvl){
       '<rect x="22" y="36" width="96" height="84" rx="24" fill="#ff9f43"/>'+
       '<path d="M22 92 H118 M22 104 H118" stroke="#f08a2a" stroke-width="5" opacity=".6"/>'+
       '<path d="M36 50 C40 44 48 42 56 42" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>'+
-      mCheeks([38,102],80,'#ff6f61')+mEyes(mood,[53,87],64,12)+mMouth(mood,70,86,20,'up');
+      mCheeks([38,102],80,'#ff6f61')+mEyes(mood,[53,87],64,12,'#ff9f43')+mMouth(mood,70,86,20,'up');
     crown=[30,40];
+  }else if(kind==='rat'){
+    s+='<path d="M102 114 C126 120 134 98 122 90 C113 85 107 96 115 99" stroke="#f2a7b5" stroke-width="5" fill="none" stroke-linecap="round"/>'+
+      '<circle cx="38" cy="38" r="21" fill="#a7afb8"/><circle cx="38" cy="38" r="13" fill="#f6b6c4"/><circle cx="102" cy="38" r="21" fill="#a7afb8"/><circle cx="102" cy="38" r="13" fill="#f6b6c4"/>'+
+      '<path d="M70 30 C98 30 114 54 114 84 C114 110 96 124 70 124 C44 124 26 110 26 84 C26 54 42 30 70 30Z" fill="#a7afb8"/>'+
+      '<ellipse cx="70" cy="106" rx="26" ry="15" fill="#c9cfd6"/>'+
+      '<path d="M42 56 C46 46 54 40 62 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/>'+
+      '<ellipse cx="54" cy="126" rx="10" ry="5" fill="#f2a7b5"/><ellipse cx="86" cy="126" rx="10" ry="5" fill="#f2a7b5"/>'+
+      mCheeks([42,98],86,'#f6a5b8')+mEyes(mood,[55,85],64,10,'#a7afb8')+
+      '<path d="M60 86 L34 81 M60 88 L34 92 M80 86 L106 81 M80 88 L106 92" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>'+
+      '<ellipse cx="70" cy="82" rx="6" ry="4.5" fill="#ff8fab"/>'+mMouth(mood,70,90,13,'down');
+    crown=[40,24];
+  }else if(kind==='octo'){
+    var tc='#ff5a5f';
+    s+=['M36 92 C26 108 20 120 30 126','M52 100 C46 116 46 128 56 130','M70 104 C70 118 64 130 72 133','M88 100 C94 116 94 128 84 130','M104 92 C114 108 120 120 110 126'].map(function(d){return '<path d="'+d+'" stroke="'+tc+'" stroke-width="12" fill="none" stroke-linecap="round"/>'}).join('')+
+      '<circle cx="28" cy="118" r="2.2" fill="#ffc2c4"/><circle cx="48" cy="122" r="2.2" fill="#ffc2c4"/><circle cx="68" cy="126" r="2.2" fill="#ffc2c4"/><circle cx="92" cy="122" r="2.2" fill="#ffc2c4"/><circle cx="112" cy="118" r="2.2" fill="#ffc2c4"/>'+
+      '<path d="M22 78 C22 42 44 20 70 20 C96 20 118 42 118 78 C118 100 98 110 70 110 C42 110 22 100 22 78Z" fill="'+tc+'"/>'+
+      '<circle cx="44" cy="40" r="5" fill="#ff8a8e"/><circle cx="96" cy="44" r="4" fill="#ff8a8e"/><circle cx="86" cy="30" r="3" fill="#ff8a8e"/>'+
+      '<path d="M34 60 C36 46 46 36 58 32" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/>'+
+      mCheeks([42,98],82,'#ffc2c4')+mEyes(mood,[55,85],64,12,tc)+mMouth(mood,70,86,14,'down');
+    crown=[36,24];
   }else{
     s+='<path d="M42 30 L34 6 L58 22Z" fill="#ffd166"/><path d="M98 30 L106 6 L82 22Z" fill="#ffd166"/>'+
       '<ellipse cx="20" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(20 20 88)"/><ellipse cx="120" cy="88" rx="9" ry="14" fill="#ff6fae" transform="rotate(-20 120 88)"/>'+
@@ -694,11 +726,14 @@ function monster(mood,size,kind,lvl){
       '<ellipse cx="70" cy="106" rx="30" ry="14" fill="#fff" opacity=".2"/>'+
       '<circle cx="34" cy="50" r="5" fill="#fff" opacity=".3"/><circle cx="104" cy="44" r="4" fill="#fff" opacity=".3"/><circle cx="98" cy="110" r="3" fill="#fff" opacity=".3"/>'+
       '<ellipse cx="52" cy="127" rx="12" ry="6" fill="#ffd166"/><ellipse cx="88" cy="127" rx="12" ry="6" fill="#ffd166"/>'+
-      mCheeks([36,104],82,'#ff3d8b')+mEyes(mood,[54,86],62,12)+mMouth(mood,70,90,20,'down');
+      mCheeks([36,104],82,'#ff3d8b')+mEyes(mood,[54,86],62,12,'#ff6fae')+mMouth(mood,70,90,20,'down');
     crown=[34,22];
   }
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
+  if(mood==='think')s+='<text x="108" y="34" font-size="28" font-weight="800" fill="var(--accent)" font-family="sans-serif">?</text>';
+  if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';
+  if(mood==='joy')s+='<path d="M20 30 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z M118 22 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M124 70 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5-3.5 -3.5-1.5 3.5-1.5z" fill="#ffd166"/>';
   if(mood==='hungry')s+='<text x="110" y="30" font-size="18" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text><text x="122" y="16" font-size="12" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text>';
   return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" style="display:block;max-width:100%">'+s+'</svg>';
 }
@@ -714,17 +749,40 @@ function planAsk(){
   if(S.planAsked||dayLimit()>0||S.demo||realCount()<1)return '';
   return '<div class="note info"><b>Посчитай свой план на день</b><span class="fine">Сколько можно тратить в день после обязательных платежей и отложенного. Тогда монстрик сможет подсказывать, всё ли в порядке.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="planOpen">Посчитать</button><button class="btn sm ghost" data-a="planLater">Позже</button></div></div>';
 }
+function petDay(){return new Date().getHours()<5?iso(addDays(parse(T),-1)):T}
+function dayNet(d){var l=S.entries.filter(function(x){return x.date===d&&!x.demo});return {n:l.length,v:l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(l)}}
 function monsterCard(me,net,dnum){
-  var pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===T}),tn=td.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(td),mood,msg;
+  var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tn=td.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(td),mood,msg;
   var avg=net/dnum;
-  var ns=(S.noSpend||[]).indexOf(T)>=0,nsBtn='';
-  if(!td.length&&!ns){mood='hungry';msg='Как прошёл день? Запиши траты или отметь, что их не было.';nsBtn='<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpend">Сегодня без трат</button>'}
-  else if(!td.length&&ns){mood='happy';msg='День без трат — красота!';nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
-  else if(!lim){mood='happy';msg='Спасибо за запись! Сегодня '+money(tn)+'.'}
-  else if(avg>lim){mood='sad';msg='В среднем '+money(avg)+' в день, это выше плана. Притормозим?'}
-  else if(tn>lim){mood='happy';msg='Сегодня больше плана, но в среднем за месяц всё ок.'}
+  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=T.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
+  function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
+  function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше — до '+money(perLeft)+' в день.':' До конца месяца — только нужное.'):''}
+  var nsLink='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpend">сегодня без трат</button>';
+  if(!td.length&&!ns&&(hr>=5||hr<1)&&S.entries.some(function(x){return !x.demo})){
+    var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' На сегодня — до '+money(today)+'.':'';
+    var gm=pk(hr>=5&&hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
+    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
+    else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
+    else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
+    else if(!lim){mood='happy';msg=gm+' Вчера — '+money(yd.v)+'.'}
+    else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' — с запасом.'+tday}
+    else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' — в плане.'+tday}
+    else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана.'+tday}
+    else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
+    nsBtn=(hr>=17||hr<1)?nsLink:'';
+  }
+  else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn='<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpend">Сегодня без трат</button>'}
+  else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
+  else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
+  else if(dnum<=3&&r>1){mood='think';msg='Месяц только начался: в среднем '+money(avg)+' в день. Посмотрим, как пойдёт.'}
+  else if(r>1.3){mood='sad';msg=pk(['Заметно выше плана: '+money(avg)+' в день.','Сильно выбиваемся: '+money(avg)+' в день вместо '+money(lim)+'.'])+tail()}
+  else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся: '+money(avg)+' в день.'])+tail()}
+  else if(r>1){mood='think';msg=pk(['Хм, в среднем '+money(avg)+' в день — чуть выше плана. Что-то разовое?','Чуть-чуть выше плана: +'+money(over)+' в день. Пока не страшно.','Почти в плане, совсем немного сверху. Присмотримся?'])}
+  else if(tn>lim){mood='think';msg=pk(['Сегодня больше плана. Что-то крупное?','Сегодня дороговато, но в среднем за месяц всё ок.'])}
   else if(tn<=0){mood='happy';msg='Записи есть, трат нет — отлично!'}
-  else{mood='happy';msg='Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.'+(tn<=lim*0.7?'':' Почти весь план.')}
+  else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь: в среднем '+money(avg)+' в день при плане '+money(lim)+'.','Хороший запас! В среднем '+money(avg)+' в день.','Экономишь как профи: '+money(avg)+' в день.'])}
+  else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
+  else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
@@ -769,7 +827,7 @@ function viewHome(){
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и баланс ниже показаны для знакомства. Когда будете готовы, очистите их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var pend=pendingPayouts(),nudge=pend.length?'<div class="note info"><b>Разложить по плану</b><span>Выплат ждёт раскладки: '+pend.length+', всего '+money(pend.reduce(function(a,p){return a+p.sum},0))+' в копилки.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="tab" data-v="plan">Открыть</button></div></div>':'';
   var conn='';
-  return demo+backupNote()+conn+hero+nudge+accountsCard()+gameCard()+main+upHtml+hh;
+  return demo+backupNote()+conn+hero+nudge+monsterCard(me,exp-refunds(me),dnum)+accountsCard()+main+upHtml+hh;
 }
 
 
@@ -1323,7 +1381,8 @@ function render(){
   syncCats();
   try{document.documentElement.classList.toggle('cheer',!!S.simple)}catch(e){}
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
-  var v=tab==='home'?viewHome():tab==='game'?viewGame():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
+  if(tab==='game')tab='home';
+  var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
   if(tab==='home')v='<div class="top"><h1>считалОчка</h1><span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+v;
   document.getElementById('app').innerHTML=v;
   renderTabs();
@@ -1459,13 +1518,13 @@ function planSheet(){
    '</form>');
 }
 
-function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Сначала тут примеры. Посмотри, как всё выглядит, потом нажми «Очистить примеры» на главной.</li><li>Нажми «Поправить остаток» и впиши, сколько сейчас денег на карте. От этой суммы всё и считается.</li><li>Дальше просто записывай траты, когда тратишь.</li></ul></div></details><details><summary>Загрузить выписку из банка</summary><div class="hb"><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>В приложении банка закажи выписку по счёту или карте за нужный период в формате PDF и сохрани файл. Подходят Альфа-Банк, Сбер, ВТБ, ОТП и Т-Банк.</li><li>Здесь: шестерёнка → «Загрузить выписку из банка» → выбери файл (можно несколько сразу).</li><li>Появится список операций. Отмечено то, что пойдёт в траты и доходы: покупки, зарплата, возвраты. Переводы себе, наличные и уже загруженное пропущены.</li><li>Если в выписке есть переводы по номеру телефона, приложение спросит, чей номер: твой (пропускать), «делим траты» (его переводы тебе считаются возвратами, твои ему — расходами) или чужой. Ответ запоминается.</li><li>Проверь категории, сними лишнее и нажми «Добавить».</li></ol><p>Повторная загрузка той же выписки дублей не создаст. Если трату ты уже вносила руками, приложение заметит похожую запись и не будет отмечать её второй раз. Записи из выписки входят в траты и анализ, но остатки на счетах не меняют.</p></div></details><details><summary>План на день</summary><div class="hb"><p>План — сколько можно тратить в день на жизнь (еда, транспорт, кафе, мелочи), чтобы хватило на обязательное и получилось отложить. По нему монстрик понимает, всё ли в порядке.</p><p>Посчитать: «изменить» под монстриком или шестерёнка → «План трат на день». Впиши доход в месяц, обязательные платежи, сколько хочешь откладывать и редкие расходы в среднем за месяц. План = (доход − платежи − отложить − редкие) ÷ 30,4 дня, с округлением вниз до 50 ₽.</p><p>Можно и просто вписать свою сумму в день. Если в полном режиме заведены доходы и платежи, а план не задан, он посчитается по ним сам.</p></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Частые траты и категории появятся кнопками, чтобы записывать в одно касание.</li><li>Деньги вернули или пришли — переключи сверху на «Возврат» (в полном режиме «Доход»).</li><li>Чужие деньги или обмен — поставь галочку «Не считать в тратах».</li><li>Ошиблась — открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки и долги</summary><div class="hb"><ul><li>Копилка — деньги, отложенные на цель: отпуск, подушка, подарки. В «Свободные деньги» они не входят.</li><li>Завести: на главной «Новая копилка». Там же можно завести долг.</li><li>«Отложить» переводит деньги с карты в копилку, «Достать» — обратно.</li><li>Если платишь прямо из копилки, выбери её в записи в поле «Со счёта».</li></ul></div></details><details><summary>Монстрик</summary><div class="hb"><p>Питомец на главной. Нажми на него, чтобы выбрать другого монстрика (их четыре) и дать имя. Пока за сегодня нет записей, он дремлет и ждёт. Просыпается, когда ты записываешь траты или отмечаешь «Сегодня без трат». Грустит, если в среднем за месяц ты тратишь больше плана. В полном режиме за хорошие дни дают опыт, уровни и награды.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История» — все записи по месяцам, стрелками можно листать.</li><li>«Анализ» — куда уходят деньги: по категориям и по дням.</li><li>Вверху «Анализа» — «Разбор месяца»: прогноз до конца месяца, сравнение с твоими обычными месяцами, необычно крупные траты, регулярные платежи, которые стоит внести в план, и подсказки, где сэкономить.</li><li>«Выгрузить для анализа» даёт текст со всеми тратами. Его можно вставить в чат с Claude и попросить разобрать.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сначала включён простой режим: траты, копилки, история и анализ. В настройках (шестерёнка) можно включить полный. В нём появляются:</p><ul><li>вкладка «Платежи»: зарплата и обязательные платежи (квартира, связь) с днями, чтобы приложение напоминало и считало, сколько можно тратить в день;</li><li>раскладка: правила вида «10-го откладывать 5 000 ₽ в Отпуск», в день выплаты приложение предложит разложить деньги;</li><li>игра с уровнями и заданиями, дневной лимит и тип траты (обязательная, осознанная, импульсивная).</li></ul><p>Переключаться можно в любой момент, данные не теряются.</p></div></details><details><summary>Как поставить на главный экран</summary><div class="hb"><p><b>Android, Google Chrome:</b></p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Открой ссылку на приложение именно в Chrome. Если открыла из Телеграма, нажми ⋮ вверху справа → «Открыть в Chrome».</li><li>Нажми ⋮ (три точки) в правом верхнем углу Chrome.</li><li>Выбери «Установить приложение». Если такого пункта нет, выбери «Добавить на главный экран», а затем «Установить».</li><li>Подтверди. На главном экране появится фиолетовый значок «считалОчка».</li><li>Дальше открывай только через значок. Приложение откроется без адресной строки и будет работать даже без интернета.</li></ol><p><b>iPhone, Safari:</b> кнопка «Поделиться» (квадрат со стрелкой) → «На экран «Домой»» → «Добавить».</p><p class="fine">Записи живут в браузере, через который приложение установлено. Если удалить значок через «Удалить приложение» или очистить данные Chrome, записи сотрутся, поэтому делай копии (раздел ниже).</p></div></details><details><summary>Перенести данные из другого приложения</summary><div class="hb"><p><b>Из другой считалОчки</b> (файла или старой ссылки):</p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Открой старую считалОчку, там шестерёнка → «Сохранить файл». Сохрани или отправь себе в «Избранное» в Телеграме.</li><li>Открой эту считалОчку → шестерёнка → «Восстановить из файла» и выбери сохранённый файл.</li><li>Всё переедет целиком: записи, копилки, платежи, уровень Копейки. То, что было здесь до этого, заменится.</li></ol><p>Если «Сохранить файл» не срабатывает, нажми там «Копировать текст», а здесь вставь его в поле «Или из текста» и нажми «Восстановить».</p><p><b>Из другого приложения для учёта трат или из банка:</b></p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Выгрузи данные из того приложения (обычно «Экспорт» в настройках, файл CSV или Excel) или скачай выписку в банке.</li><li>Скопируй запрос ниже и отправь его Claude вместе с этим файлом.</li><li>Claude вернёт текст или файл. Здесь: шестерёнка → «Добавить записи из текста» → выбери файл или вставь текст → «Добавить».</li><li>Записи допишутся к текущим, ничего не сотрётся. Если загрузить то же самое ещё раз, дублей не будет.</li></ol><textarea id="h_prompt" readonly style="width:100%;min-height:90px;font-size:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);padding:10px">Сделай из этих данных записи для приложения считалОчка. Ответь только JSON-списком, без пояснений. Каждая запись: {&quot;id&quot;: уникальная строка, &quot;type&quot;: &quot;e&quot; для расхода или &quot;i&quot; для дохода, &quot;amt&quot;: сумма числом больше нуля, &quot;cat&quot;: категория, &quot;date&quot;: дата в виде ГГГГ-ММ-ДД, &quot;note&quot;: короткое описание}. Категории расходов: prod продукты, cafe кафе и доставка, trans транспорт, taxi такси, rent жильё, kom коммуналка, conn связь, subs подписки, health здоровье, pharm аптека, beauty красота, cloth одежда, tech техника, fun развлечения, gift подарки, edu образование, trip путешествия, sport спорт, home дом и быт, pets питомцы, debt долги, tax налоги, save накопления, help помощь близким, other прочее. Категории доходов: salary зарплата, side подработка, gift_in подарок, refund возврат, other_in прочее. Переводы между своими счетами не включай. Если файл большой, сохрани результат в файл .json.</textarea><button type="button" class="btn sm" data-a="copyPrompt">Скопировать запрос для Claude</button></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Записи хранятся только у тебя в телефоне, в этом браузере. На сайт они не отправляются, их никто, кроме тебя, не видит.</li><li>Открывай приложение всегда одним способом: значком на экране или в том же браузере. В другом браузере или на другом телефоне оно будет пустым.</li><li>Если очистить данные браузера или удалить приложение, записи сотрутся.</li><li>Раз в неделю делай копию: шестерёнка → «Сохранить файл» и отправь его себе в «Избранное». Восстановить можно там же, в том числе на новом телефоне.</li></ul></div></details></div><button type="button" class="btn ghost" data-a="close">Закрыть</button>')}
+function helpSheet(){openSheet('<h3>Как пользоваться</h3><div class="help f" style="gap:8px"><details open><summary>С чего начать</summary><div class="hb"><ul><li>Сначала тут примеры. Посмотри, как всё выглядит, потом нажми «Очистить примеры» на главной.</li><li>Нажми «Поправить остаток» и впиши, сколько сейчас денег на карте. От этой суммы всё и считается.</li><li>Дальше просто записывай траты, когда тратишь.</li></ul></div></details><details><summary>Загрузить выписку из банка</summary><div class="hb"><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>В приложении банка закажи выписку по счёту или карте за нужный период в формате PDF и сохрани файл. Подходят Альфа-Банк, Сбер, ВТБ, ОТП и Т-Банк.</li><li>Здесь: шестерёнка → «Загрузить выписку из банка» → выбери файл (можно несколько сразу).</li><li>Появится список операций. Отмечено то, что пойдёт в траты и доходы: покупки, зарплата, возвраты. Переводы себе, наличные и уже загруженное пропущены.</li><li>Если в выписке есть переводы по номеру телефона, приложение спросит, чей номер: твой (пропускать), «делим траты» (его переводы тебе считаются возвратами, твои ему — расходами) или чужой. Ответ запоминается.</li><li>Проверь категории, сними лишнее и нажми «Добавить».</li></ol><p>Повторная загрузка той же выписки дублей не создаст. Если трату ты уже вносила руками, приложение заметит похожую запись и не будет отмечать её второй раз. Записи из выписки входят в траты и анализ, но остатки на счетах не меняют.</p></div></details><details><summary>План на день</summary><div class="hb"><p>План — сколько можно тратить в день на жизнь (еда, транспорт, кафе, мелочи), чтобы хватило на обязательное и получилось отложить. По нему монстрик понимает, всё ли в порядке.</p><p>Посчитать: «изменить» под монстриком или шестерёнка → «План трат на день». Впиши доход в месяц, обязательные платежи, сколько хочешь откладывать и редкие расходы в среднем за месяц. План = (доход − платежи − отложить − редкие) ÷ 30,4 дня, с округлением вниз до 50 ₽.</p><p>Можно и просто вписать свою сумму в день. Если в полном режиме заведены доходы и платежи, а план не задан, он посчитается по ним сам.</p></div></details><details><summary>Как записать трату</summary><div class="hb"><ul><li>Большая кнопка «+» внизу.</li><li>Впиши сумму и на что потратила, например «Пятёрочка» или «такси». Категория подберётся сама, её можно поменять. Если не угадала, выбери вручную, и в следующий раз приложение запомнит. Нет подходящей категории? В конце списка есть «＋ Своя категория…», а управлять своими категориями можно в настройках (шестерёнка).</li><li>Частые траты и категории появятся кнопками, чтобы записывать в одно касание.</li><li>Деньги вернули или пришли — переключи сверху на «Возврат» (в полном режиме «Доход»).</li><li>Чужие деньги или обмен — поставь галочку «Не считать в тратах».</li><li>Ошиблась — открой запись в «Истории», поправь или удали.</li></ul></div></details><details><summary>Копилки и долги</summary><div class="hb"><ul><li>Копилка — деньги, отложенные на цель: отпуск, подушка, подарки. В «Свободные деньги» они не входят.</li><li>Завести: на главной «Новая копилка». Там же можно завести долг.</li><li>«Отложить» переводит деньги с карты в копилку, «Достать» — обратно.</li><li>Если платишь прямо из копилки, выбери её в записи в поле «Со счёта».</li></ul></div></details><details><summary>Монстрик</summary><div class="hb"><p>Питомец на главной. Нажми на него, чтобы выбрать другого монстрика (их шесть) и дать имя. Новый день для него начинается в 5 утра. С утра и до первой записи он рассказывает, как прошёл вчерашний день и сколько можно потратить сегодня. Если до часу ночи записей так и нет, он задрёмывает и ждёт, пока ты запишешь траты или отметишь «Сегодня без трат». Настроение зависит от того, как идут траты относительно плана в среднем за месяц: радуется, если с запасом, задумывается, если чуть выше, беспокоится, если заметно выше, и грустит, если сильно.</p></div></details><details><summary>История и анализ</summary><div class="hb"><ul><li>«История» — все записи по месяцам, стрелками можно листать.</li><li>«Анализ» — куда уходят деньги: по категориям и по дням.</li><li>Вверху «Анализа» — «Разбор месяца»: прогноз до конца месяца, сравнение с твоими обычными месяцами, необычно крупные траты, регулярные платежи, которые стоит внести в план, и подсказки, где сэкономить.</li><li>«Выгрузить для анализа» даёт текст со всеми тратами. Его можно вставить в чат с Claude и попросить разобрать.</li></ul></div></details><details><summary>Простой и полный режим</summary><div class="hb"><p>Сначала включён простой режим: траты, копилки, история и анализ. В настройках (шестерёнка) можно включить полный. В нём появляются:</p><ul><li>вкладка «Платежи»: зарплата и обязательные платежи (квартира, связь) с днями, чтобы приложение напоминало и считало, сколько можно тратить в день;</li><li>раскладка: правила вида «10-го откладывать 5 000 ₽ в Отпуск», в день выплаты приложение предложит разложить деньги;</li><li>тип траты: обязательная, осознанная, импульсивная.</li></ul><p>Переключаться можно в любой момент, данные не теряются.</p></div></details><details><summary>Как поставить на главный экран</summary><div class="hb"><p><b>Android, Google Chrome:</b></p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Открой ссылку на приложение именно в Chrome. Если открыла из Телеграма, нажми ⋮ вверху справа → «Открыть в Chrome».</li><li>Нажми ⋮ (три точки) в правом верхнем углу Chrome.</li><li>Выбери «Установить приложение». Если такого пункта нет, выбери «Добавить на главный экран», а затем «Установить».</li><li>Подтверди. На главном экране появится фиолетовый значок «считалОчка».</li><li>Дальше открывай только через значок. Приложение откроется без адресной строки и будет работать даже без интернета.</li></ol><p><b>iPhone, Safari:</b> кнопка «Поделиться» (квадрат со стрелкой) → «На экран «Домой»» → «Добавить».</p><p class="fine">Записи живут в браузере, через который приложение установлено. Если удалить значок через «Удалить приложение» или очистить данные Chrome, записи сотрутся, поэтому делай копии (раздел ниже).</p></div></details><details><summary>Перенести данные из другого приложения</summary><div class="hb"><p><b>Из другой считалОчки</b> (файла или старой ссылки):</p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Открой старую считалОчку, там шестерёнка → «Сохранить файл». Сохрани или отправь себе в «Избранное» в Телеграме.</li><li>Открой эту считалОчку → шестерёнка → «Восстановить из файла» и выбери сохранённый файл.</li><li>Всё переедет целиком: записи, копилки, платежи, монстрик. То, что было здесь до этого, заменится.</li></ol><p>Если «Сохранить файл» не срабатывает, нажми там «Копировать текст», а здесь вставь его в поле «Или из текста» и нажми «Восстановить».</p><p><b>Из другого приложения для учёта трат или из банка:</b></p><ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Выгрузи данные из того приложения (обычно «Экспорт» в настройках, файл CSV или Excel) или скачай выписку в банке.</li><li>Скопируй запрос ниже и отправь его Claude вместе с этим файлом.</li><li>Claude вернёт текст или файл. Здесь: шестерёнка → «Добавить записи из текста» → выбери файл или вставь текст → «Добавить».</li><li>Записи допишутся к текущим, ничего не сотрётся. Если загрузить то же самое ещё раз, дублей не будет.</li></ol><textarea id="h_prompt" readonly style="width:100%;min-height:90px;font-size:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);padding:10px">Сделай из этих данных записи для приложения считалОчка. Ответь только JSON-списком, без пояснений. Каждая запись: {&quot;id&quot;: уникальная строка, &quot;type&quot;: &quot;e&quot; для расхода или &quot;i&quot; для дохода, &quot;amt&quot;: сумма числом больше нуля, &quot;cat&quot;: категория, &quot;date&quot;: дата в виде ГГГГ-ММ-ДД, &quot;note&quot;: короткое описание}. Категории расходов: prod продукты, cafe кафе и доставка, trans транспорт, taxi такси, rent жильё, kom коммуналка, conn связь, subs подписки, health здоровье, pharm аптека, beauty красота, cloth одежда, tech техника, fun развлечения, gift подарки, edu образование, trip путешествия, sport спорт, home дом и быт, pets питомцы, debt долги, tax налоги, save накопления, help помощь близким, other прочее. Категории доходов: salary зарплата, side подработка, gift_in подарок, refund возврат, other_in прочее. Переводы между своими счетами не включай. Если файл большой, сохрани результат в файл .json.</textarea><button type="button" class="btn sm" data-a="copyPrompt">Скопировать запрос для Claude</button></div></details><details><summary>Чтобы данные не пропали</summary><div class="hb"><ul><li>Записи хранятся только у тебя в телефоне, в этом браузере. На сайт они не отправляются, их никто, кроме тебя, не видит.</li><li>Открывай приложение всегда одним способом: значком на экране или в том же браузере. В другом браузере или на другом телефоне оно будет пустым.</li><li>Если очистить данные браузера или удалить приложение, записи сотрутся.</li><li>Раз в неделю делай копию: шестерёнка → «Сохранить файл» и отправь его себе в «Избранное». Восстановить можно там же, в том числе на новом телефоне.</li></ul></div></details></div><button type="button" class="btn ghost" data-a="close">Закрыть</button>')}
 function settingsSheet(){
   var json=JSON.stringify(S);
   openSheet('<h3>Настройки</h3><button type="button" class="btn ghost" data-a="help">Как пользоваться</button>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off">'+
    '</form><div class="f"><label>План трат на день</label><p class="fine">'+(function(){var pi=planInfo();return pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'Пока не задан.'})()+'</p><button type="button" class="btn ghost" data-a="planOpen">Изменить план</button></div>'+
-   '<div class="f"><label>Режим</label><p class="fine">'+(S.simple?'Простой: только траты, счета и выгрузка. Игра и раскладка выплат спрятаны, данные не теряются.':'Полный: с игрой, раскладкой выплат и планом платежей.')+'</p><button type="button" class="btn ghost" data-a="toggleSimple">'+(S.simple?'Включить полный режим':'Включить простой режим')+'</button></div>'+
+   '<div class="f"><label>Режим</label><p class="fine">'+(S.simple?'Простой: траты, копилки, история и анализ. Платежи и раскладка выплат спрятаны, данные не теряются.':'Полный: с платежами, доходами и раскладкой выплат.')+'</p><button type="button" class="btn ghost" data-a="toggleSimple">'+(S.simple?'Включить полный режим':'Включить простой режим')+'</button></div>'+
    '<div class="f"><label for="s_bk">Загрузить выписку из банка</label><p class="fine">PDF-выписка из приложения банка: Альфа-Банк, Сбер, ВТБ, ОТП, Т-Банк. Можно выбрать сразу несколько файлов. Перед добавлением покажу все операции на проверку. Выписка никуда не отправляется, читается прямо в телефоне.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p></div>'+
    '<div class="f"><label>Мои категории трат</label>'+(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine">Своих категорий пока нет. Их можно добавить здесь или прямо при записи траты: в списке категорий пункт «＋ Своя категория…».</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Добавить категорию</button></div>'+
    '<div class="f"><label>Выгрузка для анализа</label><button type="button" class="btn" data-a="export">Открыть выгрузку</button></div>'+
@@ -1505,11 +1564,11 @@ document.addEventListener('click',function(ev){
   else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||''}};planSheet()}}
   else if(a==='delPlan'){if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id});save();closeSheet();render()}
   else if(a==='toggle'){
-    var gb=game(),ym=T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
+    var ym=T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
     var f=isR?'rid':'iid';
     if(doneFor(f,id,ym))S.entries=S.entries.filter(function(e){return !(e[f]===id&&e.date.slice(0,7)===ym)});
     else{var en={id:uid(),type:isR?'e':'i',amt:item.amt,cat:isR?item.cat:'salary',date:T,note:item.name,cls:isR?'need':''};en[f]=id;S.entries.push(en)}
-    save();render();announce(gb,game());
+    save();render();
   }
   else if(a==='dlBackup'){var m0=document.getElementById('s_msg0');
     if(window.claude&&window.claude.use){window.claude.use('downloads').then(function(dl){
@@ -1519,7 +1578,7 @@ document.addEventListener('click',function(ev){
     var r0=doDownload();if(m0){m0.textContent=r0==='err'?'Не получилось сохранить файл. Скопируйте текст.':r0==='share'?'Выберите, куда отправить файл (например, в «Избранное» Телеграма).':'Файл сохранён, ищите в «Загрузках».';m0.hidden=false}}
   else if(a==='later'){S.planLater=1;save();render()}
   else if(a==='connect'){var t0=new Date();sh={cn:true,d:{map:{},from:iso(new Date(t0.getFullYear(),t0.getMonth(),1))}};connectSheet()}
-  else if(a==='applyP'){var gb2=game();applyPayout(+id,k);save();render();announce(gb2,game())}
+  else if(a==='applyP'){applyPayout(+id,k);save();render()}
   else if(a==='skipP'){S.skips.push(id+'|'+k);save();render()}
   else if(a==='newRule'){if(!S.planFrom){S.planFrom=T}sh={ru:true,id:null,d:{name:'',amt:'',day:'',acc:(S.accounts.filter(function(x){return x.type!=='main'})[0]||{}).id||''}};if(!S.accounts.some(function(x){return x.type!=='main'})){sh=null;return}ruleSheet()}
   else if(a==='editRule'){var ru=S.rules.filter(function(x){return x.id===id})[0];if(ru){sh={ru:true,id:id,d:{name:ru.name,amt:ru.amt,day:ru.day,acc:ru.acc}};ruleSheet()}}
@@ -1532,8 +1591,8 @@ document.addEventListener('click',function(ev){
   else if(a==='planManual'){var pv=num(document.getElementById('pl_v').value);if(pv>0){S.dayLimit=Math.round(pv);delete S.planCalc;S.planAsked=1;save();closeSheet();render();toast('План: '+money(S.dayLimit)+' в день')}}
   else if(a==='planClear'){delete S.dayLimit;delete S.planCalc;S.planAsked=1;save();closeSheet();render()}
   else if(a==='planKeep'){S.planAsked=1;S.dayLimit=+v;save();render();toast('План оставлен: '+money(+v)+' в день')}
-  else if(a==='noSpend'){S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(T)<0)S.noSpend.push(T);save();render();toast('Отмечено: день без трат')}
-  else if(a==='noSpendUndo'){S.noSpend=(S.noSpend||[]).filter(function(d){return d!==T});save();render()}
+  else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
+  else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
   else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),name:(S.pet&&S.pet.name)||''}};petSheet()}
   else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet()}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
@@ -1615,7 +1674,7 @@ document.addEventListener('submit',function(ev){
     document.getElementById('k_res').innerHTML=out||'<p class="fine">Впишите хотя бы один остаток.</p>';return;
   }
   if(document.getElementById('f_amt')){
-    var gb=game(),d=readEntry(),n=num(d.amt);
+    var d=readEntry(),n=num(d.amt);
     if(!(n>0))return showErr('Введите сумму больше нуля.');
     if(d.type==='t'){if(!d.from||!d.to||d.from===d.to)return showErr('Выберите два разных места.')}
     else if(!d.cat)return showErr('Выберите категорию.');
@@ -1627,7 +1686,7 @@ document.addEventListener('submit',function(ev){
     else{rec.id=uid();S.entries.push(rec)}
     if(rec.type!=='t')learn(rec);
     vym=rec.date.slice(0,7);
-    save();closeSheet();render();announce(gb,game());toast('Записано');
+    save();closeSheet();render();toast('Записано');
   }else if(document.getElementById('p_name')){
     var nm=document.getElementById('p_name').value.trim(),am=num(document.getElementById('p_amt').value),dy=parseInt(document.getElementById('p_day').value,10),ce=document.getElementById('p_cat');
     if(!nm)return showErr('Введите название.');
@@ -1678,7 +1737,7 @@ document.addEventListener('change',function(ev){
   fr.onload=function(){try{var o=JSON.parse(fr.result);if(!o||!Array.isArray(o.entries)||!Array.isArray(o.recur)||!Array.isArray(o.incomes))throw 0;S=migrate(o);save();closeSheet();render()}catch(e){m.textContent='Не получилось прочитать файл.';m.hidden=false}};
   fr.readAsText(ev.target.files[0]);
 });
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&iso(new Date())!==T&&(!sh)){try{location.reload()}catch(e){}}});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||sh)return;if(iso(new Date())!==T){try{location.reload()}catch(e){}}else render()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.getElementById('ov').hidden)closeSheet()});
 
 

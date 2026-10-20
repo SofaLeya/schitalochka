@@ -1,15 +1,19 @@
 {
   "name": "считалОчка",
   "short_name": "считалОчка",
+  "description": "Учёт трат с монстриком",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#6a45e8",
+  "background_color": "#efe6ff",
   "theme_color": "#6a45e8",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ],
+  "shortcuts": [
+    {"name": "Новая трата", "short_name": "Трата", "url": "./?new=e", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "Новый доход", "short_name": "Доход", "url": "./?new=i", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
   ]
 }

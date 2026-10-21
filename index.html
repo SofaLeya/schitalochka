@@ -308,6 +308,23 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
 var ATYPES={main:'Свободные деньги',save:'Копилка',debt:'Долг',other:'Другое'};
 function accName(a){return a.type==='main'?'Свободные деньги':a.name}
 var ACOL={main:'var(--accent)',save:'var(--in)',debt:'var(--out)',other:'var(--muted)'};
+function parseLoose(txt){ // терпимо к тексту из Телеграма: заголовки сообщений, переносы, разрезанные куски
+  txt=String(txt||'').replace(/^\uFEFF/,'').trim();
+  try{return JSON.parse(txt)}catch(e){}
+  var t0=txt.replace(/^[^\n{}\[\]"]{0,80}\[\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}[ ,]+\d{1,2}:\d{2}(:\d{2})?\]\s*$/gm,'');
+  // Телеграм режет длинный текст по пробелу и съедает его: сначала склеиваем через пробел, потом без
+  var tries=[t0.replace(/\s*[\r\n\u2028\u2029]+\s*/g,' '),t0.replace(/[\r\n\u2028\u2029]+/g,'')];
+  for(var i=0;i<tries.length;i++){var t=tries[i],a=t.indexOf('{'),b=t.lastIndexOf('}'),a2=t.indexOf('[');
+    if(a2>=0&&(a<0||a2<a)){a=a2;b=t.lastIndexOf(']')}
+    if(a<0||b<a)continue;
+    try{return JSON.parse(t.slice(a,b+1))}catch(e){}}
+  throw 0;
+}
+function backupErr(txt){txt=String(txt||'').trim();
+  if(!txt)return 'Поле пустое. Вставьте текст копии.';
+  if(txt.charAt(0)!=='{'&&txt.indexOf('{"v"')<0)return 'Это не начало копии: текст должен начинаться с {"v". Телеграм делит длинный текст на несколько сообщений — выделите их все (зажмите первое, потом отметьте остальные), скопируйте вместе и вставьте.';
+  return 'Копия неполная: похоже, вставлена только часть. Телеграм делит длинный текст на несколько сообщений — выделите их все, скопируйте вместе и вставьте. Надёжнее — файлом через «Восстановить из файла».'}
+function okBackup(o){return o&&Array.isArray(o.entries)}
 function migrate(o){
   if(!Array.isArray(o.accounts)||!o.accounts.length)o.accounts=[{id:'a1',name:'Основная карта',type:'main',start:+o.start||0}];if(o.simple===undefined)o.simple=true;
   if(!Array.isArray(o.rules))o.rules=[];o.rules=o.rules.filter(function(r){return r.name!=='Платежи'});delete o.payAcc;(o.recur||[]).forEach(function(r){delete r.acc});if(!Array.isArray(o.skips))o.skips=[];
@@ -1870,12 +1887,12 @@ document.addEventListener('click',function(ev){
   }
   else if(a==='restore'){
     var txt=document.getElementById('s_in').value.trim(),m=document.getElementById('s_msg');
-    try{var o=JSON.parse(txt);if(!o||!Array.isArray(o.entries)||!Array.isArray(o.recur)||!Array.isArray(o.incomes))throw 0;S=migrate(o);save();closeSheet();render()}
-    catch(e){m.textContent='Не получилось прочитать копию. Вставьте текст целиком.';m.hidden=false}
+    try{var o=parseLoose(txt);if(!okBackup(o))throw 0;S=migrate(o);save();closeSheet();render();toast('Готово: восстановлено записей '+S.entries.length)}
+    catch(e){m.textContent=backupErr(txt);m.hidden=false}
   }
   else if(a==='addRecs'){
     var at=document.getElementById('s_add').value.trim(),am=document.getElementById('s_amsg');
-    try{var ar=JSON.parse(at);if(ar&&!Array.isArray(ar)&&ar.entries)ar=ar.entries;if(!Array.isArray(ar))throw 0;var have={};S.entries.forEach(function(e){have[e.id]=e});var cn=0,up=0;
+    try{var ar=parseLoose(at);if(ar&&!Array.isArray(ar)&&ar.entries)ar=ar.entries;if(!Array.isArray(ar))throw 0;var have={};S.entries.forEach(function(e){have[e.id]=e});var cn=0,up=0;
       ar.forEach(function(r){if(r&&r.id&&have[r.id]&&have[r.id].hist&&r.amt>0){var h=have[r.id];if(h.cat!==r.cat||h.note!==String(r.note||'')||h.amt!==+r.amt||h.date!==r.date){h.cat=r.cat||'other';h.note=String(r.note||'');h.amt=+r.amt;h.date=r.date;up++}return}if(!r||!r.id||have[r.id]||!(r.amt>0)||!/^\d{4}-\d\d-\d\d$/.test(r.date||''))return;if(r.type!=='e'&&r.type!=='i')return;S.entries.push({id:String(r.id),type:r.type,amt:+r.amt,cat:r.cat||'other',date:r.date,note:String(r.note||''),cls:r.type==='e'?'need':'',acc:defAcc(),hist:true});cn++});
       if(S.demo){S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}})}S.entries=S.entries.filter(function(e){return !e.demo});S.demo=false;save();am.textContent='✓ Добавлено записей: '+cn+(up?', обновлено: '+up:'');am.hidden=false;closeSheet();render();toast(cn||up?('Готово: добавлено '+cn+(up?', обновлено '+up:'')):'Новых записей нет, всё уже добавлено')}
     catch(e){am.textContent='Не получилось прочитать. Вставьте текст целиком.';am.hidden=false;toast('Не получилось прочитать файл',true)}
@@ -1978,7 +1995,7 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='s_afile'&&ev.target.files&&ev.target.files[0]){var fr2=new FileReader();fr2.onload=function(){document.getElementById('s_add').value=fr2.result;var bt=document.querySelector('[data-a=addRecs]');if(bt)bt.click()};fr2.readAsText(ev.target.files[0]);return}
   if(ev.target.id!=='s_file'||!ev.target.files||!ev.target.files[0])return;
   var fr=new FileReader(),m=document.getElementById('s_msg');
-  fr.onload=function(){try{var o=JSON.parse(fr.result);if(!o||!Array.isArray(o.entries)||!Array.isArray(o.recur)||!Array.isArray(o.incomes))throw 0;S=migrate(o);save();closeSheet();render()}catch(e){m.textContent='Не получилось прочитать файл.';m.hidden=false}};
+  fr.onload=function(){try{var o=parseLoose(fr.result);if(!okBackup(o))throw 0;S=migrate(o);save();closeSheet();render();toast('Готово: восстановлено записей '+S.entries.length)}catch(e){m.textContent='Не получилось прочитать файл. Это точно файл копии schitalochka-….json?';m.hidden=false}};
   fr.readAsText(ev.target.files[0]);
 });
 document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||sh)return;if(iso(new Date())!==T){try{location.reload()}catch(e){}}else render()});

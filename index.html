@@ -799,7 +799,7 @@ function planAsk(){
   return '<div class="note info"><b>Посчитай свой план на день</b><span class="fine">Сколько можно тратить в день после обязательных платежей и отложенного. Тогда монстрик сможет подсказывать, всё ли в порядке.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="planOpen">Посчитать</button><button class="btn sm ghost" data-a="planLater">Позже</button></div></div>';
 }
 function petDay(){return new Date().getHours()<5?iso(addDays(parse(T),-1)):T}
-function dayNet(d){var l=S.entries.filter(function(x){return x.date===d&&!x.demo});return {n:l.length,v:l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(l)}}
+function dayNet(d){var l=S.entries.filter(function(x){return x.date===d&&!x.demo}),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),r=refunds(l);return {n:l.length,e:e,r:r,v:e-r}}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tn=td.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(td),mood,msg;
   var avg=net/dnum;
@@ -812,6 +812,7 @@ function monsterCard(me,net,dnum){
     var gm=pk(hr>=5&&hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
     if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
+    else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
     else if(!lim){mood='happy';msg=gm+' Вчера — '+money(yd.v)+'.'}
     else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' — с запасом.'+tday}

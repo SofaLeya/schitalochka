@@ -373,9 +373,16 @@ function doDownload(){
   var json=JSON.stringify(S),name='schitalochka-'+T+'.json';
   try{
     var blob=new Blob([json],{type:'application/json'});
-    if(navigator.canShare&&window.File){var f=new File([blob],name,{type:'application/json'});if(navigator.canShare({files:[f]})){navigator.share({files:[f]}).then(markBackup,function(){});return 'share'}}
-    var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);markBackup();return 'dl';
+    if(navigator.canShare&&window.File){var f=new File([blob],name,{type:'text/plain'});if(navigator.canShare({files:[f]})){navigator.share({files:[f]}).then(markBackup,function(e){
+      if(e&&e.name==='AbortError')return; // сама закрыла окно
+      var r=dlBlob(blob,name),m=document.getElementById('s_msg0');if(m){m.textContent=r?'Файл сохранён, ищите в «Загрузках».':'Не получилось сохранить файл. Нажмите «Копировать текст».';m.hidden=false}});return 'share'}}
+    return dlBlob(blob,name)?'dl':'err';
   }catch(e){return 'err'}
+}
+function dlBlob(blob,name){
+  try{
+    var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);markBackup();return true;
+  }catch(e){return false}
 }
 function planStats(){
   var res={};
@@ -1747,7 +1754,7 @@ function settingsSheet(){
    '<div class="f"><label>Выгрузка для анализа</label><button type="button" class="btn" data-a="export">Открыть выгрузку</button></div>'+
    '<div class="f"><label>Резервная копия</label><p class="fine">'+(S.lastBackup?'Последняя копия: '+dlabel(S.lastBackup)+'.':'Копию ещё не делали.')+'</p><div class="btns"><button type="button" class="btn" data-a="dlBackup">Сохранить файл</button><button type="button" class="btn ghost" data-a="copyBackup">Копировать текст</button></div><textarea id="s_out" readonly style="position:absolute;left:-9999px;height:1px">'+esc(json)+'</textarea><p class="fine" id="s_msg0" hidden></p></div>'+
    '<div class="f"><label for="s_add">Добавить записи из текста</label><p class="fine">Дописывает записи к текущим, ничего не стирает. Повторная вставка дубли не создаёт.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставьте текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p></div>'+
-   '<div class="f"><label for="s_file">Восстановить из файла</label><input id="s_file" type="file" accept=".json,application/json"><p class="fine" id="s_msg" hidden></p></div>'+
+   '<div class="f"><label for="s_file">Восстановить из файла</label><input id="s_file" type="file" accept=".json,.txt,application/json,text/plain"><p class="fine" id="s_msg" hidden></p></div>'+
    '<div class="f"><label for="s_in">Или из текста</label><textarea id="s_in" placeholder="Вставьте сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="restore">Восстановить</button></div></div>'+
    '<p class="fine">Данные хранятся только в этом браузере на телефоне. '+((location.protocol==='content:'||location.protocol==='file:')?'Сейчас файл открыт напрямую из файловой системы или мессенджера, и данные могут потеряться при следующем открытии. Сохраните файл в «Загрузки» и всегда открывайте его оттуда, а копию делайте раз в неделю.':'Очистка данных сайта их удалит, поэтому делайте копию раз в неделю.')+'</p>'+
    (sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="wipe">Точно стереть всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div>':'<button type="button" class="btn danger" data-a="askDel">Стереть все данные</button>')+

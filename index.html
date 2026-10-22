@@ -1827,7 +1827,11 @@ document.addEventListener('click',function(ev){
   else if(a==='recon'){sh={rc:true};reconSheet()}
   else if(a==='fixBal'){var fa=accById(id);if(fa){fa.start=(+fa.start||0)+parseFloat(k);save();reconSheet();render()}}
   else if(a==='settings'){sh={confirm:false};settingsSheet()}
-  else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){var rid=uid();S.entries.push({id:rid,type:'i',amt:sx.split,cat:'refund',date:petDay(),note:'Возврат: '+(sx.note||(CMAP[sx.cat]||CMAP.other).name),acc:defAcc()});sx.splitDone=rid;save();render();toast('Возврат записан: '+money(sx.split))}}
+  else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){sh={sp:true,id:sx.id};
+    openSheet('<h3>Сколько вернули?</h3><p class="fine">'+esc(sx.note||(CMAP[sx.cat]||CMAP.other).name)+' · трата '+money(sx.amt)+', ждали '+money(sx.split)+'</p><div class="f"><label for="f_spgot">Пришло, ₽</label><input id="f_spgot" inputmode="decimal" value="'+String(sx.split).replace('.',',')+'"><span class="fine">Можно больше или меньше, чем ждали.</span></div><p class="fine" id="f_sperr" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="splitSave">Записать</button></div>')}}
+  else if(a==='splitSave'){var sz=sh&&S.entries.filter(function(e){return e.id===sh.id})[0],gv=num(document.getElementById('f_spgot').value);
+    if(!(gv>0)){var er=document.getElementById('f_sperr');er.textContent='Впиши сумму больше нуля.';er.hidden=false;return}
+    if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
   else if(a==='splitDrop'){var sy=S.entries.filter(function(e){return e.id===id})[0];if(sy){sy.splitDone='no';save();render()}}
   else if(a==='catLim'){sh={cl:true};catLimSheet()}
   else if(a==='onbNext'){onbRead();if(sh.step===2&&v==='skip')sh.d.pc=null;if(sh.step===3)onbFinish();else{sh.step++;onbSheet()}}
@@ -1937,7 +1941,7 @@ document.addEventListener('submit',function(ev){
     if(d.type==='i')d.acc=defAcc();
     if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=e.amt})}if(accBal(sa)+had<n)return showErr('В копилке «'+sa.name+'» только '+money(accBal(sa)+had)+'. Выбери другой источник или сначала отложи деньги.')}}
     var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',acc:d.acc||defAcc(),skip:!!d.skip};
-    if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;if(spv>n)return showErr('Вернуть должны не больше суммы траты.');rec.split=Math.round(spv*100)/100}
+    if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();S.entries.push(rec)}
     if(rec.type!=='t')learn(rec);

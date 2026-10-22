@@ -1,3 +1,8 @@
 self.addEventListener('install',function(){self.skipWaiting()});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim())});
-self.addEventListener('fetch',function(e){e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request)}))});
+// всегда спрашиваем у сервера свежую версию (не берём из 10-минутного кэша браузера); без интернета — из кэша
+self.addEventListener('fetch',function(e){
+  if(e.request.method!=='GET')return;
+  e.respondWith(fetch(e.request,{cache:'no-cache'}).then(function(r){
+    if(r&&r.ok&&new URL(e.request.url).origin===location.origin){var c=r.clone();caches.open('sch-v1').then(function(ch){ch.put(e.request,c)})}
+    return r}).catch(function(){return caches.match(e.request)}))});

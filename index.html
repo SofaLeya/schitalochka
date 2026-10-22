@@ -345,7 +345,10 @@ function accBal(a){
 function balance(){var b=0;S.accounts.forEach(function(a){if(a.type==='main')b+=accBal(a)});return b}
 function monthEntries(ym){return S.entries.filter(function(x){return x.date.slice(0,7)===ym})}
 function sum(list,type){return list.filter(function(x){return x.type===type&&!x.skip}).reduce(function(a,x){return a+x.amt},0)}
-function refunds(list){return list.filter(function(x){return x.type==='i'&&x.cat==='refund'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)}
+function refunds(list){return list.reduce(function(a,x){ // пришедшие возвраты + ещё ожидаемые по «Делю с кем-то»
+  if(x.type==='i'&&x.cat==='refund'&&!x.skip)return a+x.amt;
+  if(x.type==='e'&&!x.skip&&x.split>0&&!x.splitDone)return a+Math.min(x.split,x.amt);
+  return a},0)}
 function doneFor(kind,id,ym){return S.entries.some(function(x){return x[kind]===id&&x.date.slice(0,7)===ym})}
 function nextYM(ym,n){var a=ym.split('-');var d=new Date(+a[0],+a[1]-1+n,1);return ymOf(d)}
 

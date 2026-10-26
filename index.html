@@ -1602,13 +1602,14 @@ function render(){
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
   if(tab==='home')v='<div class="top"><h1>считалОчка</h1><span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+v;
-  document.getElementById('app').innerHTML=v;
+  var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
+  if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
 }
 
 /* ---------- sheets ---------- */
 function openSheet(html){var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
-function closeSheet(){var o=document.getElementById('ov');o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
+function closeSheet(){var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+list.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
 function accOpts(sel){return S.accounts.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')}
@@ -1790,7 +1791,7 @@ document.addEventListener('click',function(ev){
   var b=ev.target.closest('[data-a]');
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
-  if(a==='tab'){tab=v;render();window.scrollTo(0,0)}
+  if(a==='tab'){tab=v;window.scrollTo(0,0);render()}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}
   else if(a==='hf'){hf=v;render()}

@@ -1657,8 +1657,17 @@ function render(){
 }
 
 /* ---------- sheets ---------- */
-function openSheet(html){var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
-function closeSheet(){var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
+/* кнопка «Назад» на телефоне: закрывает окно или возвращает на главную, а не выходит из приложения */
+var NAV={sheet:false,tab:false,skip:0};
+function navPush(k){try{history.pushState({sch:k},'')}catch(e){}}
+function navBack(){NAV.skip++;try{history.back()}catch(e){NAV.skip--}}
+window.addEventListener('popstate',function(){
+  if(NAV.skip>0){NAV.skip--;return}
+  if(NAV.sheet){NAV.sheet=false;closeSheet(true);return}
+  if(NAV.tab){NAV.tab=false;tab='home';window.scrollTo(0,0);render();return}
+});
+function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
+function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+list.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
 function accOpts(sel){return S.accounts.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')}
@@ -1840,7 +1849,7 @@ document.addEventListener('click',function(ev){
   var b=ev.target.closest('[data-a]');
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
-  if(a==='tab'){tab=v;window.scrollTo(0,0);render()}
+  if(a==='tab'){if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}
   else if(a==='hf'){hf=v;render()}

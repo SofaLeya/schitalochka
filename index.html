@@ -47,6 +47,7 @@ h1,h2,h3,p{margin:0}
 .hero .lbl{font-size:13px;opacity:.8}
 .hero .big{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
+.amt.skip{color:#5b8def}
 .stat .fine{display:block;margin-top:2px;line-height:1.3}
 .stat{background:rgba(255,255,255,.14);border-radius:12px;padding:10px;min-width:0}
 .stat .lbl{font-size:11px;opacity:.85}
@@ -980,7 +981,7 @@ function accountsCard(){
 function entryRow(x){
   if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:var(--muted)"></span><div class="grow"><div class="t">Перевод</div><div class="s">'+esc((fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))+(x.note?' · '+esc(x.note):'')+'</div></div><span class="amt">'+money(x.amt)+'</span></button>'}
   var c=CMAP[x.cat]||CMAP.other;
-  return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+(x.demo?' · пример':'')+'</div></div><span class="amt '+(x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+money(x.amt)+'</span></button>';
+  return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+money(x.amt)+'</span></button>';
 }
 var hq='',ha='';
 function histMatch(x){
@@ -996,7 +997,7 @@ function histList(){
   var head='';
   if(search){var e=0,i=0;me.forEach(function(x){if(x.type==='e'&&!x.skip)e+=x.amt;else if(x.type==='i')i+=x.amt});head='<p class="fine" style="padding:0 2px">Найдено во всей истории: '+me.length+(e?' · расходы '+money(e):'')+(i?' · поступления '+money(i):'')+'</p>'}
   return head+(days.length?days.slice(0,search?120:400).map(function(d){
-    var tot=by[d].reduce(function(a,x){return a+(x.type==='e'?-x.amt:x.type==='t'?0:x.amt)},0),dt=parse(d);
+    var tot=by[d].reduce(function(a,x){return a+(x.skip||x.type==='t'?0:x.type==='e'?-x.amt:x.amt)},0),dt=parse(d);
     return '<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(search&&d.slice(0,4)!==T.slice(0,4)?' '+d.slice(0,4):'')+', '+WD[dt.getDay()]+'</span><span>'+money(tot)+'</span></div><div class="list">'+by[d].slice().reverse().map(entryRow).join('')+'</div></div>';
   }).join(''):'<div class="card"><p class="empty">'+(search?'Ничего не нашлось.':'В этом месяце записей нет. Нажмите «+», чтобы добавить первую.')+'</p></div>');
 }

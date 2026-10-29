@@ -9,7 +9,7 @@
 */
 (function(){
   var CFG='tgbk-cfg', API='https://api.telegram.org/bot';
-  var apps={}, cur=null, busy=false;
+  var apps={}, cur=null, busy=false, connecting=false;
   function get(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
   function put(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
   function cfg(){return get(CFG,{})}
@@ -25,7 +25,11 @@
     if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'Нет связи с Телеграмом. Проверь интернет и попробуй ещё раз.';
     return m||'Не получилось'}
 
-  function sendFile(a,manual){
+  var inflight=null;
+  function sendFile(a,manual){ // одна отправка за раз: автокопия и ручная/при подключении не дублируют друг друга
+    if(inflight)return inflight;
+    return inflight=sendFile0(a,manual).then(function(r){inflight=null;return r},function(e){inflight=null;throw e})}
+  function sendFile0(a,manual){
     var c=cfg();if(!c.token||!c.chat)return Promise.reject(new Error('not set'));
     var data=a.data();if(!data)return Promise.resolve(false);
     var d=today(),lk='tgbk-last:'+a.app,last=get(lk,{}),h=hash(data);
@@ -37,7 +41,7 @@
     return call(c.token,'sendDocument',fd).then(function(){put(lk,{d:d,h:h,t:Date.now()});var c2=cfg();delete c2.err;put(CFG,c2);refresh();return true})
       .catch(function(e){var c2=cfg();c2.err=ruErr(e);put(CFG,c2);refresh();throw e})}
 
-  function auto(){if(busy||!cur)return;var c=cfg();if(!c.token||!c.chat||c.off)return;
+  function auto(){if(busy||inflight||connecting||!cur)return;var c=cfg();if(!c.token||!c.chat||c.off)return;
     if(get('tgbk-last:'+cur.app,{}).d===today())return;
     busy=true;sendFile(cur,false).then(function(){busy=false},function(){busy=false})}
 
@@ -84,8 +88,8 @@
   function refresh(){var b=document.querySelectorAll('.tgbk-box');for(var i=0;i<b.length;i++)b[i].innerHTML=panel()}
 
   document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-tgbk]');if(!t)return;var a=t.getAttribute('data-tgbk');e.preventDefault();
-    if(a==='connect'){var inp=document.getElementById('tgbk-token'),msg=document.getElementById('tgbk-msg');t.disabled=true;t.textContent='Подключаю…';
-      connect(inp&&inp.value).then(function(){refresh()},function(err){t.disabled=false;t.textContent='Подключить';if(msg){msg.textContent=err&&err.message&&/[а-я]/i.test(err.message)?err.message:ruErr(err);msg.hidden=false}})}
+    if(a==='connect'){var inp=document.getElementById('tgbk-token'),msg=document.getElementById('tgbk-msg');t.disabled=true;t.textContent='Подключаю…';connecting=true;
+      connect(inp&&inp.value).then(function(){connecting=false;refresh()},function(err){connecting=false;t.disabled=false;t.textContent='Подключить';if(msg){msg.textContent=err&&err.message&&/[а-я]/i.test(err.message)?err.message:ruErr(err);msg.hidden=false}})}
     else if(a==='now'){if(!cur)return;t.disabled=true;t.textContent='Отправляю…';sendFile(cur,true).then(function(){t.textContent='Отправлено ✓';setTimeout(refresh,1500)},function(){refresh()})}
     else if(a==='toggle'){var c=cfg();c.off=!c.off;put(CFG,c);refresh();if(!c.off)auto()}
     else if(a==='reset'){if(window.confirm('Отключить бота во всех приложениях на этом сайте? Копии перестанут приходить.')){try{localStorage.removeItem(CFG)}catch(x){}refresh()}}

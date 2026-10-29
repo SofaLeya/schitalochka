@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
+
+android {
+    namespace 'io.github.sofaleya.schitalochka'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.sofaleya.schitalochka'
+        minSdk 24
+        targetSdk 35
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    signingConfigs {
+        release {
+            // ключ и пароль приходят из секретов GitHub (см. .github/workflows/android.yml)
+            storeFile file(System.getenv('SIGNING_STORE') ?: 'release.jks')
+            storePassword System.getenv('SIGNING_PASSWORD')
+            keyAlias 'sch'
+            keyPassword System.getenv('SIGNING_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}

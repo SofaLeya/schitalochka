@@ -175,6 +175,7 @@ button.mbox{padding:0;border:0;background:none}
 <div id="ov" class="ov" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
+<script src="tgbk.js"></script>
 <script>
 (function(){
 'use strict';
@@ -416,8 +417,9 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-10-29';
-var NEWS=['Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в телефоне».',
+var APP_VER='2026-10-29b';
+var NEWS=['Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
+ 'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в телефоне».',
  'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
  'Восстановление из копии возвращает всё: копилки, план, монстрика. Записи, сделанные после копии, сохраняются.',
  'Записи «не в тратах» отмечены синим и не входят в итог дня.',
@@ -430,6 +432,7 @@ function realCount(){return S.entries.filter(function(e){return !e.demo}).length
 function backupNote(){
   if(S.demo||realCount()<3)return '';
   var d=bkDays();if(d!==null&&d<7)return '';
+  try{var tl=JSON.parse(localStorage.getItem('tgbk-last:schitalochka')||'{}');if(tl.t&&Date.now()-tl.t<7*864e5)return ''}catch(e){}
   return '<div class="note warn"><b>Сделайте копию данных</b><span>'+(d===null?'Копию ещё не делали.':'Последняя копия была '+d+' дн. назад.')+' Данные лежат только в этом браузере.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="settings">Сделать копию</button></div></div>';
 }
 /* сжатая копия текстом: SCH1: + base64(gzip(json)) — короче в несколько раз, Телеграм её не портит */
@@ -1865,6 +1868,7 @@ function settingsSheet(){
    '<div class="f"><label for="s_bk">Загрузить выписку из банка</label><p class="fine">PDF-выписка из приложения банка: Альфа-Банк, Сбер, ВТБ, ОТП, Т-Банк. Можно выбрать сразу несколько файлов. Перед добавлением покажу все операции на проверку. Выписка никуда не отправляется, читается прямо в телефоне.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p></div>'+
    '<div class="f"><label>Мои категории трат</label>'+(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine">Своих категорий пока нет. Их можно добавить здесь или прямо при записи траты: в списке категорий пункт «＋ Своя категория…».</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Добавить категорию</button></div>'+
    '<div class="f"><label>Выгрузка для анализа</label><button type="button" class="btn" data-a="export">Открыть выгрузку</button></div>'+
+   '<div class="f"><label>Копии в Телеграм</label><div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div></div>'+
    '<div class="f"><label>Автокопии в телефоне</label><p class="fine">Приложение само сохраняет снимок данных раз в день (хранятся 10 дней) и перед каждым восстановлением. Если что-то пропало или затёрлось — верни нужный день. Очистка данных Chrome их тоже сотрёт, поэтому файл-копию всё равно делай.</p>'+snapHtml()+'</div>'+
    '<div class="f"><label>Резервная копия</label><p class="fine">'+(S.lastBackup?'Последняя копия: '+dlabel(S.lastBackup)+'.':'Копию ещё не делали.')+'</p><div class="btns"><button type="button" class="btn" data-a="dlBackup">Сохранить файл</button><button type="button" class="btn ghost" data-a="copyBackup">Копировать текст</button></div><textarea id="s_out" readonly style="position:absolute;left:-9999px;height:1px">'+esc(json)+'</textarea><p class="fine" id="s_msg0" hidden></p></div>'+
    '<div class="f"><label for="s_add">Добавить записи из текста</label><p class="fine">Дописывает записи к текущим, ничего не стирает. Повторная вставка дубли не создаёт.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставьте текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p></div>'+
@@ -2166,6 +2170,7 @@ function applyRemote(snap){
 
 
 snapTake('day');
+try{if(window.TGBK)TGBK.init({app:'schitalochka',title:'считалОчка',accent:'#6a45e8',file:function(d){return 'schitalochka-'+d+'.json'},data:function(){return S.demo||!realCount()?'':JSON.stringify(S)}})}catch(e){}
 if(!S.onb&&(realCount()>0||S.accounts.length>1||S.pet)){S.onb=1;saveLocal()}
 render();
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}

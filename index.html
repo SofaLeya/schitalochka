@@ -286,11 +286,19 @@ function seed(){
    recur:[{id:'r1',name:'Квартира',amt:15000,day:3,cat:'rent',demo:true},{id:'r2',name:'Тариф телефона',amt:400,day:25,cat:'conn',demo:true}],
    incomes:[{id:'i1',name:'Аванс',amt:30000,day:25,demo:true},{id:'i2',name:'Зарплата',amt:30000,day:10,demo:true}]};
 }
+var lastRaw=null; // что последним прочитали/записали в хранилище — чтобы другое окно не затёрло данные
 function load(){
-  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&o.entries)return migrate(o)}}catch(e){canSave=false}
+  try{var raw=localStorage.getItem(KEY);lastRaw=raw;if(raw){var o=JSON.parse(raw);if(o&&o.entries)return migrate(o)}}catch(e){canSave=false}
   return seed();
 }
-function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));canSave=true}catch(e){canSave=false}}
+function saveLocal(){try{
+  var cur=localStorage.getItem(KEY);
+  if(cur&&lastRaw!==null&&cur!==lastRaw){ // данные уже поменяли в другом окне (вкладка Chrome / установленное приложение)
+    adoptStored(cur);if(typeof toast==='function')setTimeout(function(){toast('Данные обновились в другом окне. Повтори последнее действие.',true)},50);return}
+  var js=JSON.stringify(S);localStorage.setItem(KEY,js);lastRaw=js;canSave=true}catch(e){canSave=false}}
+function adoptStored(raw){try{var o=JSON.parse(raw);if(!o||!o.entries)return;S=migrate(o);lastRaw=raw;syncCats();
+  if(typeof render==='function'){if(document.getElementById('ov')&&!document.getElementById('ov').hidden){try{closeSheet()}catch(e){}}render()}}catch(e){}}
+window.addEventListener('storage',function(e){if(e.key===KEY&&e.newValue&&e.newValue!==lastRaw)adoptStored(e.newValue)});
 function save(){saveLocal();syncSoon()}
 S=load();
 function syncCats(){
@@ -2086,7 +2094,7 @@ document.addEventListener('change',function(ev){
   fr.onload=function(){readBackupText(fr.result).then(function(o){if(!okBackup(o))throw 0;applyBackup(o)}).catch(function(e){m.textContent='Не получилось прочитать файл. Это точно файл копии schitalochka-….json?';m.hidden=false})};
   fr.readAsText(ev.target.files[0]);
 });
-document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||sh)return;if(iso(new Date())!==T){try{location.reload()}catch(e){}}else render()});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible')return;try{var cr=localStorage.getItem(KEY);if(cr&&cr!==lastRaw){adoptStored(cr);return}}catch(e){}if(sh)return;if(iso(new Date())!==T){try{location.reload()}catch(e){}}else render()});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.getElementById('ov').hidden)closeSheet()});
 
 

@@ -2205,7 +2205,7 @@ function ydReq(method,url){var o={method:method,headers:{Authorization:'OAuth '+
 function ydOk(r){if(!r.ok)throw {code:r.status};return r}
 function ydMeta(path){return ydReq('GET',YD.api+'?fields=modified,name,path&path='+encodeURIComponent(path||YD.file)).then(function(r){if(r.status===404)return null;return ydOk(r).json()})}
 function ydDownload(){return ydReq('GET',YD.api+'/download?path='+encodeURIComponent(YD.file)).then(function(r){return ydOk(r).json()})
-  .then(function(j){return fetch(j.href)}).then(function(r){return ydOk(r).text()}).then(function(t){try{return JSON.parse(t)}catch(e){throw {code:'bad'}}})}
+  .then(function(j){return fetch(j.href,{credentials:'omit',referrerPolicy:'no-referrer'})}).then(function(r){return ydOk(r).text()}).then(function(t){try{return JSON.parse(t)}catch(e){throw {code:'bad'}}})}
 function ydUpload(path,text){return ydReq('GET',YD.api+'/upload?overwrite=true&path='+encodeURIComponent(path)).then(function(r){return ydOk(r).json()})
   .then(function(j){return fetch(j.href,{method:'PUT',body:new Blob([text],{type:'application/json'})})}).then(ydOk)}
 function ydDir(){return ydReq('PUT',YD.api+'?path='+encodeURIComponent(YD.dir)).then(function(r){if(r.status!==409)ydOk(r)})}

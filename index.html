@@ -300,7 +300,7 @@ function saveLocal(){try{
 function adoptStored(raw){try{var o=JSON.parse(raw);if(!o||!o.entries)return;S=migrate(o);lastRaw=raw;syncCats();
   if(typeof render==='function'){if(document.getElementById('ov')&&!document.getElementById('ov').hidden){try{closeSheet()}catch(e){}}render()}}catch(e){}}
 window.addEventListener('storage',function(e){if(e.key===KEY&&e.newValue&&e.newValue!==lastRaw)adoptStored(e.newValue)});
-function save(){saveLocal();syncSoon();clearTimeout(save.sn);save.sn=setTimeout(function(){snapTake('day')},1500)}
+function save(){saveLocal();syncSoon();ydChanged();clearTimeout(save.sn);save.sn=setTimeout(function(){snapTake('day')},1500)}
 S=load();
 function syncCats(){
   for(var i=CATS.length-1;i>=0;i--)if(CATS[i].custom){delete CMAP[CATS[i].id];CATS.splice(i,1)}
@@ -417,8 +417,9 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-10-29b';
-var NEWS=['Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
+var APP_VER='2026-10-29c';
+var NEWS=['Яндекс Диск: войди в настройках, и данные будут храниться в твоём Диске и сами появятся на другом телефоне или компьютере.',
+ 'Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
  'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в браузере».',
  'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
  'Восстановление из копии возвращает всё: копилки, план, монстрика. Записи, сделанные после копии, сохраняются.',
@@ -1867,7 +1868,8 @@ function settingsSheet(){
   openSheet('<h3>Настройки</h3><button type="button" class="btn ghost" data-a="help">Как пользоваться</button>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off"></form>'+
    '<div class="f"><label>План трат на день</label><p class="fine">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'Пока не задан.')+'</p><button type="button" class="btn ghost" data-a="planOpen">Изменить план</button></div>'+
-   '<div class="f"><label>Копии в Телеграм</label><div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div></div>'+
+   '<div class="f"><label>Яндекс Диск</label><div id="yd_box">'+ydPanel()+'</div></div>'+
+    '<div class="f"><label>Копии в Телеграм</label><div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div></div>'+
    '<div class="help f" style="gap:8px">'+
    det('Резервная копия',
      '<p class="fine" style="margin:0">'+(S.lastBackup?'Последний файл: '+dlabel(S.lastBackup)+'.':'Файл ещё не сохраняли.')+' Отправь его себе в «Избранное» в Телеграме.</p>'+
@@ -1942,6 +1944,9 @@ document.addEventListener('click',function(ev){
     if(!(gv>0)){var er=document.getElementById('f_sperr');er.textContent='Впиши сумму больше нуля.';er.hidden=false;return}
     if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
   else if(a==='snapBack'){var sx=snaps()[+v];if(sx&&window.confirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.')){snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Вернула данные на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}}}
+  else if(a==='ydIn'){ydLogin()}
+  else if(a==='ydNow'){ydSync()}
+  else if(a==='ydOut'){ydOut()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
@@ -2127,7 +2132,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.g
 
 /* ---------- общее хранилище (только в веб-версии, где есть db) ---------- */
 var DB=null,COL=null,UID=null,known={},pushT=null,pushing=false,initDone=false,pendingR=false,syncState='off';
-function syncLabel(){return syncState==='ok'?'синхронизация вкл.':syncState==='wait'?'синхронизация…':syncState==='err'?'нет синхронизации':syncState==='ro'?'только чтение':''}
+function syncLabel(){if(!DB&&ydOn())return ydLabel();return syncState==='ok'?'синхронизация вкл.':syncState==='wait'?'синхронизация…':syncState==='err'?'нет синхронизации':syncState==='ro'?'только чтение':''}
 function renderBadge(){var e=document.getElementById('syncb');if(e)e.textContent=syncLabel()}
 function cfgOf(){var c={};Object.keys(S).forEach(function(k){if(k!=='entries')c[k]=S[k]});return c}
 function partsOf(){
@@ -2176,6 +2181,98 @@ function applyRemote(snap){
   renderBadge();
 }
 
+
+/* ---------- синхронизация через Яндекс Диск ----------
+   Данные лежат у самого пользователя: «Приложения/считалОчка» на его Диске.
+   Приложение видит только эту папку. Один файл schitalochka.json + копии по дням (последние 14). */
+var YD={cid:'7e1b24adf33f4365ba5fb9ab37619532',redir:'https://sofaleya.github.io/schitalochka/',
+  api:'https://cloud-api.yandex.net/v1/disk/resources',file:'app:/schitalochka.json',dir:'app:/Копии',
+  key:'yd-sync',st:'off',msg:'',busy:false,again:false,t:null};
+function ydGet(){try{return JSON.parse(localStorage.getItem(YD.key)||'{}')||{}}catch(e){return {}}}
+function ydSet(p){var m=ydGet();Object.keys(p).forEach(function(k){if(p[k]===undefined)delete m[k];else m[k]=p[k]});try{localStorage.setItem(YD.key,JSON.stringify(m))}catch(e){}return m}
+function ydOn(){return !!ydGet().tok}
+function ydDirty(m){m=m||ydGet();return (m.chg||0)>(m.sent||0)}
+// ответ Яндекса после входа приходит в адресе страницы (#access_token=…)
+(function(){var h=location.hash||'';if(h.indexOf('access_token=')<0&&h.indexOf('error=')<0)return;
+  var q=new URLSearchParams(h.slice(1));try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  if(q.get('access_token')){var m=ydGet();ydSet({tok:q.get('access_token'),exp:Date.now()+(+q.get('expires_in')||31536000)*1000,dev:m.dev||uid()});YD.justIn=true}
+  else YD.msg='Яндекс не дал доступ'+(q.get('error')==='access_denied'?': вход отменён':' ('+(q.get('error_description')||q.get('error'))+')');})();
+function ydLogin(){location.href='https://oauth.yandex.ru/authorize?response_type=token&client_id='+YD.cid+'&redirect_uri='+encodeURIComponent(YD.redir)}
+function ydErr(e){if(e&&e.code)return e.code==='bad'?'файл в Диске повреждён':'код '+e.code;
+  return 'нет связи с Яндексом'+(e&&e.message?' ('+e.message+')':'')}
+function ydReq(method,url){var o={method:method,headers:{Authorization:'OAuth '+ydGet().tok}};
+  return fetch(url,o).then(function(r){if(r.status===401){ydSet({tok:undefined,mod:undefined});YD.msg='Вход в Яндекс устарел, войди заново';throw {code:401}}return r})}
+function ydOk(r){if(!r.ok)throw {code:r.status};return r}
+function ydMeta(path){return ydReq('GET',YD.api+'?fields=modified,name,path&path='+encodeURIComponent(path||YD.file)).then(function(r){if(r.status===404)return null;return ydOk(r).json()})}
+function ydDownload(){return ydReq('GET',YD.api+'/download?path='+encodeURIComponent(YD.file)).then(function(r){return ydOk(r).json()})
+  .then(function(j){return fetch(j.href)}).then(function(r){return ydOk(r).text()}).then(function(t){try{return JSON.parse(t)}catch(e){throw {code:'bad'}}})}
+function ydUpload(path,text){return ydReq('GET',YD.api+'/upload?overwrite=true&path='+encodeURIComponent(path)).then(function(r){return ydOk(r).json()})
+  .then(function(j){return fetch(j.href,{method:'PUT',body:new Blob([text],{type:'application/json'})})}).then(ydOk)}
+function ydDir(){return ydReq('PUT',YD.api+'?path='+encodeURIComponent(YD.dir)).then(function(r){if(r.status!==409)ydOk(r)})}
+async function ydDaily(day){ // копия дня + чистка старше 14 копий
+  await ydDir();
+  await ydReq('POST',YD.api+'/copy?overwrite=true&from='+encodeURIComponent(YD.file)+'&path='+encodeURIComponent(YD.dir+'/schitalochka-'+day+'.json')).then(ydOk);
+  var r=await ydReq('GET',YD.api+'?limit=200&sort=name&fields=_embedded.items.name,_embedded.items.path&path='+encodeURIComponent(YD.dir)).then(function(r){return ydOk(r).json()});
+  var it=((r._embedded&&r._embedded.items)||[]).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)});
+  for(var i=0;i<it.length-14;i++){try{await ydReq('DELETE',YD.api+'?permanently=true&path='+encodeURIComponent(it[i].path))}catch(e){}}
+}
+function ydPack(){return JSON.stringify({v:1,app:'schitalochka',savedAt:Date.now(),dev:ydGet().dev,data:S})}
+function ydEmpty(){return S.demo||!realCount()}
+function ydAdopt(r,mod){snapTake('pre',true);S=migrate(r.data);S.demo=false;saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});
+  if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
+async function ydSync(){
+  if(!ydOn())return;if(YD.busy){YD.again=true;return}
+  YD.busy=true;YD.st='wait';ydBadge();
+  try{
+    var m=ydGet(),meta=await ydMeta();
+    if(meta&&meta.modified!==m.mod){ // в Диске новая версия (с другого устройства или первое подключение)
+      var r=await ydDownload();if(!r||!okBackup(r.data))throw {code:'bad'};
+      var same=JSON.stringify(r.data)===JSON.stringify(S);
+      if(same){ydSet({mod:meta.modified})}
+      else if(!m.mod&&!ydEmpty()){ // первое подключение, и данные есть и тут, и в Диске
+        var cnt=r.data.entries.filter(function(e){return !e.demo}).length;
+        if(confirm('В Яндекс Диске уже есть данные считалОчки ('+cnt+' записей). Взять их на это устройство?\n\nОК - взять из Диска\nОтмена - оставить то, что на этом устройстве (версия из Диска сохранится в папке «Копии»)')){ydAdopt(r,meta.modified)}
+        else{await ydDir();await ydUpload(YD.dir+'/до-подключения-'+iso(new Date())+'.json',JSON.stringify(r));ydSet({mod:meta.modified,chg:Date.now()})}
+      }
+      else if(m.mod&&ydDirty(m)&&!ydEmpty()){ // поменяли и тут, и на другом устройстве: оставляем эту версию, другую не теряем
+        await ydDir();var nm='другое-устройство-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
+        await ydUpload(YD.dir+'/'+nm,JSON.stringify(r));ydSet({mod:meta.modified});
+        toast('Данные менялись и тут, и на другом устройстве. Оставила эти, другую версию сохранила в Диске: «Копии».',true);
+      }
+      else ydAdopt(r,meta.modified);
+    }
+    m=ydGet();
+    if(!ydEmpty()&&(ydDirty(m)||!meta)){
+      var day=iso(new Date());
+      if(meta&&m.bk!==day){try{await ydDaily(day);ydSet({bk:day})}catch(e){if(e&&e.code===401)throw e}}
+      var chg=m.chg||Date.now();await ydUpload(YD.file,ydPack());
+      var nm2=await ydMeta();ydSet({mod:nm2&&nm2.modified,sent:chg,bk:ydGet().bk||day});
+    }
+    ydSet({at:Date.now()});YD.st='ok';YD.msg='';
+  }catch(e){YD.st=ydOn()?'err':'off';if(!(e&&e.code===401))YD.msg=ydErr(e)}
+  YD.busy=false;ydBadge();
+  if(YD.again){YD.again=false;setTimeout(ydSync,300)}
+}
+function ydChanged(){if(!ydOn())return;ydSet({chg:Date.now()});clearTimeout(YD.t);YD.t=setTimeout(ydSync,2500)}
+function ydLabel(){if(!ydOn())return '';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':''}
+function ydPanel(){var m=ydGet(),h='';
+  if(!m.tok){
+    h='<p class="fine" style="margin:0">Данные будут лежать в твоём Яндекс Диске, в папке «Приложения/считалОчка», и сами появятся на другом телефоне или компьютере. Приложение видит только эту папку.</p>'+
+      (YD.msg?'<p class="fine" style="margin:6px 0 0;color:var(--out)">'+esc(YD.msg)+'</p>':'')+
+      '<div class="btns" style="margin-top:8px"><button type="button" class="btn sm" data-a="ydIn">Войти через Яндекс</button></div>';
+  }else{
+    var at=m.at?new Date(m.at):null;
+    h='<p class="fine" style="margin:0">'+(YD.st==='wait'?'Синхронизирую…':YD.st==='err'?'<span style="color:var(--out)">Не получилось: '+esc(YD.msg)+'</span>':'Подключено'+(at?'. Последняя синхронизация: '+(iso(at)===iso(new Date())?'сегодня':dlabel(iso(at)))+' в '+p2(at.getHours())+':'+p2(at.getMinutes()):''))+'</p>'+
+      '<p class="fine" style="margin:4px 0 0">Копии за последние 14 дней лежат там же, в папке «Копии».</p>'+
+      '<div class="btns" style="margin-top:8px"><button type="button" class="btn ghost sm" data-a="ydNow">Синхронизировать сейчас</button><button type="button" class="btn ghost sm" data-a="ydOut">Отключить</button></div>';
+  }
+  return h}
+function ydBadge(){renderBadge();var b=document.getElementById('yd_box');if(b)b.innerHTML=ydPanel()}
+function ydOut(){if(!confirm('Отключить Яндекс Диск на этом устройстве? Данные останутся и тут, и в Диске.'))return;
+  var d=ydGet().dev;try{localStorage.removeItem(YD.key)}catch(e){}ydSet({dev:d});YD.st='off';YD.msg='';ydBadge()}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&ydOn())setTimeout(ydSync,800)});
+window.addEventListener('storage',function(e){if(e.key===YD.key){var was=YD.st==='off';if(ydOn()&&was)ydSync();else ydBadge()}});
+if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast('Яндекс Диск подключён')},600)}
 
 snapTake('day');
 try{if(window.TGBK)TGBK.init({app:'schitalochka',title:'считалОчка',accent:'#6a45e8',file:function(d){return 'schitalochka-'+d+'.json'},data:function(){return S.demo||!realCount()?'':JSON.stringify(S)}})}catch(e){}

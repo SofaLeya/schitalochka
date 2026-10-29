@@ -57,20 +57,20 @@
       return call(token,'sendMessage',fd)}).then(function(){refresh();if(cur)return sendFile(cur,true)})}
 
   function lastLine(){if(!cur)return '';var l=get('tgbk-last:'+cur.app,{});if(!l.t)return 'Из этого приложения копий ещё не было.';
-    var t=new Date(l.t);return 'Последняя копия отсюда: '+t.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+', '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+'.'}
+    var t=new Date(l.t);return 'Последняя копия: '+t.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+', '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+'.'}
 
   var BTN='display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:12px;border:0;font:inherit;font-weight:700;cursor:pointer;';
   function prim(){return 'background:'+(cur&&cur.accent||'#6a45e8')+';color:'+(cur&&cur.accentText||'#fff')}
   function panel(){var c=cfg();
     var s='<div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.4">';
     if(c.token&&c.chat){
-      s+='<div><b>'+(c.off?'⏸ Выключено':'✅ Подключено')+'</b> · бот @'+esc(c.bot||'')+'</div>'+
-        '<div style="opacity:.8">'+(c.off?'Копии не отправляются.':'Раз в день, когда открываешь приложение, копия уходит в чат с ботом (если данные поменялись).')+' '+esc(lastLine())+'</div>'+
+      var LNK='background:none;border:0;padding:0;font:inherit;color:inherit;opacity:.75;text-decoration:underline;cursor:pointer';
+      s+='<div>'+(c.off?'⏸ Выключено':'✅ Раз в день в @'+esc(c.bot||'бота')+', если данные поменялись')+'</div>'+
+        '<div style="opacity:.75;font-size:13px">'+esc(lastLine())+'</div>'+
         (c.err?'<div style="color:#e0556b">'+esc(c.err)+'</div>':'')+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-tgbk="now" style="'+BTN+prim()+'">Отправить сейчас</button>'+
-        '<button type="button" data-tgbk="toggle" style="'+BTN+'background:rgba(127,127,127,.18);color:inherit">'+(c.off?'Включить':'Выключить')+'</button>'+
-        '<button type="button" data-tgbk="reset" style="'+BTN+'background:rgba(127,127,127,.18);color:inherit">Отключить бота</button></div>'+
-        '<div style="opacity:.7;font-size:12.5px">Подключение общее для всех приложений на sofaleya.github.io. Ключ бота хранится только в этом браузере.</div>';
+        '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button type="button" data-tgbk="now" style="'+BTN+prim()+'">Отправить сейчас</button>'+
+        '<button type="button" data-tgbk="toggle" style="'+LNK+'">'+(c.off?'включить':'выключить')+'</button>'+
+        '<button type="button" data-tgbk="reset" style="'+LNK+'">отключить бота</button></div>';
     }else{
       s+='<div style="opacity:.85">Приложение само будет присылать тебе файл-копию в Телеграм раз в день. Нужен свой бот — это бесплатно, минут 5, делается один раз для всех приложений на sofaleya.github.io.</div>'+
         '<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">'+

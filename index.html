@@ -299,7 +299,7 @@ function saveLocal(){try{
 function adoptStored(raw){try{var o=JSON.parse(raw);if(!o||!o.entries)return;S=migrate(o);lastRaw=raw;syncCats();
   if(typeof render==='function'){if(document.getElementById('ov')&&!document.getElementById('ov').hidden){try{closeSheet()}catch(e){}}render()}}catch(e){}}
 window.addEventListener('storage',function(e){if(e.key===KEY&&e.newValue&&e.newValue!==lastRaw)adoptStored(e.newValue)});
-function save(){saveLocal();syncSoon()}
+function save(){saveLocal();syncSoon();clearTimeout(save.sn);save.sn=setTimeout(function(){snapTake('day')},1500)}
 S=load();
 function syncCats(){
   for(var i=CATS.length-1;i>=0;i--)if(CATS[i].custom){delete CMAP[CATS[i].id];CATS.splice(i,1)}
@@ -335,7 +335,7 @@ function backupErr(txt){txt=String(txt||'').trim();
   if(txt.charAt(0)!=='{'&&txt.indexOf('{"v"')<0)return 'Это не начало копии: текст должен начинаться с {"v". Телеграм делит длинный текст на несколько сообщений — выделите их все (зажмите первое, потом отметьте остальные), скопируйте вместе и вставьте.';
   return 'Копия неполная: похоже, вставлена только часть. Телеграм делит длинный текст на несколько сообщений — выделите их все, скопируйте вместе и вставьте. Надёжнее — файлом через «Восстановить из файла».'}
 /* восстановление копии: всё из копии + записи, которых в копии нет (сделаны позже) */
-function applyBackup(o){
+function applyBackup(o){snapTake('pre',true);
   var ids={};o.entries.forEach(function(e){ids[e.id]=1});
   var extra=(S&&S.entries||[]).filter(function(e){return !e.demo&&e.id&&!ids[e.id]});
   var accIds={};(o.accounts||[]).forEach(function(a){accIds[a.id]=1});
@@ -346,6 +346,19 @@ function applyBackup(o){
   toast('Готово: восстановлено записей '+(S.entries.length-extra.length)+(extra.length?', и сохранено '+extra.length+' сделанных после копии':''));
 }
 function isFullBackup(o){return o&&!Array.isArray(o)&&Array.isArray(o.entries)&&Array.isArray(o.accounts)}
+/* ---------- автокопии внутри телефона: снимок раз в день и перед восстановлением/стиранием ---------- */
+var SNAPKEY='podkopka-snap';
+function snaps(){try{var a=JSON.parse(localStorage.getItem(SNAPKEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function snapTake(why,force){try{
+  if(!S||S.demo||!S.entries||!S.entries.filter(function(e){return !e.demo}).length)return;
+  var a=snaps(),day=iso(new Date());
+  if(!force&&a.length&&a[0].d===day&&a[0].why==='day'){a[0]={d:day,t:Date.now(),why:'day',n:S.entries.length,raw:JSON.stringify(S)}}
+  else a.unshift({d:day,t:Date.now(),why:why||'day',n:S.entries.length,raw:JSON.stringify(S)});
+  // оставить: по одной на каждый из последних 10 дней + до 3 снимков «перед восстановлением»
+  var seen={},keep=[],pre=0;a.forEach(function(x){if(x.why!=='day'){if(pre<3){keep.push(x);pre++}return}if(!seen[x.d]&&Object.keys(seen).length<10){seen[x.d]=1;keep.push(x)}});
+  localStorage.setItem(SNAPKEY,JSON.stringify(keep))}catch(e){}}
+function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока нет — появятся сами после первых записей.</p>';
+  return '<div class="list">'+a.map(function(x,i){var dt=new Date(x.t);return '<div class="row"><div class="grow"><div class="t" style="font-size:14px">'+dlabel(x.d)+', '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')+'</div><div class="s">'+(x.why==='day'?'':'перед восстановлением · ')+x.n+' '+(x.n%10===1&&x.n%100!==11?'запись':x.n%10>=2&&x.n%10<=4&&(x.n%100<10||x.n%100>=20)?'записи':'записей')+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="snapBack" data-v="'+i+'">Вернуть</button></div>'}).join('')+'</div>'}
 function okBackup(o){return o&&Array.isArray(o.entries)}
 function migrate(o){
   if(!Array.isArray(o.accounts)||!o.accounts.length)o.accounts=[{id:'a1',name:'Основная карта',type:'main',start:+o.start||0}];if(o.simple===undefined)o.simple=true;
@@ -403,12 +416,12 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-10-26';
-var NEWS=['Обязательные платежи и редкие расходы, заложенные в план, больше не портят «в среднем в день» и настроение монстрика. Какие категории не сравнивать с планом, можно выбрать в «План трат на день».',
- 'В расчёте плана появились подсказки: сколько ты обычно откладываешь и тратишь на редкое. Одно нажатие — и сумма подставлена.',
- '«Копировать текст» в резервной копии теперь даёт сжатую копию — в несколько раз короче, и Телеграм её не портит.',
- 'Ожидаемые возвраты по «Делю с кем-то» сразу уменьшают траты, а при «Пришло» можно вписать фактическую сумму.',
- 'После сохранения или удаления записи страница больше не прыгает наверх.'];
+var APP_VER='2026-10-29';
+var NEWS=['Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в телефоне».',
+ 'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
+ 'Восстановление из копии возвращает всё: копилки, план, монстрика. Записи, сделанные после копии, сохраняются.',
+ 'Записи «не в тратах» отмечены синим и не входят в итог дня.',
+ 'Кнопка «Назад» закрывает окно или возвращает на главную, а не выходит из приложения.'];
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
   return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
 /* ---------- резервная копия ---------- */
@@ -1852,6 +1865,7 @@ function settingsSheet(){
    '<div class="f"><label for="s_bk">Загрузить выписку из банка</label><p class="fine">PDF-выписка из приложения банка: Альфа-Банк, Сбер, ВТБ, ОТП, Т-Банк. Можно выбрать сразу несколько файлов. Перед добавлением покажу все операции на проверку. Выписка никуда не отправляется, читается прямо в телефоне.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p></div>'+
    '<div class="f"><label>Мои категории трат</label>'+(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine">Своих категорий пока нет. Их можно добавить здесь или прямо при записи траты: в списке категорий пункт «＋ Своя категория…».</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Добавить категорию</button></div>'+
    '<div class="f"><label>Выгрузка для анализа</label><button type="button" class="btn" data-a="export">Открыть выгрузку</button></div>'+
+   '<div class="f"><label>Автокопии в телефоне</label><p class="fine">Приложение само сохраняет снимок данных раз в день (хранятся 10 дней) и перед каждым восстановлением. Если что-то пропало или затёрлось — верни нужный день. Очистка данных Chrome их тоже сотрёт, поэтому файл-копию всё равно делай.</p>'+snapHtml()+'</div>'+
    '<div class="f"><label>Резервная копия</label><p class="fine">'+(S.lastBackup?'Последняя копия: '+dlabel(S.lastBackup)+'.':'Копию ещё не делали.')+'</p><div class="btns"><button type="button" class="btn" data-a="dlBackup">Сохранить файл</button><button type="button" class="btn ghost" data-a="copyBackup">Копировать текст</button></div><textarea id="s_out" readonly style="position:absolute;left:-9999px;height:1px">'+esc(json)+'</textarea><p class="fine" id="s_msg0" hidden></p></div>'+
    '<div class="f"><label for="s_add">Добавить записи из текста</label><p class="fine">Дописывает записи к текущим, ничего не стирает. Повторная вставка дубли не создаёт.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставьте текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p></div>'+
    '<div class="f"><label for="s_file">Восстановить из файла</label><input id="s_file" type="file" accept=".json,.txt,application/json,text/plain"><p class="fine" id="s_msg" hidden></p></div>'+
@@ -1915,6 +1929,7 @@ document.addEventListener('click',function(ev){
   else if(a==='splitSave'){var sz=sh&&S.entries.filter(function(e){return e.id===sh.id})[0],gv=num(document.getElementById('f_spgot').value);
     if(!(gv>0)){var er=document.getElementById('f_sperr');er.textContent='Впиши сумму больше нуля.';er.hidden=false;return}
     if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
+  else if(a==='snapBack'){var sx=snaps()[+v];if(sx&&window.confirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.')){snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Вернула данные на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}}}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
@@ -1993,7 +2008,7 @@ document.addEventListener('click',function(ev){
       if(S.demo){S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}})}S.entries=S.entries.filter(function(e){return !e.demo});S.demo=false;save();am.textContent='✓ Добавлено записей: '+cn+(up?', обновлено: '+up:'');am.hidden=false;closeSheet();render();toast(cn||up?('Готово: добавлено '+cn+(up?', обновлено '+up:'')):'Новых записей нет, всё уже добавлено')
     }).catch(function(e){am.textContent='Не получилось прочитать. Вставьте текст целиком.';am.hidden=false;toast('Не получилось прочитать файл',true)})
   }
-  else if(a==='wipe'){S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[]};save();closeSheet();render()}
+  else if(a==='wipe'){snapTake('pre',true);S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[]};save();closeSheet();render()}
 });
 document.addEventListener('submit',function(ev){
   ev.preventDefault();
@@ -2150,6 +2165,7 @@ function applyRemote(snap){
 }
 
 
+snapTake('day');
 if(!S.onb&&(realCount()>0||S.accounts.length>1||S.pet)){S.onb=1;saveLocal()}
 render();
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}

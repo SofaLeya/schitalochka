@@ -419,7 +419,7 @@ function applyPayout(day,ym){
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
 var APP_VER='2026-10-29b';
 var NEWS=['Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
- 'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в телефоне».',
+ 'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в браузере».',
  'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
  'Восстановление из копии возвращает всё: копилки, план, монстрика. Записи, сделанные после копии, сохраняются.',
  'Записи «не в тратах» отмечены синим и не входят в итог дня.',
@@ -1875,7 +1875,7 @@ function settingsSheet(){
      '<label for="s_file" style="font-weight:700;margin-top:6px">Восстановить из файла</label><input id="s_file" type="file" accept=".json,.txt,application/json,text/plain"><p class="fine" id="s_msg" hidden></p>'+
      '<label for="s_in" style="font-weight:700">Или из текста</label><textarea id="s_in" placeholder="Вставьте сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="restore">Восстановить</button></div>'+
      '<p class="fine" style="margin:0">Копия возвращает всё: записи, копилки, план, монстрика. Записи, сделанные после копии, остаются.</p>')+
-   det('Автокопии в телефоне','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
+   det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
    det('Загрузить выписку из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+
    det('Добавить записи из текста','<p class="fine" style="margin:0">Для данных из другого приложения (см. «Как пользоваться»). Дописывает к текущим, дублей не будет.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставьте текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p>')+
    det('Мои категории трат'+(S.ccats.length?' · '+S.ccats.length:''),(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты.</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Добавить категорию</button>')+

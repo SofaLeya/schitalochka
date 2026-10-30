@@ -51,6 +51,7 @@ h1,h2,h3,p{margin:0}
 .row.dragging{position:relative;z-index:5;background:var(--surface2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .foldhead{display:flex;align-items:flex-start;gap:10px;width:100%;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
 .foldhead .h2like{display:block;font-size:13px;font-weight:600;letter-spacing:.06em;margin-bottom:4px;text-transform:uppercase;color:var(--muted)}
+.midsum{font-size:19px;font-weight:800;margin:2px 0}
 .foldhead>.grow{flex:1;display:block;min-width:0}
 .foldhead .chev{flex:none;margin-left:auto;color:var(--accent);font-weight:800;font-size:20px;line-height:1}
 .amt.skip{color:#5b8def}
@@ -1069,21 +1070,24 @@ function goalPace(a){ // средний чистый приток за посл�
 function goalLine(a){if(!(a.goal>0))return '';var b=accBal(a),p=Math.max(0,Math.min(100,b/a.goal*100)),left=a.goal-b,eta='';
   if(left<=0)eta='цель достигнута!';else{var pc=goalPace(a);if(pc>0){var mo=Math.ceil(left/pc),dd=new Date(parse(petDay()).getFullYear(),parse(petDay()).getMonth()+mo,1);eta='при нынешнем темпе — к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][dd.getMonth()]+' '+dd.getFullYear()}else eta='пока нет пополнений за 3 месяца'}
   return '<div class="s">цель '+money(a.goal)+' · '+Math.round(p)+'% · '+(left>0?'осталось '+money(left)+', ':'')+eta+'</div><div class="bar" style="margin-top:6px"><i style="width:'+p+'%;background:var(--accent)"></i></div>'}
-function uiFold(k,v){try{var o=JSON.parse(localStorage.getItem('sch-fold')||'{}');if(v===undefined)return !!o[k];o[k]=v;localStorage.setItem('sch-fold',JSON.stringify(o))}catch(e){return false}}
+var FOLD_DEF={rules:1,pf:1,p3:1,plfile:1,debt:0};
+function uiFold(k,v){try{var o=JSON.parse(localStorage.getItem('sch-fold')||'{}');if(v===undefined)return k in o?!!o[k]:!!FOLD_DEF[k];o[k]=v;localStorage.setItem('sch-fold',JSON.stringify(o))}catch(e){return !!FOLD_DEF[k]}}
+function fhead(k,title,sum,note){var shut=uiFold(k);
+  return '<button type="button" class="foldhead" data-a="fold" data-v="'+k+'" aria-expanded="'+(!shut)+'"><span class="grow"><span class="h2like">'+title+'</span>'+(sum!=null?'<span class="'+(k==='save'||k==='debt'?'bigsum':'midsum')+'" style="display:block">'+sum+'</span>':'')+(note?'<span class="fine" style="display:block">'+note+'</span>':'')+'</span><span class="chev">'+(shut?'＋':'–')+'</span></button>'}
+function fcard(k,title,sum,note,body,foot){return '<div class="card">'+fhead(k,title,sum,note)+(uiFold(k)?'':body)+(foot||'')+'</div>'}
 function accountsCard(){
   var funds=S.accounts.filter(function(a){return a.type==='save'||a.type==='other'}),debts=S.accounts.filter(function(a){return a.type==='debt'});
   var fs=0,ds=0;funds.forEach(function(a){fs+=accBal(a)});debts.forEach(function(a){ds+=accBal(a)});
   function row(a,many){var b=accBal(a);
     return '<button class="row" data-a="editAcc" data-id="'+a.id+'" data-acc="'+a.id+'">'+(many?'<span class="drag" aria-label="Перетащить">⠿</span>':'')+'<span class="dot" style="background:'+ACOL[a.type]+'"></span><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+ATYPES[a.type]+(a.type==='debt'&&a.start<0?' · погашено '+money(Math.max(0,b-a.start))+' из '+money(-a.start):'')+'</div>'+(a.type==='debt'&&a.start<0?'<div class="bar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,(b-a.start)/-a.start*100))+'%;background:var(--in)"></i></div>':'')+(a.type==='save'?goalLine(a):'')+'</div><span class="amt'+(b<0?' out':'')+'">'+money(b)+'</span></button>';
   }
-  function head(k,title,sum,note){var shut=uiFold(k);
-    return '<button type="button" class="foldhead" data-a="fold" data-v="'+k+'" aria-expanded="'+(!shut)+'"><span class="grow" style="text-align:left"><span class="h2like">'+title+'</span><span class="bigsum" style="display:block">'+money(sum)+'</span>'+(note?'<span class="fine" style="display:block">'+note+'</span>':'')+'</span><span class="chev">'+(shut?'＋':'–')+'</span></button>'}
+  function head(k,title,sum,note){return fhead(k,title,money(sum),note)}
   var h='<div class="card">'+head('save','Копилки',fs,'В «Свободные деньги» не входит.');
   if(!uiFold('save'))h+=(funds.length?'<div class="list" id="acclist">'+funds.map(function(a){return row(a,funds.length>1)}).join('')+'</div>'+(funds.length>1?'<p class="fine" style="margin:0">Порядок меняется: потяни за ⠿</p>':''):'<p class="fine">Копилок пока нет. Заведи, например, «Отпуск», «Подушка» или «Подарки».</p>');
   h+='<div class="btns"><button class="btn ghost sm" data-a="newDeposit">Отложить</button><button class="btn ghost sm" data-a="newWithdraw">Достать</button><button class="btn ghost sm" data-a="newAcc">Новая копилка</button></div></div>';
-  if(debts.length){h+='<div class="card">'+head('debt','Долги',ds,'');
-    if(!uiFold('debt'))h+='<div class="list">'+debts.map(function(a){return row(a,debts.length>1)}).join('')+'</div>';
-    h+='</div>'}
+  h+='<div class="card">'+head('debt','Долги',ds,debts.length?'':'Долгов нет');
+  if(!uiFold('debt')&&debts.length)h+='<div class="list">'+debts.map(function(a){return row(a,debts.length>1)}).join('')+'</div>';
+  h+='<div class="btns"><button class="btn ghost sm" data-a="newDebt">Новый долг</button></div></div>';
   return h;
 }
 
@@ -1694,26 +1698,28 @@ function planRow(kind,r,ym){
   return '<div class="row" style="padding-block:10px;border-top:1px solid var(--line)"><button class="grow" style="text-align:left" data-a="editPlan" data-k="'+kind+'" data-id="'+r.id+'"><div class="t">'+esc(r.name)+'</div><div class="s">'+r.day+'-го числа'+(kind==='r'&&+r.every>1?' · раз в '+r.every+' мес.':'')+(kind==='r'&&r.acc&&accById(r.acc)?' · из «'+esc(accById(r.acc).name)+'»':'')+' '+chip+'</div></button><div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="amt '+(kind==='i'?'in':'out')+'">'+money(r.amt)+'</span><button class="btn sm '+(done?'ghost':'')+'" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'">'+(done?'Отменить':(kind==='r'?'Потрачено':'Пришло'))+'</button></div></div>';
 }
 
-function rulesCard(){
-  if(!S.rules.length){var hasSave=S.accounts.some(function(x){return x.type!=='main'});return '<div class="card"><h2>Раскладка выплат</h2><p class="fine">Можно настроить, сколько откладывать в копилки с каждой зарплаты. В день выплаты приложение предложит разложить деньги, а эти суммы сразу перестанут считаться в «доступно в день».</p>'+(hasSave?'<div class="btns"><button class="btn" data-a="newRule">Добавить правило</button></div>':'<p class="fine">Сначала заведи копилку, например «Отпуск» или «Подушка».</p><div class="btns"><button class="btn" data-a="newAcc">Завести копилку</button></div>')+'</div>'}
-  var pend=pendingPayouts(),st=planStats(),h='<div class="card"><h2>Раскладка выплат</h2>';
-  if(pend.length){
-    h+=pend.map(function(p){
-      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.map(function(r){return esc(r.name)+' '+money(r.amt)}).join(' · ')+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить '+money(p.sum)+'</button><button class="btn sm ghost" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'">Пропустить</button></div></div>';
-    }).join('');
-  }else h+='<p class="fine">Все прошедшие выплаты разложены. Следующая раскладка появится в день выплаты.</p>';
+function rulesCard(part){
+  var hasSave=S.accounts.some(function(x){return x.type!=='main'});
+  if(!S.rules.length)return part==='pend'?'':fcard('rules','Раскладка по копилкам',null,'Правил пока нет','<p class="fine">Сколько откладывать в копилки с каждой выплаты. В день выплаты приложение предложит разложить деньги одной кнопкой.</p>'+(hasSave?'<div class="btns"><button class="btn" data-a="newRule">Добавить правило</button></div>':'<p class="fine">Сначала заведи копилку на главной.</p>'));
+  var pend=pendingPayouts(),st=planStats(),h='';
+  if(part==='pend'){if(!pend.length)return '';return '<div class="card"><h2>Разложить сейчас</h2>'+pend.map(function(p){
+      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.length+' '+plw(p.rules.length,'копилка','копилки','копилок')+' · '+money(p.sum)+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить</button><button class="btn sm ghost" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'">Пропустить</button></div></div>'}).join('')+'</div>'}
+  // правила, сгруппированные по дню выплаты
+  var byDay={};S.rules.forEach(function(r){(byDay[r.day]=byDay[r.day]||[]).push(r)});
+  var days=Object.keys(byDay).map(Number).sort(function(a,b){return a-b}),tot=0;S.rules.forEach(function(r){tot+=r.amt});
+  var body='<div class="help f" style="gap:6px">'+days.map(function(d){var l=byDay[d],sm=l.reduce(function(a,r){return a+r.amt},0);
+    return '<details><summary><span>'+d+'-го · '+money(sm)+' <span class="fine" style="font-weight:400">· '+l.length+' '+plw(l.length,'копилка','копилки','копилок')+'</span></span></summary><div class="hb" style="gap:0">'+l.map(function(r){var a=accById(r.acc);
+      return '<button class="row" data-a="editRule" data-id="'+r.id+'" style="padding-block:8px;text-align:left;width:100%"><div class="grow"><div class="t" style="font-size:14px">'+esc(r.name)+'</div><div class="s">→ '+esc(a?a.name:'копилка не выбрана')+'</div></div><span class="amt">'+money(r.amt)+'</span></button>'}).join('')+'</div></details>'}).join('')+'</div>'+
+    '<div class="btns"><button class="btn ghost sm" data-a="newRule">Добавить правило</button><button class="btn ghost sm" data-a="recon">Сверить с банком</button></div>';
+  h+=fcard('rules','Раскладка по копилкам',money(tot)+' в месяц',S.rules.length+' '+plw(S.rules.length,'правило','правила','правил')+' · '+days.length+' '+plw(days.length,'выплата','выплаты','выплат'),body);
   var ids=Object.keys(st);
-  if(ids.length){
-    h+='<h2 style="margin-top:6px">План и факт с '+dlabel(S.planFrom)+'</h2><div class="list">'+ids.map(function(id){
-      var a=accById(id);if(!a)return '';var x=st[id],miss=x.plan-x.fact;
-      return '<div class="row"><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">в копилке '+money(accBal(a))+' · отложено '+money(x.fact)+' из '+money(x.plan)+'</div></div>'+(miss>0?'<span class="chip late">не хватает '+money(miss)+'</span>':'<span class="chip ok">по плану</span>')+'</div>';
-    }).join('')+'</div>';
-  }
-  h+='<h2 style="margin-top:6px">Правила</h2><div class="list">'+S.rules.slice().sort(function(a,b){return a.day-b.day}).map(function(r){var a=accById(r.acc);
-    return '<button class="row" data-a="editRule" data-id="'+r.id+'"><div class="grow"><div class="t">'+esc(r.name)+'</div><div class="s">'+r.day+'-го числа → '+esc(a?a.name:'копилка не выбрана')+'</div></div><span class="amt">'+money(r.amt)+'</span></button>';
-  }).join('')+'</div><div class="btns"><button class="btn ghost sm" data-a="newRule">Добавить правило</button><button class="btn ghost sm" data-a="recon">Сверить с банком</button></div></div>';
+  if(ids.length){var miss=0;ids.forEach(function(id){var x=st[id];if(x.plan>x.fact)miss+=x.plan-x.fact});
+    h+=fcard('pf','План и факт',null,(miss>0?'не хватает '+money(miss):'всё по плану')+' · с '+dlabel(S.planFrom),'<div class="list">'+ids.map(function(id){
+      var a=accById(id);if(!a)return '';var x=st[id],m=x.plan-x.fact;
+      return '<div class="row"><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">в копилке '+money(accBal(a))+' · отложено '+money(x.fact)+' из '+money(x.plan)+'</div></div>'+(m>0?'<span class="chip late">не хватает '+money(m)+'</span>':'<span class="chip ok">по плану</span>')+'</div>'}).join('')+'</div>')}
   return h;
 }
+
 function connectSheet(){
   var names=[];DEF_RULES.forEach(function(r){if(names.indexOf(r[1])<0)names.push(r[1])});
   var d=sh.d;
@@ -1750,10 +1756,15 @@ function viewPlan(){
     return '<span>'+MONTHS[+a[1]-1].slice(0,3)+'</span><span class="r in">+'+Math.round(inc).toLocaleString('ru-RU')+'</span><span class="r out">−'+Math.round(out).toLocaleString('ru-RU')+'</span><span class="r"><b>'+Math.round(inc-out).toLocaleString('ru-RU')+'</b></span>';
   }).join('');
   var sorted=function(a){return a.slice().sort(function(p,q){return p.day-q.day})};
-  return '<div class="top"><h1>Платежи и доходы</h1></div>'+rulesCard()+
-   '<div class="card"><h2>План на 3 месяца</h2><div class="sum3"><span class="h">Месяц</span><span class="h r">Доход</span><span class="h r">Платежи</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine">Только регулярные платежи и доходы из списков ниже, ₽ в месяц. Повседневные траты сюда не входят.</p></div>'+
-   '<div class="card"><h2>Регулярные платежи</h2>'+(S.recur.length?sorted(S.recur).map(function(r){return planRow('r',r,ym)}).join(''):'<p class="empty">Пока пусто. Добавьте аренду, связь, подписки.</p>')+'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button></div>'+
-   '<div class="card"><h2>План доходов</h2>'+(S.incomes.length?sorted(S.incomes).map(function(r){return planRow('i',r,ym)}).join(''):'<p class="empty">Добавьте даты, когда приходят деньги: прогноз «хватит ли» работает от них.</p>')+'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button></div>'+'<div class="card"><h2>План из файла</h2><p class="fine">Загрузи файл плана (schitalochka-plan): заменятся только доходы, платежи и правила раскладки. Записи, копилки и их остатки не меняются.</p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p></div>';
+  var rTot=0,iTot=0,rLate=0;S.recur.forEach(function(r){rTot+=perMonth(r);if(dueIn(r,ym)&&!doneFor('rid',r.id,ym)&&planned(ym,r.day)<=T&&!(S.planFrom&&planned(ym,r.day)<S.planFrom))rLate++});S.incomes.forEach(function(r){iTot+=r.amt});
+  return '<div class="top"><h1>Платежи и доходы</h1></div>'+rulesCard('pend')+
+   fcard('recur','Регулярные платежи',money(rTot)+' в месяц',(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет')+(rLate?' · не отмечено: '+rLate:''),
+     (S.recur.length?sorted(S.recur).map(function(r){return planRow('r',r,ym)}).join(''):'<p class="empty">Добавь аренду, связь, подписки.</p>'),'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button>')+
+   fcard('inc','Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
+     (S.incomes.length?sorted(S.incomes).map(function(r){return planRow('i',r,ym)}).join(''):'<p class="empty">Добавь даты, когда приходят деньги: от них считается «до зарплаты».</p>'),'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button>')+
+   rulesCard()+
+   fcard('p3','План на 3 месяца',null,'доходы и платежи по месяцам','<div class="sum3"><span class="h">Месяц</span><span class="h r">Доход</span><span class="h r">Платежи</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine">Только регулярные платежи и доходы, ₽. Повседневные траты сюда не входят.</p>')+
+   fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Файл плана (schitalochka-plan). Записи, копилки и их остатки не меняются.</p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>');
 }
 
 function render(){
@@ -2094,6 +2105,7 @@ document.addEventListener('click',function(ev){
       var uu=URL.createObjectURL(bl),aa=document.createElement('a');aa.href=uu;aa.download=xn;document.body.appendChild(aa);aa.click();aa.remove();setTimeout(function(){URL.revokeObjectURL(uu)},4000);say('Файл сохранён, ищите в «Загрузках».');
     }catch(e){say('Не получилось. Нажмите «Скопировать».')}}
   else if(a==='newAcc'){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet()}
+  else if(a==='newDebt'){sh={ac:true,id:null,d:{name:'',type:'debt',start:''}};accSheet()}
   else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{goal:ac.goal?String(ac.goal):'',name:ac.name,type:ac.type,start:String(Math.round((ac.type==='debt'?Math.abs(accBal(ac)):accBal(ac))*100)/100)}};accSheet()}}
   else if(a==='delAcc'){var rest=S.accounts.filter(function(x){return x.id!==sh.id});if(!rest.some(function(x){return x.type==='main'}))return showErr('Должны остаться свободные деньги.');S.accounts=rest;save();closeSheet();render()}
   else if(a==='newTransfer'){sh={id:null,d:newDraft('t')};tDefaults(sh.d);entrySheet()}

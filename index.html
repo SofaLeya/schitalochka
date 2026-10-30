@@ -495,8 +495,10 @@ function plannedItems(from,days){
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&a.type!=='main')}
 function avgDaily(){
   var from=iso(addDays(parse(T),-13)),s=0;
-  S.entries.forEach(function(x){if(x.type==='e'&&!x.rid&&x.date>=from&&x.date<=T)s+=x.amt});
-  return s/14;
+  // повседневные траты со «Свободных денег» за 2 недели минус возвраты; без «не в тратах», без трат из копилок и без регулярных платежей (они уже в «Ближайшем»)
+  var main=defAcc(),l=S.entries.filter(function(x){return !x.demo&&!x.skip&&!x.rid&&x.date>=from&&x.date<=T&&(x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&accOf(x)===main});
+  s=sum(l,'e')-refunds(l);
+  return Math.max(0,s/14);
 }
 function forecast(){
   var bal=balance(),avg=avgDaily(),ev=plannedItems(T,31);

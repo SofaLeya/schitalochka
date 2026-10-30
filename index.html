@@ -600,7 +600,7 @@ function fullPlan(){var inc=0,fx=0,sv=0,from={},to={},fromN=0;(S.incomes||[]).fo
   (S.rules||[]).forEach(function(r){if(accById(r.acc))to[r.acc]=(to[r.acc]||0)+(+r.amt||0)});
   var ids={},gap=0;Object.keys(from).concat(Object.keys(to)).forEach(function(k){ids[k]=1});
   Object.keys(ids).forEach(function(k){var t=to[k]||0,f=from[k]||0;sv+=Math.max(t,f);if(f>t)gap+=f-t});
-  return {inc:inc,fixed:fx,save:sv,irr:+(S.planCalc&&S.planCalc.irr)||0,fromAcc:fromN,gap:gap}}
+  return {inc:inc,fixed:fx,save:sv,irr:0,fromAcc:fromN,gap:gap}}
 function planInfo(){
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {v:planCalcVal(fp),src:'full',c:fp}}
   if(S.planCalc&&+S.planCalc.inc>0)return {v:planCalcVal(S.planCalc),src:'calc'};
@@ -630,6 +630,17 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
   function ro(id,lab,v,hint){return '<div class="row" style="padding:2px 0"><div class="grow"><div class="t" style="font-size:14px">'+lab+'</div><div class="s">'+hint+'</div></div><b>'+money(v)+'</b><input type="hidden" id="'+id+'" value="'+Math.round(v)+'"></div>'}
   if(sh&&!sh.pcOut)sh.pcOut=(Array.isArray(S.planOut)?S.planOut:planOutDefault(S.planCalc||{fixed:df.fixed,irr:df.irr})).slice();
   function fld(id,lab,hint,val){return '<div class="f"><label for="'+id+'">'+lab+'</label><input id="'+id+'" inputmode="decimal" value="'+esc(val===''||val==null?'':Math.round(val))+'" placeholder="0"><span class="fine">'+hint+'</span></div>'}
+  if(full){var lifeM=fp.inc-fp.fixed-fp.save;
+    openSheet('<h3>План трат на день</h3>'+
+     '<div class="note '+(pi.v>0?'good':'bad')+'"><b>'+(pi.v>0?'Можно тратить '+money(pi.v)+' в день':'Доходов не хватает на платежи и раскладку')+'</b><span class="fine">'+(pi.v>0?'Это '+money(lifeM)+' в месяц на жизнь.':'Не хватает '+money(-lifeM)+' в месяц.')+'</span></div>'+
+     '<div class="note info" style="gap:6px"><b>Считается по вкладке «Платежи»</b>'+
+       ro('x1','Доход в месяц',fp.inc,S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'))+
+       ro('x2','Платежи со свободных денег',fp.fixed,fp.fromAcc?'ещё '+money(fp.fromAcc)+' в месяц платится из копилок':'')+
+       ro('x3','Откладывать в копилки',fp.save,S.rules.length?'по правилам раскладки':'правил раскладки нет')+
+     '</div>'+
+     '<p class="fine">На жизнь считаются только траты со свободных денег. Отмеченные платежи («Потрачено») и траты из копилок в план не входят.</p>'+
+     '<div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="goPlanTab">Изменить в «Платежах»</button></div>');
+    return}
   openSheet('<h3>План трат на день</h3><p class="fine">Сколько можно тратить в день на жизнь, чтобы хватило на всё обязательное и получилось отложить. Сейчас: '+(pi.v?'<b>'+money(pi.v)+'</b> ('+PLANSRC[pi.src]+')':'план не задан')+'.</p>'+
    '<form id="fm" class="f" style="gap:12px" autocomplete="off">'+
    (full?
@@ -659,7 +670,10 @@ function planOutSet(){var pi=planInfo(),l;
   else if(pi.src==='income')l=FIXCATS; // полный режим: платежи вычтены из плана по списку регулярных
   else return null; // своя сумма или нет плана — всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
-function life(list){var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
+function life(list){
+  // полный режим с планом из «Платежей»: на жизнь — только траты со свободных денег, без отмеченных платежей
+  if(planInfo().src==='full'){var mn=defAcc();return list.filter(function(x){return !(x.type==='e'&&(x.rid||accOf(x)!==mn))})}
+  var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
 function lifeNet(list){var l=life(list);return sum(l,'e')-refunds(l)}
 /* средние за прошлые месяцы — подсказки для расчёта плана */
 function planHints(){var cur=T.slice(0,7),ms=[];
@@ -1009,7 +1023,7 @@ function viewHome(){
   var pd=perDay(),fc=forecast(),h=health(ym),st=streak();
   var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+'</span><span class="big">'+money(bal)+'</span>'+
    '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(exp-refunds(me))+'</b>'+(refunds(me)>0?'<span class="fine">до возвратов '+money(exp)+'</span>':'')+'</div>'+
-   '<div class="stat"><span class="lbl">'+(lifeNet(me)<exp-refunds(me)-1?'На жизнь в день':'В среднем в день')+'</span><b>'+money(lifeNet(me)/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div>'+
+   '<div class="stat"><span class="lbl">'+(planInfo().src==='full'||lifeNet(me)<exp-refunds(me)-1?'На жизнь в день':'В среднем в день')+'</span><b>'+money(lifeNet(me)/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div>'+
    '<div class="stat"><span class="lbl">До зарплаты в день</span><b>'+money(pd.val)+'</b><span class="fine">до '+dlabel(pd.nextIn)+'</span></div></div></div>';
   var main;
   if(fc.date){

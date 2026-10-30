@@ -1870,9 +1870,9 @@ function settingsSheet(){
   openSheet('<h3>Настройки</h3><button type="button" class="btn ghost" data-a="help">Как пользоваться</button>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off"></form>'+
    '<div class="f"><label>План трат на день</label><p class="fine">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'Пока не задан.')+'</p><button type="button" class="btn ghost" data-a="planOpen">Изменить план</button></div>'+
-   '<div class="f"><label>Яндекс Диск</label><div id="yd_box">'+ydPanel()+'</div></div>'+
-    '<div class="f"><label>Копии в Телеграм</label><div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div></div>'+
    '<div class="help f" style="gap:8px">'+
+   det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
+   det('Копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+
    det('Резервная копия',
      '<p class="fine" style="margin:0">'+(S.lastBackup?'Последний файл: '+dlabel(S.lastBackup)+'.':'Файл ещё не сохраняли.')+' Отправь его себе в «Избранное» в Телеграме.</p>'+
      '<div class="btns"><button type="button" class="btn" data-a="dlBackup">Сохранить файл</button><button type="button" class="btn ghost" data-a="copyBackup">Копировать текст</button></div><textarea id="s_out" readonly style="position:absolute;left:-9999px;height:1px">'+esc(json)+'</textarea><p class="fine" id="s_msg0" hidden></p>'+

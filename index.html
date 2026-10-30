@@ -1724,7 +1724,7 @@ function viewPlan(){
   return '<div class="top"><h1>Платежи и доходы</h1></div>'+rulesCard()+
    '<div class="card"><h2>План на 3 месяца</h2><div class="sum3"><span class="h">Месяц</span><span class="h r">Доход</span><span class="h r">Платежи</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine">Только регулярные платежи и доходы из списков ниже, ₽ в месяц. Повседневные траты сюда не входят.</p></div>'+
    '<div class="card"><h2>Регулярные платежи</h2>'+(S.recur.length?sorted(S.recur).map(function(r){return planRow('r',r,ym)}).join(''):'<p class="empty">Пока пусто. Добавьте аренду, связь, подписки.</p>')+'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button></div>'+
-   '<div class="card"><h2>План доходов</h2>'+(S.incomes.length?sorted(S.incomes).map(function(r){return planRow('i',r,ym)}).join(''):'<p class="empty">Добавьте даты, когда приходят деньги: прогноз «хватит ли» работает от них.</p>')+'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button></div>';
+   '<div class="card"><h2>План доходов</h2>'+(S.incomes.length?sorted(S.incomes).map(function(r){return planRow('i',r,ym)}).join(''):'<p class="empty">Добавьте даты, когда приходят деньги: прогноз «хватит ли» работает от них.</p>')+'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button></div>'+'<div class="card"><h2>План из файла</h2><p class="fine">Загрузи файл плана (schitalochka-plan): заменятся только доходы, платежи и правила раскладки. Записи, копилки и их остатки не меняются.</p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p></div>';
 }
 
 function render(){
@@ -1924,6 +1924,7 @@ function settingsSheet(){
      '<label for="s_file" style="font-weight:700;margin-top:6px">Восстановить из файла</label><input id="s_file" type="file" accept=".json,.txt,application/json,text/plain"><p class="fine" id="s_msg" hidden></p>'+
      '<label for="s_in" style="font-weight:700">Или из текста</label><textarea id="s_in" placeholder="Вставьте сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="restore">Восстановить</button></div>'+
      '<p class="fine" style="margin:0">Копия возвращает всё: записи, копилки, план, монстрика. Записи, сделанные после копии, остаются.</p>')+
+   det('Загрузить план из файла','<p class="fine" style="margin:0">Файл плана платежей и раскладки. Заменит только доходы, платежи и правила, записи и копилки не тронет. Включит полный режим.</p><input id="pl_file" type="file" accept=".json,.txt,application/json,text/plain"><p class="fine" id="pl_msg" hidden></p>')+
    det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
    det('Загрузить выписку из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+
    det('Добавить записи из текста','<p class="fine" style="margin:0">Для данных из другого приложения (см. «Как пользоваться»). Дописывает к текущим, дублей не будет.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставьте текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p>')+
@@ -2189,6 +2190,10 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
 });
 document.addEventListener('change',function(ev){
+  if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]){var plf=new FileReader(),plm=document.getElementById('pl_msg');plf.onload=function(){readBackupText(plf.result).then(function(o){
+      if(!isPlanFile(o))throw new Error('notplan');
+      if(!window.confirm('Заменить доходы ('+(o.incomes||[]).length+'), платежи ('+(o.recur||[]).length+') и правила раскладки ('+(o.rules||[]).length+')? Записи и копилки не изменятся.'))return;
+      applyPlan(o)}).catch(function(e){if(plm){plm.textContent=e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай в «Резервная копия» → «Восстановить из файла».':'Не получилось прочитать файл.';plm.hidden=false}})};plf.readAsText(ev.target.files[0]);ev.target.value='';return}
   if(ev.target.id==='s_afile'&&ev.target.files&&ev.target.files[0]){var fr2=new FileReader();fr2.onload=function(){document.getElementById('s_add').value=fr2.result;var bt=document.querySelector('[data-a=addRecs]');if(bt)bt.click()};fr2.readAsText(ev.target.files[0]);return}
   if(ev.target.id!=='s_file'||!ev.target.files||!ev.target.files[0])return;
   var fr=new FileReader(),m=document.getElementById('s_msg');

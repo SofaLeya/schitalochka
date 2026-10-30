@@ -531,12 +531,15 @@ function forecast(){
   return {date:null,avg:avg};
 }
 function perDay(){
-  var ev=plannedItems(T,45),nextIn=null;
-  for(var i=0;i<ev.length;i++){if(ev[i].kind==='in'&&ev[i].date>T){nextIn=ev[i].date;break}}
+  // до ближайшего поступления, после которого что-то остаётся на жизнь (выплаты, которые целиком уходят в копилки, не в счёт)
+  var ev=plannedItems(T,62),nextIn=null;
+  for(var i=0;i<ev.length;i++){var e=ev[i];if(e.kind!=='in'||e.date<=T)continue;
+    var toSave=ev.filter(function(x){return x.rule&&x.date===e.date}).reduce(function(a,x){return a+x.amt},0);
+    if(e.amt-toSave>0){nextIn=e.date;break}}
   if(!nextIn)nextIn=iso(addDays(parse(T),30));
-  var due=0;ev.forEach(function(e){if(e.kind==='out'&&e.date<nextIn&&!offMain(e))due+=e.amt});
+  var due=0,inc=0;ev.forEach(function(e){if(e.date>=nextIn)return;if(e.kind==='out'&&!offMain(e))due+=e.amt;else if(e.kind==='in'&&e.date>T)inc+=e.amt});
   var days=Math.max(1,diffDays(T,nextIn));
-  return {val:(balance()-due)/days,days:days,nextIn:nextIn,due:due};
+  return {val:(balance()-due+inc)/days,days:days,nextIn:nextIn,due:due};
 }
 function health(ym){
   var ex=monthEntries(ym).filter(function(x){return x.type==='e'});
@@ -1013,8 +1016,8 @@ function viewHome(){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократите необязательные траты или сверьтесь с планом платежей.</span></div>';
   }else if(pd.val<0){
     main='<div class="note bad"><b>Главное сейчас</b><span>До следующего дохода ('+dlabel(pd.nextIn)+') уже нужно оплатить '+money(pd.due)+', а на счёте '+money(bal)+'. Свободных денег на день нет.</span></div>';
-  }else if(exp/dnum>pd.val&&exp>0){
-    main='<div class="note warn"><b>Главное сейчас</b><span>Вы тратите '+money(exp/dnum)+' в день, а безопасно доступно '+money(pd.val)+'. До дохода '+pd.days+' '+(pd.days===1?'день':'дн.')+'. Притормозите.</span></div>';
+  }else if(lifeNet(me)/dnum>pd.val&&exp>0){
+    main='<div class="note warn"><b>Главное сейчас</b><span>На жизнь уходит '+money(lifeNet(me)/dnum)+' в день, а до '+dlabel(pd.nextIn)+' можно '+money(pd.val)+' в день. Притормози.</span></div>';
   }else{
     main='<div class="note good"><b>Главное сейчас</b><span>Всё в порядке. Можно тратить до '+money(pd.val)+' в день до '+dlabel(pd.nextIn)+', обязательные платежи уже учтены.</span></div>';
   }

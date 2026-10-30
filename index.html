@@ -1686,7 +1686,7 @@ function viewPlan(){
 
 function render(){
   syncCats();
-  try{document.documentElement.classList.toggle('cheer',!!S.simple)}catch(e){}
+  try{document.documentElement.classList.add('cheer') /* оформление одинаковое в любом режиме */}catch(e){}
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();

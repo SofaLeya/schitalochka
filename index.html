@@ -365,7 +365,7 @@ function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока 
 function okBackup(o){return o&&Array.isArray(o.entries)}
 function migrate(o){
   if(!Array.isArray(o.accounts)||!o.accounts.length)o.accounts=[{id:'a1',name:'Основная карта',type:'main',start:+o.start||0}];if(o.simple===undefined)o.simple=true;
-  if(!Array.isArray(o.rules))o.rules=[];o.rules=o.rules.filter(function(r){return r.name!=='Платежи'});delete o.payAcc;if(!Array.isArray(o.skips))o.skips=[];
+  if(!Array.isArray(o.rules))o.rules=[];delete o.payAcc;if(!Array.isArray(o.skips))o.skips=[];
   return o;
 }
 function accById(id){for(var i=0;i<S.accounts.length;i++)if(S.accounts[i].id===id)return S.accounts[i];return null}
@@ -570,8 +570,14 @@ function planByHistory(){var cur=T.slice(0,7),tot=0,days=0,months=0;
     if(l.filter(function(x){return x.type==='e'}).length<5)continue;var a=m.split('-');months++;days+=dim(+a[0],+a[1]-1);l.forEach(function(x){tot+=x.type==='e'?x.amt:-x.amt})}
   if(!months||tot<=0)return 0;return Math.round(tot/days/50)*50}
 function planCalcVal(c){if(!c)return 0;var free=(+c.inc||0)-(+c.fixed||0)-(+c.save||0)-(+c.irr||0);return free>0?Math.floor(free/30.4/50)*50:0}
-function fullPlan(){var inc=0,fx=0,sv=0;(S.incomes||[]).forEach(function(r){inc+=+r.amt||0});(S.recur||[]).forEach(function(r){fx+=+r.amt||0});(S.rules||[]).forEach(function(r){if(accById(r.acc))sv+=+r.amt||0});
-  return {inc:inc,fixed:fx,save:sv,irr:+(S.planCalc&&S.planCalc.irr)||0}}
+// план в полном режиме: со свободных денег уходят платежи «со свободных» и раскладка в копилки;
+// платежи из копилки покрываются тем, что в неё откладывается (если откладывается меньше — недостающее тоже вычитается)
+function fullPlan(){var inc=0,fx=0,sv=0,from={},to={},fromN=0;(S.incomes||[]).forEach(function(r){inc+=+r.amt||0});
+  (S.recur||[]).forEach(function(r){var a=r.acc&&accById(r.acc);if(a&&a.type!=='main'){from[a.id]=(from[a.id]||0)+(+r.amt||0);fromN+=+r.amt||0}else fx+=+r.amt||0});
+  (S.rules||[]).forEach(function(r){if(accById(r.acc))to[r.acc]=(to[r.acc]||0)+(+r.amt||0)});
+  var ids={},gap=0;Object.keys(from).concat(Object.keys(to)).forEach(function(k){ids[k]=1});
+  Object.keys(ids).forEach(function(k){var t=to[k]||0,f=from[k]||0;sv+=Math.max(t,f);if(f>t)gap+=f-t});
+  return {inc:inc,fixed:fx,save:sv,irr:+(S.planCalc&&S.planCalc.irr)||0,fromAcc:fromN,gap:gap}}
 function planInfo(){
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {v:planCalcVal(fp),src:'full',c:fp}}
   if(S.planCalc&&+S.planCalc.inc>0)return {v:planCalcVal(S.planCalc),src:'calc'};
@@ -604,10 +610,10 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
   openSheet('<h3>План трат на день</h3><p class="fine">Сколько можно тратить в день на жизнь, чтобы хватило на всё обязательное и получилось отложить. Сейчас: '+(pi.v?'<b>'+money(pi.v)+'</b> ('+PLANSRC[pi.src]+')':'план не задан')+'.</p>'+
    '<form id="fm" class="f" style="gap:12px" autocomplete="off">'+
    (full?
-     '<div class="note info" style="gap:6px"><b>Берётся из вкладки «Платежи»</b>'+
+     '<div class="note info" style="gap:6px"><b>Берётся из вкладки «Платежи»</b><span class="fine">Тратить на жизнь можно то, что остаётся в свободных деньгах. Платежи из копилок оплачиваются тем, что ты туда откладываешь.</span>'+
        ro('pc_inc','Доход в месяц',fp.inc,S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'))+
-       ro('pc_fix','Обязательные платежи',fp.fixed,S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет')+
-       ro('pc_sav','Откладывать',fp.save,S.rules.length?S.rules.length+' '+plw(S.rules.length,'правило','правила','правил')+' раскладки':'правил раскладки нет')+
+       ro('pc_fix','Платежи со свободных денег',fp.fixed,fp.fromAcc?'ещё '+money(fp.fromAcc)+' платится из копилок — см. ниже':(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет'))+
+       ro('pc_sav','Откладывать в копилки',fp.save,(S.rules.length?'по правилам раскладки':'правил раскладки нет')+(fp.gap?', плюс '+money(fp.gap)+' на платежи из копилок, которые правилами не пополняются':''))+
        '<button type="button" class="btn ghost sm" style="align-self:flex-start" data-a="goPlanTab">Изменить в «Платежах»</button></div>'
    :
    fld('pc_inc','Доход в месяц, ₽','Зарплата и другие регулярные поступления, сколько приходит на руки.',df.inc)+

@@ -49,6 +49,10 @@ h1,h2,h3,p{margin:0}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
 .drag{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 10px 0 2px;margin-left:-4px;color:var(--muted);font-size:20px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 .row.dragging{position:relative;z-index:5;background:var(--surface2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.foldhead{display:flex;align-items:flex-start;gap:10px;width:100%;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.foldhead .h2like{display:block;font-size:13px;font-weight:600;letter-spacing:.06em;margin-bottom:4px;text-transform:uppercase;color:var(--muted)}
+.foldhead>.grow{flex:1;display:block;min-width:0}
+.foldhead .chev{flex:none;margin-left:auto;color:var(--accent);font-weight:800;font-size:20px;line-height:1}
 .amt.skip{color:#5b8def}
 .stat .fine{display:block;margin-top:2px;line-height:1.3}
 .stat{background:rgba(255,255,255,.14);border-radius:12px;padding:10px;min-width:0}
@@ -1065,16 +1069,22 @@ function goalPace(a){ // средний чистый приток за посл�
 function goalLine(a){if(!(a.goal>0))return '';var b=accBal(a),p=Math.max(0,Math.min(100,b/a.goal*100)),left=a.goal-b,eta='';
   if(left<=0)eta='цель достигнута!';else{var pc=goalPace(a);if(pc>0){var mo=Math.ceil(left/pc),dd=new Date(parse(petDay()).getFullYear(),parse(petDay()).getMonth()+mo,1);eta='при нынешнем темпе — к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][dd.getMonth()]+' '+dd.getFullYear()}else eta='пока нет пополнений за 3 месяца'}
   return '<div class="s">цель '+money(a.goal)+' · '+Math.round(p)+'% · '+(left>0?'осталось '+money(left)+', ':'')+eta+'</div><div class="bar" style="margin-top:6px"><i style="width:'+p+'%;background:var(--accent)"></i></div>'}
+function uiFold(k,v){try{var o=JSON.parse(localStorage.getItem('sch-fold')||'{}');if(v===undefined)return !!o[k];o[k]=v;localStorage.setItem('sch-fold',JSON.stringify(o))}catch(e){return false}}
 function accountsCard(){
-  var mb=balance(),funds=S.accounts.filter(function(a){return a.type==='save'||a.type==='other'}),debts=S.accounts.filter(function(a){return a.type==='debt'});
-  var fs=0,ds=0;funds.forEach(function(a){fs+=accBal(a)});debts.forEach(function(a){ds+=accBal(a)});var many=funds.length+debts.length>1;
-  function row(a){var b=accBal(a);
+  var funds=S.accounts.filter(function(a){return a.type==='save'||a.type==='other'}),debts=S.accounts.filter(function(a){return a.type==='debt'});
+  var fs=0,ds=0;funds.forEach(function(a){fs+=accBal(a)});debts.forEach(function(a){ds+=accBal(a)});
+  function row(a,many){var b=accBal(a);
     return '<button class="row" data-a="editAcc" data-id="'+a.id+'" data-acc="'+a.id+'">'+(many?'<span class="drag" aria-label="Перетащить">⠿</span>':'')+'<span class="dot" style="background:'+ACOL[a.type]+'"></span><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+ATYPES[a.type]+(a.type==='debt'&&a.start<0?' · погашено '+money(Math.max(0,b-a.start))+' из '+money(-a.start):'')+'</div>'+(a.type==='debt'&&a.start<0?'<div class="bar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,(b-a.start)/-a.start*100))+'%;background:var(--in)"></i></div>':'')+(a.type==='save'?goalLine(a):'')+'</div><span class="amt'+(b<0?' out':'')+'">'+money(b)+'</span></button>';
   }
-  var parts=['свободные '+money(mb)];if(funds.length)parts.push('копилки '+money(fs));if(debts.length)parts.push('долги '+money(ds));
-  return '<div class="card"><h2>Копилки и долги</h2><div><div class="fine">Всего в копилках</div><div class="bigsum">'+money(fs)+'</div><div class="fine">'+''+'В «Свободные деньги» не входит.'+(debts.length?' Долги '+money(ds)+'.':'')+'</div></div>'+
-   (funds.length||debts.length?'<div class="list" id="acclist">'+funds.concat(debts).map(row).join('')+'</div>'+(many?'<p class="fine" style="margin:0">Порядок меняется: потяни за ⠿</p>':''):'<p class="fine">Копилок пока нет. Заведи, например, «Отпуск», «Подушка» или «Подарки».</p>')+
-   '<div class="btns"><button class="btn ghost sm" data-a="newDeposit">Отложить</button><button class="btn ghost sm" data-a="newWithdraw">Достать</button><button class="btn ghost sm" data-a="newAcc">Новая копилка</button></div></div>';
+  function head(k,title,sum,note){var shut=uiFold(k);
+    return '<button type="button" class="foldhead" data-a="fold" data-v="'+k+'" aria-expanded="'+(!shut)+'"><span class="grow" style="text-align:left"><span class="h2like">'+title+'</span><span class="bigsum" style="display:block">'+money(sum)+'</span>'+(note?'<span class="fine" style="display:block">'+note+'</span>':'')+'</span><span class="chev">'+(shut?'＋':'–')+'</span></button>'}
+  var h='<div class="card">'+head('save','Копилки',fs,'В «Свободные деньги» не входит.');
+  if(!uiFold('save'))h+=(funds.length?'<div class="list" id="acclist">'+funds.map(function(a){return row(a,funds.length>1)}).join('')+'</div>'+(funds.length>1?'<p class="fine" style="margin:0">Порядок меняется: потяни за ⠿</p>':''):'<p class="fine">Копилок пока нет. Заведи, например, «Отпуск», «Подушка» или «Подарки».</p>');
+  h+='<div class="btns"><button class="btn ghost sm" data-a="newDeposit">Отложить</button><button class="btn ghost sm" data-a="newWithdraw">Достать</button><button class="btn ghost sm" data-a="newAcc">Новая копилка</button></div></div>';
+  if(debts.length){h+='<div class="card">'+head('debt','Долги',ds,'');
+    if(!uiFold('debt'))h+='<div class="list">'+debts.map(function(a){return row(a,debts.length>1)}).join('')+'</div>';
+    h+='</div>'}
+  return h;
 }
 
 function entryRow(x){
@@ -2035,6 +2045,7 @@ document.addEventListener('click',function(ev){
   else if(a==='ydNow'){ydSync()}
   else if(a==='ydOut'){ydOut()}
   else if(a==='goPlanTab'){closeSheet();if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';window.scrollTo(0,0);render()}
+  else if(a==='fold'){uiFold(v,!uiFold(v));render()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}

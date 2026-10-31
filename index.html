@@ -438,8 +438,9 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-10-29c';
-var NEWS=['Яндекс Диск: войди в настройках, и данные будут храниться в твоём Диске и сами появятся на другом телефоне или компьютере.',
+var APP_VER='2026-10-31a';
+var NEWS=['Яндекс Диск: записи с телефона и компьютера теперь склеиваются, даже если вносила на обоих одновременно. Ничего не теряется.',
+ 'Яндекс Диск: войди в настройках, и данные будут храниться в твоём Диске и сами появятся на другом телефоне или компьютере.',
  'Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
  'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в браузере».',
  'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
@@ -2313,7 +2314,7 @@ function ydDirty(m){m=m||ydGet();return (m.chg||0)>(m.sent||0)}
   var q=new URLSearchParams(h.slice(1));try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
   if(q.get('access_token')){var m=ydGet();ydSet({tok:q.get('access_token'),exp:Date.now()+(+q.get('expires_in')||31536000)*1000,dev:m.dev||uid()});YD.justIn=true}
   else YD.msg='Яндекс не дал доступ'+(q.get('error')==='access_denied'?': вход отменён':' ('+(q.get('error_description')||q.get('error'))+')');})();
-function ydLogin(){location.href='https://oauth.yandex.ru/authorize?response_type=token&client_id='+YD.cid+'&redirect_uri='+encodeURIComponent(YD.redir)}
+function ydLogin(){YD.leaving=true;location.href='https://oauth.yandex.ru/authorize?response_type=token&client_id='+YD.cid+'&redirect_uri='+encodeURIComponent(YD.redir)}
 function ydErr(e){if(e&&e.code)return e.code==='bad'?'файл в Диске повреждён':'код '+e.code;
   return 'нет связи с Яндексом'+(e&&e.message?' ('+e.message+')':'')}
 function ydReq(method,url){var o={method:method,headers:{Authorization:'OAuth '+ydGet().tok}};
@@ -2332,9 +2333,39 @@ async function ydDaily(day){ // копия дня + чистка старше 14
   var it=((r._embedded&&r._embedded.items)||[]).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)});
   for(var i=0;i<it.length-14;i++){try{await ydReq('DELETE',YD.api+'?permanently=true&path='+encodeURIComponent(it[i].path))}catch(e){}}
 }
-function ydPack(){return JSON.stringify({v:1,app:'schitalochka',savedAt:Date.now(),dev:ydGet().dev,data:S})}
+/* Склейка трёх версий: b - общая (что было в Диске при прошлой синхронизации), l - это устройство, r - Диск сейчас.
+   Что поменяли только на одной стороне - берём оттуда. Поменяли обе - склеиваем глубже: объекты по полям,
+   списки записей по id, простые списки как множества. Правка побеждает удаление. Совсем одно и то же поле
+   поменяли по-разному - остаётся вариант этого устройства. */
+function m3eq(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function m3obj(x){return !!x&&typeof x==='object'&&!Array.isArray(x)}
+function m3ids(a){return Array.isArray(a)&&a.every(function(x){return m3obj(x)&&x.id!=null})}
+function m3prims(a){return Array.isArray(a)&&a.every(function(x){return x===null||typeof x!=='object'})}
+function merge3(b,l,r){
+  if(m3eq(l,r))return l;
+  if(m3eq(b,l))return r;
+  if(m3eq(b,r))return l;
+  if(l===undefined)return r;
+  if(r===undefined)return l;
+  if(m3obj(l)&&m3obj(r)){var bo=m3obj(b)?b:{},o={},ks={};
+    Object.keys(r).concat(Object.keys(l)).forEach(function(k){if(ks[k])return;ks[k]=1;var v=merge3(bo[k],l[k],r[k]);if(v!==undefined)o[k]=v});return o}
+  if(Array.isArray(l)&&Array.isArray(r)&&m3ids(l)&&m3ids(r)&&(l.length||r.length)){
+    var bm={},lm={},rm={},order=[],seen={};
+    if(m3ids(b))b.forEach(function(x){bm[x.id]=x});
+    l.forEach(function(x){lm[x.id]=x});r.forEach(function(x){rm[x.id]=x});
+    r.concat(l).forEach(function(x){if(!seen[x.id]){seen[x.id]=1;order.push(x.id)}});
+    var out=[];order.forEach(function(id){var v=merge3(bm[id],lm[id],rm[id]);if(v!==undefined)out.push(v)});return out}
+  if(m3prims(l)&&m3prims(r)){var bs=m3prims(b)?b.map(String):[],ls=l.map(String),rs=r.map(String),res=[],had={};
+    l.concat(r).forEach(function(x){var k=String(x);if(had[k])return;had[k]=1;
+      if(bs.indexOf(k)>=0&&(ls.indexOf(k)<0||rs.indexOf(k)<0))return;res.push(x)});return res}
+  return l;
+}
+var YDBASE='yd-base';
+function ydBase(){try{var t=localStorage.getItem(YDBASE);return t?JSON.parse(t):undefined}catch(e){return undefined}}
+function ydBaseSet(d){try{localStorage.setItem(YDBASE,typeof d==='string'?d:JSON.stringify(d))}catch(e){}}
+function ydPack(d){return JSON.stringify({v:1,app:'schitalochka',savedAt:Date.now(),dev:ydGet().dev,data:d||S})}
 function ydEmpty(){return S.demo||!realCount()}
-function ydAdopt(r,mod){snapTake('pre',true);S=migrate(r.data);S.demo=false;saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});
+function ydAdopt(r,mod){snapTake('pre',true);S=migrate(r.data);S.demo=false;saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});ydBaseSet(r.data);
   if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
 async function ydSync(){
   if(!ydOn())return;if(YD.busy){YD.again=true;return}
@@ -2344,33 +2375,41 @@ async function ydSync(){
     if(meta&&meta.modified!==m.mod){ // в Диске новая версия (с другого устройства или первое подключение)
       var r=await ydDownload();if(!r||!okBackup(r.data))throw {code:'bad'};
       var same=JSON.stringify(r.data)===JSON.stringify(S);
-      if(same){ydSet({mod:meta.modified})}
+      if(same){ydSet({mod:meta.modified});ydBaseSet(r.data)}
       else if(!m.mod&&!ydEmpty()){ // первое подключение, и данные есть и тут, и в Диске
         var cnt=r.data.entries.filter(function(e){return !e.demo}).length;
         if(confirm('В Яндекс Диске уже есть данные считалОчки ('+cnt+' записей). Взять их на это устройство?\n\nОК - взять из Диска\nОтмена - оставить то, что на этом устройстве (версия из Диска сохранится в папке «Копии»)')){ydAdopt(r,meta.modified)}
-        else{await ydDir();await ydUpload(YD.dir+'/до-подключения-'+iso(new Date())+'.json',JSON.stringify(r));ydSet({mod:meta.modified,chg:Date.now()})}
+        else{await ydDir();await ydUpload(YD.dir+'/до-подключения-'+iso(new Date())+'.json',JSON.stringify(r));ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data)}
       }
-      else if(m.mod&&ydDirty(m)&&!ydEmpty()){ // поменяли и тут, и на другом устройстве: оставляем эту версию, другую не теряем
-        await ydDir();var nm='другое-устройство-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json';
-        await ydUpload(YD.dir+'/'+nm,JSON.stringify(r));ydSet({mod:meta.modified});
-        toast('Данные менялись и тут, и на другом устройстве. Оставила эти, другую версию сохранила в Диске: «Копии».',true);
+      else if(ydEmpty())ydAdopt(r,meta.modified);
+      else{ // в Диске новое с другого устройства: склеиваем с тем, что здесь
+        var mine=JSON.parse(JSON.stringify(S)),merged=merge3(ydBase(),mine,r.data);
+        if(m3eq(merged,r.data))ydAdopt(r,meta.modified);
+        else{
+          if(!m3eq(merged,mine)){snapTake('pre',true);S=migrate(merged);S.demo=false;saveLocal();syncCats();
+            if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
+          ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data);
+        }
       }
-      else ydAdopt(r,meta.modified);
     }
     m=ydGet();
     if(!ydEmpty()&&(ydDirty(m)||!meta)){
-      var day=iso(new Date());
-      if(meta&&m.bk!==day){try{await ydDaily(day);ydSet({bk:day})}catch(e){if(e&&e.code===401)throw e}}
-      var chg=m.chg||Date.now();await ydUpload(YD.file,ydPack());
-      var nm2=await ydMeta();ydSet({mod:nm2&&nm2.modified,sent:chg,bk:ydGet().bk||day});
+      var pre=await ydMeta();
+      if(pre&&pre.modified!==ydGet().mod){YD.again=true} // пока склеивали, другое устройство успело записать - сначала заберём его
+      else{
+        var day=iso(new Date());
+        if(pre&&m.bk!==day){try{await ydDaily(day);ydSet({bk:day})}catch(e){if(e&&e.code===401)throw e}}
+        var chg=m.chg||Date.now(),snap=JSON.stringify(S);await ydUpload(YD.file,ydPack(JSON.parse(snap)));
+        var nm2=await ydMeta();ydSet({mod:nm2&&nm2.modified,sent:chg,bk:ydGet().bk||day});ydBaseSet(snap);
+      }
     }
     ydSet({at:Date.now()});YD.st='ok';YD.msg='';
   }catch(e){YD.st=ydOn()?'err':'off';if(!(e&&e.code===401))YD.msg=ydErr(e)}
   YD.busy=false;ydBadge();
   if(YD.again){YD.again=false;setTimeout(ydSync,300)}
 }
-function ydChanged(){if(!ydOn())return;ydSet({chg:Date.now()});clearTimeout(YD.t);YD.t=setTimeout(ydSync,2500)}
-function ydLabel(){if(!ydOn())return '';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':''}
+function ydChanged(){if(!ydOn())return;ydSet({chg:Date.now()});clearTimeout(YD.t);YD.t=setTimeout(ydSync,1000)}
+function ydLabel(){if(!ydOn())return '';if(YD.st!=='err'&&YD.st!=='wait'&&ydDirty())return 'синхронизация…';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':''}
 function ydPanel(){var m=ydGet(),h='';
   if(!m.tok){
     h='<p class="fine" style="margin:0">Данные будут лежать в твоём Яндекс Диске, в папке «Приложения/считалОчка», и сами появятся на другом телефоне или компьютере. Приложение видит только эту папку.</p>'+
@@ -2386,7 +2425,12 @@ function ydPanel(){var m=ydGet(),h='';
 function ydBadge(){renderBadge();var b=document.getElementById('yd_box');if(b)b.innerHTML=ydPanel()}
 function ydOut(){if(!confirm('Отключить Яндекс Диск на этом устройстве? Данные останутся и тут, и в Диске.'))return;
   var d=ydGet().dev;try{localStorage.removeItem(YD.key)}catch(e){}ydSet({dev:d});YD.st='off';YD.msg='';ydBadge()}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&ydOn())setTimeout(ydSync,800)});
+document.addEventListener('visibilitychange',function(){if(!ydOn())return;
+  if(document.visibilityState==='visible')setTimeout(ydSync,800);
+  else if(ydDirty()){clearTimeout(YD.t);ydSync()}}); // свернули с неотправленным - отправляем сразу
+window.addEventListener('pagehide',function(){if(ydOn()&&ydDirty()&&!YD.busy){clearTimeout(YD.t);ydSync()}});
+window.addEventListener('beforeunload',function(e){if(!YD.leaving&&ydOn()&&YD.st!=='err'&&(ydDirty()||YD.busy)){clearTimeout(YD.t);if(!YD.busy)ydSync();e.preventDefault();e.returnValue=''}});
+setInterval(function(){if(ydOn()&&!YD.busy&&document.visibilityState==='visible')ydSync()},60000); // открыто долго - раз в минуту проверяем, не появилось ли новое
 window.addEventListener('storage',function(e){if(e.key===YD.key){var was=YD.st==='off';if(ydOn()&&was)ydSync();else ydBadge()}});
 if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast('Яндекс Диск подключён')},600)}
 

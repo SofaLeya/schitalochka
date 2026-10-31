@@ -983,7 +983,7 @@ function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.dem
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
-  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=T.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
+  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
   function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше — до '+money(perLeft)+' в день.':' До конца месяца — только нужное.'):''}
   var nsLink='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpend">сегодня без трат</button>';
@@ -1004,6 +1004,7 @@ function monsterCard(me,net,dnum){
   else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn='<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpend">Сегодня без трат</button>'}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
   else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
+  else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет — красота!'}
   else if(dnum<=3&&r>1){mood='think';msg='Месяц только начался: в среднем '+money(avg)+' в день. Посмотрим, как пойдёт.'}
   else if(r>1.3){mood='sad';msg=pk(['Заметно выше плана: '+money(avg)+' в день.','Сильно выбиваемся: '+money(avg)+' в день вместо '+money(lim)+'.'])+tail()}
   else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся: '+money(avg)+' в день.'])+tail()}
@@ -1016,7 +1017,7 @@ function monsterCard(me,net,dnum){
   return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
-  var bal=balance(),ym=T.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(T.slice(8),10),lnet=lifeNet(me),lout=Math.round(net-lnet);
+  var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.round(net-lnet);
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var hero='<div class="card hero"><span class="lbl">Свободные деньги</span><span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(net)+'</b>'+(ref>0?'<span class="fine">до возвратов '+money(exp)+'</span>':'')+'</div><div class="stat"><span class="lbl">'+(lout>0?'На жизнь в день':'В среднем в день')+'</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div></div></div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
@@ -1025,7 +1026,7 @@ function viewHomeSimple(){
 }
 function viewHome(){
   if(S.simple)return viewHomeSimple();
-  var bal=balance(),ym=T.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),dnum=parseInt(T.slice(8),10);
+  var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),h=health(ym),st=streak();
   var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+'</span><span class="big">'+money(bal)+'</span>'+
    '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(exp-refunds(me))+'</b>'+(refunds(me)>0?'<span class="fine">до возвратов '+money(exp)+'</span>':'')+'</div>'+

@@ -2138,7 +2138,7 @@ function settingsSheet(){
    '</div>'+
    '<button type="button" class="btn ghost" data-a="export">Выгрузка для анализа</button>'+
    ((location.protocol==='content:'||location.protocol==='file:')?'<p class="fine">Сейчас файл открыт напрямую из мессенджера или папки, данные могут потеряться. Открывай приложение по ссылке.</p>':'')+
-   (sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="wipe">Точно стереть всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div>':'<button type="button" class="btn danger" data-a="askDel">Стереть все данные</button>')+
+   (sh.confirm?'<div class="note bad" style="gap:8px"><b>Точно очистить всё?</b><span>Удалятся все записи, копилки, долги, план, платежи и регулярные траты на этом устройстве.'+(ydOn()?' Яндекс Диск отключится, а копия в нём останется.':'')+' На всякий случай приложение сохранит автокопию — её можно вернуть в «Автокопиях в браузере».</span><div class="btns"><button type="button" class="btn danger" data-a="wipe">Да, очистить всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div></div>':'<button type="button" class="btn danger" data-a="askDel">Очистить всё</button>')+
    '<button type="button" class="btn ghost" data-a="close">Закрыть</button>');
 }
 function toast(m,bad){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent=(bad?'✕ ':'✓ ')+m;t.hidden=false;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},4000)}
@@ -2314,7 +2314,7 @@ document.addEventListener('click',function(ev){
       if(S.demo){S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}})}S.entries=S.entries.filter(function(e){return !e.demo});S.demo=false;save();am.textContent='✓ Добавлено записей: '+cn+(up?', обновлено: '+up:'');am.hidden=false;closeSheet();render();toast(cn||up?('Готово: добавлено '+cn+(up?', обновлено '+up:'')):'Новых записей нет, всё уже добавлено')
     }).catch(function(e){am.textContent='Не получилось прочитать. Вставьте текст целиком.';am.hidden=false;toast('Не получилось прочитать файл',true)})
   }
-  else if(a==='wipe'){snapTake('pre',true);S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[]};save();closeSheet();render()}
+  else if(a==='wipe'){snapTake('pre',true);var ydWas=false;try{if(ydOn()){ydWas=true;var yd0=ydGet().dev;localStorage.removeItem(YD.key);ydSet({dev:yd0});YD.st='off'}}catch(e){}S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[],onb:1,seenVer:APP_VER};save();closeSheet();render();toast('Всё очищено'+(ydWas?'. Яндекс Диск отключён, копия там осталась':''))}
 });
 document.addEventListener('submit',function(ev){
   ev.preventDefault();

@@ -402,7 +402,7 @@ function accOf(x){return x.acc&&accById(x.acc)?x.acc:defAcc()}
 function accBal(a){
   var b=+a.start||0;
   S.entries.forEach(function(x){
-    if(x.date>T||x.hist)return;
+    if(x.date>T||x.hist||x.nobal)return;
     if(x.type==='t'){if(x.from===a.id)b-=x.amt;if(x.to===a.id)b+=x.amt}
     else if(accOf(x)===a.id)b+=x.type==='i'?x.amt:-x.amt;
   });
@@ -1105,7 +1105,7 @@ function accountsCard(){
 function entryRow(x){
   if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:var(--muted)"></span><div class="grow"><div class="t">Перевод</div><div class="s">'+esc((fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))+(x.note?' · '+esc(x.note):'')+'</div></div><span class="amt">'+money(x.amt)+'</span></button>'}
   var c=CMAP[x.cat]||CMAP.other;
-  return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+money(x.amt)+'</span></button>';
+  return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+(x.nobal?' · не с моих счетов':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+money(x.amt)+'</span></button>';
 }
 var hq='',ha='',hc='',hacc='',hsk='',hfrom='',hto='',hMonths=2,hfo=false;
 var hd=null,HAOPT=[['','любая'],['lt500','до 500'],['500_2000','500–2000'],['gt2000','от 2000'],['gt10000','от 10 000']],HSKOPT=[['','все записи'],['skip','только «не в тратах»'],['split','только «делю с кем-то»']];
@@ -1997,7 +1997,8 @@ function entrySheet(){
    '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'"></div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+'<div class="f"><label for="f_date">Дата</label><input id="f_date" type="date" value="'+d.date+'"></div>'+
-   (isT?'':'<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_skip"'+(d.skip?' checked':'')+'> Не считать в тратах (чужие деньги, обмен)</label>')+
+   (isT?'':'<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_skip"'+(d.skip?' checked':'')+'> Не считать в тратах (чужие деньги, обмен)</label>'+
+     '<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_nobal"'+(d.nobal?' checked':'')+'> Не с моих счетов — не менять остатки (платил кто-то другой, другой картой)</label>')+
    (isE?'<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_split"'+(d.split?' checked':'')+'> Делю с кем-то — жду, что вернут часть</label><div class="f" id="f_splitbox"'+(d.split?'':' hidden')+'><label for="f_splitamt">Сколько должны вернуть, ₽</label><input id="f_splitamt" inputmode="decimal" value="'+esc(d.splitAmt||'')+'" placeholder="половина"><span class="fine">Появится на главной в «Ждёшь возвратов». Когда деньги придут, отметишь одним нажатием.</span></div>':'')+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
@@ -2008,7 +2009,7 @@ function entrySheet(){
 function readEntry(){
   var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};
   d.amt=g('f_amt');d.cat=g('f_cat')||d.cat;d.date=g('f_date')||d.date;d.note=g('f_note');
-  var sk=document.getElementById('f_skip');if(sk)d.skip=sk.checked;
+  var sk=document.getElementById('f_skip');if(sk)d.skip=sk.checked;var nb=document.getElementById('f_nobal');if(nb)d.nobal=nb.checked;
   var sp=document.getElementById('f_split');if(sp){d.split=sp.checked;d.splitAmt=g('f_splitamt')}
   d.acc=g('f_acc')||d.acc;d.from=g('f_from')||d.from;d.to=g('f_to')||d.to;return d;
 }
@@ -2176,7 +2177,7 @@ document.addEventListener('click',function(ev){
   else if(a==='hClear'){hq='';ha='';hc='';hacc='';hsk='';hfrom='';hto='';hd=null;hfo=false;render()}
   else if(a==='hPer'){if(!hd)hd={};var tp=petDay(),ymp=tp.slice(0,7);if(v==='m0'){hd.from=ymp+'-01';hd.to=tp}else if(v==='m1'){var pm=nextYM(ymp,-1),pa=pm.split('-');hd.from=pm+'-01';hd.to=pm+'-'+p2(dim(+pa[0],+pa[1]-1))}else if(v==='d7'){hd.from=iso(addDays(parse(tp),-6));hd.to=tp}else if(v==='d30'){hd.from=iso(addDays(parse(tp),-29));hd.to=tp}else{hd.from='';hd.to=''}var f1=document.getElementById('h_from'),f2=document.getElementById('h_to');if(f1)f1.value=hd.from;if(f2)f2.value=hd.to;hdSync()}
   else if(a==='newEntry'){sh={id:null,d:newDraft('e')};entrySheet()}
-  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,amt:x.amt,cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,split:!!x.split,splitAmt:x.split?String(x.split):''}};entrySheet()}}
+  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,amt:x.amt,cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(x.split):''}};entrySheet()}}
   else if(a==='stype'){var d=readEntry(),ref=v==='r',tv=ref?'i':v,curR=d.type==='i'&&d.cat==='refund';if(d.type!==tv||ref!==curR){d.type=tv;d.cat='';if(tv==='i')d.acc=defAcc();d.manual=false;d.auto=false;if(ref){d.cat='refund';d.manual=true}else if(tv==='t')tDefaults(d);else{var g=guess(d.note,tv);if(g&&!(tv==='i'&&g==='refund')){d.cat=g;d.auto=true}}}entrySheet()}
   else if(a==='quick'){var dq=readEntry(),qq=(sh.q||[])[+b.dataset.i];if(qq){dq.note=qq.note;dq.cat=qq.cat;dq.manual=true;dq.auto=false;if(!(num(dq.amt)>0))dq.amt=qq.amt;if(dq.type==='e'){dq.cls=qq.cls||dq.cls;dq.clsManual=true}if(qq.acc&&accById(qq.acc))dq.acc=qq.acc;entrySheet()}}
   else if(a==='qcat'){var dc=readEntry();dc.cat=v;dc.manual=true;dc.auto=false;if(dc.type==='e'){dc.cls=NEEDC[v]?'need':'mind'}entrySheet()}
@@ -2349,7 +2350,7 @@ document.addEventListener('submit',function(ev){
     if(!d.date)return showErr('Укажите дату.');
     if(d.type==='i')d.acc=defAcc();
     if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=e.amt})}if(accBal(sa)+had<n)return showErr('В копилке «'+sa.name+'» только '+money(accBal(sa)+had)+'. Выбери другой источник или сначала отложи деньги.')}}
-    var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip};
+    var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip,nobal:!!d.nobal};
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec)}

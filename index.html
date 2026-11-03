@@ -417,6 +417,28 @@ function refunds(list){return list.reduce(function(a,x){ // пришедшие �
   if(x.type==='i'&&x.cat==='refund'&&!x.skip)return a+x.amt;
   if(x.type==='e'&&!x.skip&&x.split>0&&!x.splitDone)return a+Math.min(x.split,x.amt);
   return a},0)}
+/* траты по категориям за вычетом возвратов: возврат относится к своей трате (по «Делю с кем-то» или по заметке «Возврат: …»),
+   иначе делится по тратам того же дня, иначе по всем тратам периода */
+function netByCat(list){
+  var ex=list.filter(function(x){return x.type==='e'&&!x.skip}),rf=list.filter(function(x){return x.type==='i'&&x.cat==='refund'&&!x.skip}),cat={};
+  ex.forEach(function(x){cat[x.cat]=(cat[x.cat]||0)+x.amt});
+  function take(c,v){var t=Math.min(v,cat[c]||0);cat[c]=(cat[c]||0)-t;return t}
+  function spread(v,src){ // пропорционально остаткам категорий этих трат
+    var w={},tw=0;src.forEach(function(x){w[x.cat]=(w[x.cat]||0)+x.amt});
+    Object.keys(w).forEach(function(c){w[c]=Math.min(w[c],cat[c]||0);tw+=w[c]});
+    if(tw<=0)return v;var left=v;Object.keys(w).forEach(function(c){left-=take(c,Math.min(v*w[c]/tw,w[c]))});return Math.max(0,left)}
+  ex.forEach(function(x){if(x.split>0&&!x.splitDone)take(x.cat,Math.min(x.split,x.amt))});
+  rf.forEach(function(r){
+    var v=r.amt,lk=ex.filter(function(e){return e.splitDone===r.id})[0];
+    if(lk){take(lk.cat,v);return}
+    var m=String(r.note||'').match(/^Возврат:\s*(.+)$/i);
+    if(m){var nm=norm(m[1]),c=ex.filter(function(e){return e.note&&norm(e.note)===nm&&e.date<=r.date}).sort(function(p,q){return p.date<q.date?1:-1})[0];
+      if(c){v-=take(c.cat,v);if(v<=0.005)return}}
+    var sd=ex.filter(function(e){return e.date===r.date});
+    if(sd.length)v=spread(v,sd);
+    if(v>0.005)spread(v,ex)});
+  Object.keys(cat).forEach(function(c){if(cat[c]<0.005)delete cat[c]});
+  return cat}
 function doneFor(kind,id,ym){return S.entries.some(function(x){return x[kind]===id&&x.date.slice(0,7)===ym})}
 function nextYM(ym,n){var a=ym.split('-');var d=new Date(+a[0],+a[1]-1+n,1);return ymOf(d)}
 
@@ -1194,10 +1216,10 @@ function reviewCard(){
   var base=null,baseTo=null,baseCat={};
   if(prev.length){
     base=prev.reduce(function(s,m){return s+netM(m)},0)/prev.length;
-    baseTo=prev.reduce(function(s,m){return s+tot(ex(m,cur?d:0))},0)/prev.length;
-    prev.forEach(function(m){var c=byCat(ex(m,cur?d:0));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
+    baseTo=prev.reduce(function(s,m){return s+netM(m,cur?d:0)},0)/prev.length;
+    prev.forEach(function(m){var c=netByCat(life(ex0(m,cur?d:0)));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
   }
-  var curCat=byCat(list),tips=[];
+  var curCat=netByCat(life(ex0(ym))),tips=[];
   /* 1. итог или прогноз */
   var cmp='';
   if(base!==null&&base>0){
@@ -1265,8 +1287,8 @@ function reviewCard(){
   var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+x.amt});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
   if(tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
   var eat=(curCat.cafe||0)+(curCat.taxi||0),eatB=(baseCat.cafe||0)+(baseCat.taxi||0),bTo=baseTo||0;
-  if(gross>3000&&eat/gross>0.2){var sh2=eat/gross,shB=bTo?eatB/bTo:0;
-    tips.push('Кафе, доставка и такси — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*gross)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
+  if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
+    tips.push('Кафе, доставка и такси — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
   if(!S.simple){var imp=list.filter(function(x){return x.cls==='imp'}).reduce(function(s,x){return s+x.amt},0);
     if(gross>0&&imp/gross>0.15)tips.push('Импульсивные покупки — '+pct(imp/gross)+' трат ('+money(imp)+'). Попробуй правило суток: хочешь что-то незапланированное — подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
@@ -1831,17 +1853,17 @@ function viewAn(){
     svg+='<rect x="'+x.toFixed(1)+'" y="'+(H-pb-h).toFixed(1)+'" width="'+(bw*.7).toFixed(1)+'" height="'+Math.max(h,v>0?1.5:0).toFixed(1)+'" rx="1.5" fill="var(--out)"/>';
     var d=i+1;if(d===1||d%5===0)svg+='<text x="'+(i*bw+bw/2).toFixed(1)+'" y="'+(H-4)+'" font-size="9" text-anchor="middle">'+d+'</text>';
   });
-  var cat={};me.forEach(function(x){if(x.type==='e'&&!x.skip)cat[x.cat]=(cat[x.cat]||0)+x.amt});
+  var cat=netByCat(me),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});
   var diff=inc-exp,ref=refunds(me),net=exp-ref;
   var LM=catLimits();Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
-  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(exp?Math.round(cat[k]/exp*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
+  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
   return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
    '<div class="card"><h2>Выгрузка</h2><p class="fine">Текст для разбора в чате с ИИ или таблица для Excel за любой период.</p><div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
    (S.simple?'<div class="card"><div class="two"><div><div class="fine">Потрачено всего</div><div class="amt out" style="font-size:20px">'+money(exp)+'</div></div><div><div class="fine">Возвраты</div><div class="amt in" style="font-size:20px">'+money(ref)+'</div></div></div><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':'<div class="card"><div class="two"><div><div class="fine">Доходы</div><div class="amt in" style="font-size:20px">'+money(inc)+'</div></div><div><div class="fine">Расходы</div><div class="amt out" style="font-size:20px">'+money(exp)+'</div></div></div>'+
    '<div class="note '+(diff>=0?'good':'bad')+'"><b>'+(diff>=0?'Остаток за месяц ':'Перерасход ')+money(Math.abs(diff))+'</b>'+(inc>0?'<span class="fine">Откладывается '+Math.round(Math.max(0,diff)/inc*100)+'% дохода</span>':'')+'</div></div>')+
    '<div class="card"><h2>Расходы по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
-   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2><button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+(S.simple?'<p class="fine">До вычета возвратов.</p>':'')+catHtml+'</div>';
+   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2><button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+'<p class="fine">Только твои деньги: после вычета возвратов.</p>'+catHtml+'</div>';
 }
 
 function planRow(kind,r,ym){

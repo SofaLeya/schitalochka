@@ -57,6 +57,8 @@ h1,h2,h3,p{margin:0}
 .foldhead .chev.open{transform:rotate(-135deg);margin-top:13px}
 .fgrp summary .fval{margin-left:auto;margin-right:10px;font-weight:400;text-align:right}
 .mhead{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 0;font-size:17px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink);text-align:left;line-height:1.35;cursor:pointer}
+.chk input{flex:none;width:20px!important;height:20px;margin:0;padding:0;accent-color:var(--accent)}
 .amt.skip{color:#5b8def}
 .stat .fine{display:block;margin-top:2px;line-height:1.3}
 .stat{background:rgba(255,255,255,.14);border-radius:12px;padding:10px;min-width:0}
@@ -1966,11 +1968,14 @@ function tplSheet(){var t=sh.t;
    '<div class="two"><div class="f"><label for="t_amt">Сумма, примерно ₽</label><input id="t_amt" inputmode="decimal" value="'+esc(t.amt||'')+'"></div><div class="f"><label for="t_cat">Категория</label><select id="t_cat">'+opts(CATS,t.cat||'prod')+'</select></div></div>'+
    '<div class="two"><div class="f"><label for="t_rep">Как часто</label><select id="t_rep"><option value="w"'+(t.rep!=='m'?' selected':'')+'>каждую неделю</option><option value="m"'+(t.rep==='m'?' selected':'')+'>каждый месяц</option></select></div>'+
    '<div class="f"><label for="t_day">'+(t.rep==='m'?'Число':'День')+'</label><select id="t_day">'+(t.rep==='m'?Array.apply(null,{length:31}).map(function(_,i){return '<option value="'+(i+1)+'"'+(+t.dom===i+1?' selected':'')+'>'+(i+1)+'</option>'}).join(''):[1,2,3,4,5,6,0].map(function(i){return '<option value="'+i+'"'+(+t.dow===i?' selected':'')+'>'+WDS[i]+'</option>'}).join(''))+'</select></div></div>'+
-   '<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="t_half"'+(t.half?' checked':'')+'> Делю пополам — жду, что вернут половину</label>'+
+   '<label class="chk"><input type="checkbox" id="t_half"'+(t.half?' checked':'')+'> Делю пополам — жду, что вернут половину</label>'+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.tid?'<button type="button" class="btn danger" data-a="tplDel">Удалить</button>':'')+'</form>')}
 function tplRead(){var t=sh.t;t.note=document.getElementById('t_note').value.trim();t.amt=num(document.getElementById('t_amt').value)||0;t.cat=document.getElementById('t_cat').value;t.rep=document.getElementById('t_rep').value;var dv=+document.getElementById('t_day').value;if(t.rep==='m')t.dom=dv;else t.dow=dv;t.half=document.getElementById('t_half').checked;return t}
 function tplListHtml(){var l=tpls();return (l.length?'<div class="list">'+l.map(function(t){var c=CMAP[t.cat]||CMAP.other;return '<button class="row" data-a="tplEdit" data-id="'+t.id+'" style="text-align:left;width:100%"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t" style="font-size:14px">'+esc(t.note||c.name)+'</div><div class="s">'+tplWhen(t)+(t.amt?' · ~'+money(t.amt):'')+(t.half?' · пополам':'')+'</div></div></button>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Например, закупка продуктов раз в неделю или стрижка раз в месяц.</p>')+'<button type="button" class="btn ghost sm" data-a="tplNew">＋ Добавить</button>'}
+var MODES=[['own','Обычная запись'],['proxy','Не моя, но с моей карты'],['other','Не с моей карты']];
+var MODEH={own:'Считается в тратах и меняет остаток.',proxy:'Купила за кого-то или обмен: остаток меняется, в траты и план не идёт. Когда вернут деньги, запиши их доходом так же.',other:'Платил кто-то другой или другая карта: остаётся только в истории, ни остаток, ни траты не меняются.'};
+function entryMode(d){return d.nobal?'other':d.skip?'proxy':'own'}
 function entrySheet(){
   var d=sh.d,isE=d.type==='e',isT=d.type==='t',body;
   var curSeg=d.type==='i'?(d.cat==='refund'?'r':'i'):d.type;
@@ -1997,9 +2002,8 @@ function entrySheet(){
    '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'"></div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+'<div class="f"><label for="f_date">Дата</label><input id="f_date" type="date" value="'+d.date+'"></div>'+
-   (isT?'':'<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_skip"'+(d.skip?' checked':'')+'> Не считать в тратах (чужие деньги, обмен)</label>'+
-     '<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_nobal"'+(d.nobal?' checked':'')+'> Не с моих счетов — не менять остатки (платил кто-то другой, другой картой)</label>')+
-   (isE?'<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="f_split"'+(d.split?' checked':'')+'> Делю с кем-то — жду, что вернут часть</label><div class="f" id="f_splitbox"'+(d.split?'':' hidden')+'><label for="f_splitamt">Сколько должны вернуть, ₽</label><input id="f_splitamt" inputmode="decimal" value="'+esc(d.splitAmt||'')+'" placeholder="половина"><span class="fine">Появится на главной в «Ждёшь возвратов». Когда деньги придут, отметишь одним нажатием.</span></div>':'')+
+   (isT?'':'<div class="f"><label for="f_mode">Как учесть</label><select id="f_mode">'+MODES.map(function(m){return '<option value="'+m[0]+'"'+(entryMode(d)===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select><span class="fine" id="f_modeh">'+MODEH[entryMode(d)]+'</span></div>')+
+   (isE?'<label class="chk"><input type="checkbox" id="f_split"'+(d.split?' checked':'')+'> Делю с кем-то — жду, что вернут часть</label><div class="f" id="f_splitbox"'+(d.split?'':' hidden')+'><label for="f_splitamt">Сколько должны вернуть, ₽</label><input id="f_splitamt" inputmode="decimal" value="'+esc(d.splitAmt||'')+'" placeholder="половина"><span class="fine">Появится на главной в «Ждёшь возвратов». Когда деньги придут, отметишь одним нажатием.</span></div>':'')+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.id&&!sh.confirm?'<button type="button" class="btn ghost" data-a="repeatEntry">Повторить сегодня</button>'+(sh.d.type==='e'?'<button type="button" class="btn ghost" data-a="tplFrom">Сделать регулярной</button>':''):'')+(sh.id?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delEntry">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить запись</button>'):'')+
@@ -2009,7 +2013,7 @@ function entrySheet(){
 function readEntry(){
   var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};
   d.amt=g('f_amt');d.cat=g('f_cat')||d.cat;d.date=g('f_date')||d.date;d.note=g('f_note');
-  var sk=document.getElementById('f_skip');if(sk)d.skip=sk.checked;var nb=document.getElementById('f_nobal');if(nb)d.nobal=nb.checked;
+  var fm=document.getElementById('f_mode');if(fm){d.skip=fm.value!=='own';d.nobal=fm.value==='other'}
   var sp=document.getElementById('f_split');if(sp){d.split=sp.checked;d.splitAmt=g('f_splitamt')}
   d.acc=g('f_acc')||d.acc;d.from=g('f_from')||d.from;d.to=g('f_to')||d.to;return d;
 }
@@ -2398,6 +2402,7 @@ document.addEventListener('input',function(ev){
   else{d.auto=false;var has=ev.target.value.trim().length>=3;d.unk=has;if(hint){hint.textContent='Не поняла по заметке. Выберите категорию, в следующий раз запомню.';hint.hidden=!has}if(has&&!d.manual){sel.value='';d.cat=''}}
 });
 document.addEventListener('change',function(ev){
+  if(ev.target.id==='f_mode'){var mh=document.getElementById('f_modeh');if(mh)mh.textContent=MODEH[ev.target.value]||'';return}
   if(ev.target.id==='f_split'){var bx=document.getElementById('f_splitbox'),sa=document.getElementById('f_splitamt'),fa=document.getElementById('f_amt');if(bx)bx.hidden=!ev.target.checked;if(ev.target.checked&&sa&&!sa.value&&fa&&num(fa.value)>0)sa.value=String(Math.round(num(fa.value)/2*100)/100);return}
   if(ev.target.id==='h_a'){if(hd)hd.a=ev.target.value;hdSync();return}
   if(ev.target.id==='t_rep'&&sh&&sh.tp){tplRead();tplSheet();return}

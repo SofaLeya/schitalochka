@@ -125,6 +125,11 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .sum3 .h{color:var(--muted);font-size:11.5px;font-weight:600}
 .sum3 .r{text-align:right;white-space:nowrap}
 .fine{font-size:12.5px;color:var(--muted)}
+.ibtn{flex:none;position:relative;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;font:italic 700 13px/1 Georgia,'Times New Roman',serif}
+.ibtn::after{content:'';position:absolute;inset:-9px}
+.ibtn[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tipbox{background:var(--surface2);border-radius:12px;padding:10px 12px;line-height:1.4}
+.tiprow{display:flex;align-items:center;gap:8px}
 .bigsum{font-size:30px;font-weight:800;letter-spacing:-.02em}
 .card.game{flex-direction:row;align-items:center;text-align:left;width:100%;gap:14px}
 .petbox{flex:none;width:72px;height:72px;display:block}
@@ -790,7 +795,7 @@ function viewGame(){
   var stats='<div class="card"><div class="stats3"><div><b>'+g.streak+'</b><span class="fine">дней подряд с записями</span></div><div><b>'+g.okDays+'</b><span class="fine">дней в лимите</span></div><div><b>'+g.total+'</b><span class="fine">записей всего</span></div></div></div>';
   var qs='<div class="card"><h2>Задания на сегодня</h2>'+g.quests.map(function(q){
     return '<div class="q'+(q.done?' done':'')+'"><div class="row"><div class="grow t">'+q.t+'</div><span class="chip'+(q.done?' ok':'')+'">'+(q.done?'выполнено':'+25 XP')+'</span></div>'+(q.goal>1?'<div class="bar"><i style="width:'+(q.v/q.goal*100)+'%;background:var(--accent)"></i></div>':'')+'</div>';
-  }).join('')+'<p class="fine">Каждый день новый набор. Дневной план: '+(dayLimit()?money(dayLimit()):'не задан')+'. Поменять: шестерёнка → «План трат на день».</p></div>';
+  }).join('')+'<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Про задания</span>'+tipBtn('qs')+'</div>'+tipBox('qs','Каждый день новый набор. Дневной план: '+(dayLimit()?money(dayLimit()):'не задан')+'. Поменять: шестерёнка → «План трат на день».')+'</div>';
   var ach='<div class="card"><h2>Достижения · '+on+' из '+g.ach.length+'</h2><div class="achs">'+g.ach.map(function(a){
     return '<div class="ach'+(a.on?' on':'')+'"><span class="medal">'+STAR+'</span><b>'+a.t+'</b><span class="fine">'+a.d+'</span></div>';
   }).join('')+'</div></div>';
@@ -1016,6 +1021,9 @@ function petDay(){return T} // день начинается в полночь, 
 function payDays(){
   var l=Array.isArray(S.payDays)?S.payDays:[]; // только те дни, что человек задал сам в настройках
   return l.map(function(d){return Math.round(+d)}).filter(function(d,i,a){return d>=1&&d<=31&&a.indexOf(d)===i}).sort(function(a,b){return a-b})}
+/* подсказки под кнопкой «i»: необязательные пояснения прячем, по нажатию показываем */
+function tipBtn(id){return '<button type="button" class="ibtn" data-a="tip" data-v="'+id+'" aria-label="Подсказка" aria-expanded="false">i</button>'}
+function tipBox(id,html){return '<div class="tipbox fine" id="tip_'+id+'" hidden>'+html+'</div>'}
 /* производственный календарь РФ: выходные и праздники (с переносами) на 2026 и 2027 годы; для остальных лет - общие правила */
 var RUCAL={
  2026:{off:['01-01..01-11','02-21..02-23','03-07..03-09','05-01..05-03','05-09..05-11','06-12..06-14','11-04','12-31'],work:[]},
@@ -1130,7 +1138,7 @@ function viewHome(){
   }).join('')+'</div>':'<p class="empty">Нет запланированных платежей и доходов. Добавьте их на вкладке «Платежи».</p>')+'</div>';
   var hh;
   if(h&&h.few!==undefined){
-    hh='<div class="card"><h2>Финансовое здоровье</h2><p class="fine">Покажет, какая доля трат импульсивная. Для этого при записи траты отмечай «Какая это трата?»: обязательная, осознанная или импульсивная.</p><div class="bar"><i style="width:'+(h.few/5*100)+'%;background:var(--accent)"></i></div><p class="fine" style="margin:0">Отмечено в этом месяце: '+h.few+' из 5 — после пяти появится оценка.</p></div>';
+    hh='<div class="card"><div class="tiprow"><h2>Финансовое здоровье</h2>'+tipBtn('fh')+'</div>'+tipBox('fh','Покажет, какая доля трат импульсивная. Для этого при записи траты отмечай «Какая это трата?»: обязательная, осознанная или импульсивная.')+'<div class="bar"><i style="width:'+(h.few/5*100)+'%;background:var(--accent)"></i></div><p class="fine" style="margin:0">Отмечено в этом месяце: '+h.few+' из 5 — после пяти появится оценка.</p></div>';
   }else if(h){
     var lab=h.score>=75?'Хорошо':h.score>=50?'Нормально':'Тревожно';
     hh='<div class="card"><h2>Финансовое здоровье</h2><div class="score"><b>'+h.score+'</b><span class="fine">из 100 · '+lab+'</span></div>'+
@@ -1340,7 +1348,7 @@ function reviewCard(){
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
   if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
   if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
-  H+='<p class="fine">Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).</p>';
+  H+='<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Как считается</span>'+tipBtn('rv')+'</div>'+tipBox('rv','Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).');
   return H+'</div>';
 }
 
@@ -1905,11 +1913,11 @@ function viewAn(){
   var LM=catLimits();Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
   return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
-   '<div class="card"><h2>Выгрузка</h2><p class="fine">Текст для разбора в чате с ИИ или таблица для Excel за любой период.</p><div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
+   '<div class="card"><div class="tiprow"><h2>Выгрузка</h2>'+tipBtn('ex')+'</div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'<div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
    (S.simple?'<div class="card"><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':'<div class="card"><div class="two"><div><div class="fine">Доходы</div><div class="amt in" style="font-size:20px">'+money(inc-ref)+'</div></div><div><div class="fine">Расходы</div><div class="amt out" style="font-size:20px">'+money(net)+'</div></div></div>'+
    '<div class="note '+(diff>=0?'good':'bad')+'"><b>'+(diff>=0?'Остаток за месяц ':'Перерасход ')+money(Math.abs(diff))+'</b>'+(inc>0?'<span class="fine">Откладывается '+Math.round(Math.max(0,diff)/inc*100)+'% дохода</span>':'')+'</div></div>')+
    '<div class="card"><h2>Расходы по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
-   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2><button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+'<p class="fine">Только твои деньги: после вычета возвратов.</p>'+catHtml+'</div>';
+   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats','Только твои деньги: после вычета возвратов.')+catHtml+'</div>';
 }
 
 function planRow(kind,r,ym){
@@ -2203,7 +2211,7 @@ function settingsSheet(){
   openSheet('<h3>Настройки</h3><button type="button" class="btn ghost" data-a="help">Как пользоваться</button>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off"></form>'+
    '<div class="f"><label>План трат на день</label><p class="fine">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'Пока не задан.')+'</p><button type="button" class="btn ghost" data-a="planOpen">Изменить план</button></div>'+
-   '<div class="f"><label for="pd_in">Дни зарплаты</label><p class="fine">'+(payDays().length?'Сейчас: '+payDays().join(', ')+'. Ближайшие выплаты с учётом выходных и праздников: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'. ':'Пока не заданы. ')+'Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.</p><input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>'+
+   '<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>'+
    '<div class="help f" style="gap:8px">'+
    det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
    det('Копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+
@@ -2258,6 +2266,7 @@ document.addEventListener('click',function(ev){
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
   if(a==='tab'){if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
+  else if(a==='tip'){var tb=document.getElementById('tip_'+v);if(tb){tb.hidden=!tb.hidden;b.setAttribute('aria-expanded',tb.hidden?'false':'true')}}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}
   else if(a==='hf'){hf=v;render()}

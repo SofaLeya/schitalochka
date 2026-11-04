@@ -1014,9 +1014,8 @@ function planAsk(){
 function petDay(){return T} // день начинается в полночь, как в календаре
 /* ---------- день зарплаты: похвала и предложение отложить остаток ---------- */
 function payDays(){
-  var l=Array.isArray(S.payDays)?S.payDays:null;
-  if(!l&&!S.simple)l=(S.incomes||[]).map(function(r){return +r.day}); // полный режим: дни из доходов, пока свои не заданы
-  return (l||[]).map(function(d){return Math.round(+d)}).filter(function(d,i,a){return d>=1&&d<=31&&a.indexOf(d)===i}).sort(function(a,b){return a-b})}
+  var l=Array.isArray(S.payDays)?S.payDays:[]; // только те дни, что человек задал сам в настройках
+  return l.map(function(d){return Math.round(+d)}).filter(function(d,i,a){return d>=1&&d<=31&&a.indexOf(d)===i}).sort(function(a,b){return a-b})}
 /* производственный календарь РФ: выходные и праздники (с переносами) на 2026 и 2027 годы; для остальных лет - общие правила */
 var RUCAL={
  2026:{off:['01-01..01-11','02-21..02-23','03-07..03-09','05-01..05-03','05-09..05-11','06-12..06-14','11-04','12-31'],work:[]},

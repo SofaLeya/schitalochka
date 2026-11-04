@@ -1091,20 +1091,12 @@ function payTarget(){
   return sv.filter(function(a){return pref.test(a.name)&&!skip.test(a.name)})[0]||sv.filter(function(a){return !skip.test(a.name)})[0]||sv[0]||null}
 function dayTick(){var t=iso(new Date());if(t!==T){T=t;try{render()}catch(e){}}}setInterval(dayTick,60000);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')dayTick()});
 function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),r=refunds(l);return {n:l0.length,e:e,r:r,v:e-r}}
-/* дни без трат: после полуночи засчитываются сами, если вечером того дня приложение открывали и трат не было */
-function autoNoSpend(){
-  try{var hr=new Date().getHours(),ch=false;S.eveSeen=S.eveSeen||[];
-    if(hr>=20&&S.eveSeen.indexOf(T)<0){S.eveSeen.push(T);S.eveSeen=S.eveSeen.slice(-14);ch=true}
-    if(S.entries.some(function(x){return !x.demo})){S.noSpend=S.noSpend||[];
-      S.eveSeen.forEach(function(d){if(d<T&&S.noSpend.indexOf(d)<0&&!S.entries.some(function(x){return x.date===d&&x.type==='e'&&!x.skip})&&iso(addDays(parse(d),7))>=T){S.noSpend.push(d);ch=true}})}
-    if(ch)save()}catch(e){}}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
   function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше — до '+money(perLeft)+' в день.':' До конца месяца — только нужное.'):''}
-  var nsLink='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpend">сегодня без трат</button>';
   var pp=payPraise();
   if(pp){mood='joy';var pa=money(pp.left);
     msg=pk(['Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Отложим их в накопления?','Дожила до зарплаты с деньгами: осталось '+pa+'. Вот это умница! Отложим в накопления?','Ура, зарплата, и ещё '+pa+' остались с прошлой! Давай отправим их в накопления?']);
@@ -1112,15 +1104,14 @@ function monsterCard(me,net,dnum){
     if(noSv)msg='Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Заведём копилку и отложим их?';
     nsBtn='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="payPut">'+(noSv?'Завести копилку':'Отложить '+pa)+'</button><button class="btn sm ghost" data-a="payLater">Пропустить</button></div>'}
   else if(!ns&&tn<=0&&hr>=15&&S.entries.some(function(x){return !x.demo})){
-    var nb2='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="noSpend">Сегодня без трат</button></div>';
-    if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а ты сегодня ни рубля не потратила - так держать! Если трат правда не было, отметь это.','Ни одной траты за день, и вечер уже близко. Горжусь! Если так и есть, отметь «без трат».','День пока без трат - мне нравится. Дотянем до вечера?']);nsBtn=nsLink}
-    else{mood='joy';msg=pk(['Целый день без трат - ты умница! Завтра засчитаю сама, а можно отметить сразу.','Сегодня ни рубля. Вот это выдержка! Завтра засчитаю сама, а можно отметить сразу.','Ни одной траты за день! Горжусь тобой. Завтра засчитаю сама, а можно нажать кнопку сейчас.']);nsBtn=nb2}
+    if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а ты сегодня ни рубля не потратила - так держать!','Ни одной траты за день, и вечер уже близко. Горжусь!','День пока без трат - мне нравится. Дотянем до вечера?'])}
+    else{mood='joy';msg=pk(['Целый день без трат - ты умница! Завтра утром можно забрать за это звёзды.','Сегодня ни рубля. Вот это выдержка! Завтра утром заберёшь звёзды.','Ни одной траты за день! Горжусь тобой. Звёзды за этот день можно будет забрать завтра.'])}
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','Утро-день позади, а трат на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
     var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' На сегодня — до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
-    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат, засчитала день. Отличный старт!'+tday}
+    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
@@ -1129,7 +1120,6 @@ function monsterCard(me,net,dnum){
     else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' — в плане.'+tday}
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
-    nsBtn=(!yd.n&&!yns?'<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpendY">Вчера было без трат</button>':'')+(hr>=17?nsLink:'');if(nsBtn)nsBtn='<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">'+nsBtn+'</div>';
   }
   else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn='<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpend">Сегодня без трат</button>'}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
@@ -1144,6 +1134,8 @@ function monsterCard(me,net,dnum){
   else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь: в среднем '+money(avg)+' в день при плане '+money(lim)+'.','Хороший запас! В среднем '+money(avg)+' в день.','Экономишь как профи: '+money(avg)+' в день.'])}
   else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
+  if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
+    if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
   return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
@@ -2069,7 +2061,7 @@ function modeSwitch(){
 function render(){
   syncCats();
   try{document.documentElement.classList.add('cheer') /* оформление одинаковое в любом режиме */}catch(e){}
-  applyPetTheme();autoNoSpend();
+  applyPetTheme();
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();

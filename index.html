@@ -1894,6 +1894,23 @@ function onbFinish(){var d=sh.d;
   if(d.pc&&d.pc.inc>0){S.planCalc=d.pc;delete S.dayLimit}S.planAsked=1;
   S.pet={kind:d.kind||'puff',name:String(d.name||'').trim().slice(0,20)};S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Записывай первую трату кнопкой «+»');
 }
+/* полный режим: траты на жизнь против плана на месяц; платежи, траты из копилок и доходы - отдельно */
+function lifeCard(me,n){
+  var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),planM=lim*n,lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
+  var outS=Math.max(0,Math.round(sum(me,'e')-sum(life(me),'e')));
+  var incR=me.filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(a,x){return a+x.amt},0);
+  var head,note,bar='';
+  if(lim>0){
+    var r=lnet/planM,cls=r>1.1?'bad':r>1?'warn':'good';
+    head='<b>'+money(lnet)+' из '+money(planM)+'</b>';
+    note=rest>=0?(cur&&left>0?'В плане. Осталось '+money(rest)+', это '+money(rest/left)+' в день до конца месяца':'В плане. Осталось '+money(rest)):'Выше плана на '+money(-rest);
+    bar='<div class="bar"><i style="width:'+Math.min(100,r*100)+'%;background:'+(r>1?'var(--out)':r>0.85?'var(--warn)':'var(--in)')+'"></i></div>';
+    return '<div class="card"><div class="tiprow"><h2>Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Сравниваются с планом на месяц ('+money(lim)+' в день × '+n+' дн.).')+
+      '<div class="note '+cls+'">'+head+'<span class="fine">'+note+'</span></div>'+bar+
+      '<div class="two"><div><div class="fine">Пришло за месяц</div><div class="amt in" style="font-size:20px">'+money(incR)+'</div></div><div><div class="fine">Платежи и из копилок</div><div class="amt" style="font-size:20px">'+money(outS)+'</div></div></div></div>'}
+  return '<div class="card"><div class="tiprow"><h2>Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Задай план трат на день, и здесь появится сравнение с ним.')+
+    '<div class="note info"><b>'+money(lnet)+'</b><span class="fine">'+(dd?'В день: '+money(lnet/dd):'')+'</span></div>'+
+    '<div class="two"><div><div class="fine">Пришло за месяц</div><div class="amt in" style="font-size:20px">'+money(incR)+'</div></div><div><div class="fine">Платежи и из копилок</div><div class="amt" style="font-size:20px">'+money(outS)+'</div></div></div></div>'}
 function viewAn(){
   var me=monthEntries(vym),inc=sum(me,'i'),exp=sum(me,'e'),a=vym.split('-'),n=dim(+a[0],+a[1]-1);
   var per=[];for(var i=0;i<n;i++)per.push(0);
@@ -1914,8 +1931,7 @@ function viewAn(){
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
   return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
    '<div class="card"><div class="tiprow"><h2>Выгрузка</h2>'+tipBtn('ex')+'</div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'<div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
-   (S.simple?'<div class="card"><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':'<div class="card"><div class="two"><div><div class="fine">Доходы</div><div class="amt in" style="font-size:20px">'+money(inc-ref)+'</div></div><div><div class="fine">Расходы</div><div class="amt out" style="font-size:20px">'+money(net)+'</div></div></div>'+
-   '<div class="note '+(diff>=0?'good':'bad')+'"><b>'+(diff>=0?'Остаток за месяц ':'Перерасход ')+money(Math.abs(diff))+'</b>'+(inc>0?'<span class="fine">Откладывается '+Math.round(Math.max(0,diff)/inc*100)+'% дохода</span>':'')+'</div></div>')+
+   (S.simple?'<div class="card"><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':lifeCard(me,n))+
    '<div class="card"><h2>Расходы по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
    '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats','Только твои деньги: после вычета возвратов.')+catHtml+'</div>';
 }

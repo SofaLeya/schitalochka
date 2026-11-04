@@ -2273,7 +2273,7 @@ function settingsSheet(){
     det('Копии и синхронизация'+((ydOn()||tgOn)?' ✅':''),
       det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
       det('Копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+
-      '<p class="fine" style="margin:0">Копии можно хранить в облаке или в Телеграме.<button type="button" class="fine" style="text-decoration:underline;padding:0 4px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё один способ">*</button></p>'+
+      '<div style="display:flex;align-items:center;gap:12px"><span class="fine" style="flex:1">Копии можно хранить в облаке или в Телеграме. Есть ещё один способ - нажми на звёздочку.</span><button type="button" class="ibtn" style="width:40px;height:40px;border-color:var(--accent);color:var(--accent);font:700 30px/1 Arial,sans-serif;padding-top:10px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё один способ">*</button></div>'+
       tipBox('bk','<div class="f" style="gap:10px"><p style="margin:0">* Или можешь скачать резервную копию просто файлом на своё устройство.</p>'+bkHtml+'</div>')+
       det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml()))+
     det('Загрузить данные',

@@ -1942,13 +1942,15 @@ function viewPlan(){
    fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>');
 }
 
+function modeSwitch(){
+  return '<div class="seg" role="group" aria-label="Режим приложения" style="margin:-4px 0 4px"><button type="button" data-a="setMode" data-v="simple" aria-pressed="'+(S.simple?'true':'false')+'" class="'+(S.simple?'on':'')+'">Простой режим</button><button type="button" data-a="setMode" data-v="full" aria-pressed="'+(S.simple?'false':'true')+'" class="'+(S.simple?'':'on')+'">Полный режим</button></div>'}
 function render(){
   syncCats();
   try{document.documentElement.classList.add('cheer') /* оформление одинаковое в любом режиме */}catch(e){}
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1><span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1><span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -2301,6 +2303,7 @@ document.addEventListener('click',function(ev){
   else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2&&window.confirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».')){S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat='other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()}}
   else if(a==='help'){sh={hp:true};helpSheet()}
   else if(a==='copyPrompt'){var ta=document.getElementById('h_prompt');var done=function(){toast('Запрос скопирован')};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}else{ta.select();document.execCommand('copy');done()}}catch(e){toast('Не получилось, выдели текст вручную',true)}}
+  else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
   else if(a==='toggleSimple'){S.simple=!S.simple;if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render()}
   else if(a==='export'){sh={ex:true,scope:'m'};exportSheet()}
   else if(a==='exScope'){sh.scope=v;exportSheet()}

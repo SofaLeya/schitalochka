@@ -181,6 +181,9 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .help details details{background:transparent;border:1px solid var(--line)}
 .help .hb p{margin:0;line-height:1.5}
 .help details details{margin-top:2px}
+.help details details>summary::after{content:'+';width:auto;height:auto;margin:0 4px 0 0;border:0;transform:none;font-size:22px;font-weight:600;line-height:1;color:var(--accent);transition:none}
+.help details[open] details>summary::after{content:'+';margin-top:0;transform:none}
+.help details details[open]>summary::after{content:'\2212';margin-top:0;transform:none}
 .help .hb ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .ico.q{font-weight:800;font-size:18px;color:var(--accent)}
 .mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

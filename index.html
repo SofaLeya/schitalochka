@@ -1274,7 +1274,7 @@ function reviewCard(){
     baseTo=prev.reduce(function(s,m){return s+netM(m,cur?d:0)},0)/prev.length;
     prev.forEach(function(m){var c=netByCat(life(ex0(m,cur?d:0)));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
   }
-  var curCat=netByCat(life(ex0(ym))),tips=[],early=cur&&d<7; // в первые дни месяца данных мало: доли и сравнения с обычным врут
+  var curCat=netByCat(life(ex0(ym))),tips=[];
   /* 1. итог или прогноз */
   var cmp='';
   if(base!==null&&base>0){
@@ -1296,7 +1296,7 @@ function reviewCard(){
   var ch=Object.keys(keys).map(function(kk){var c=curCat[kk]||0,b=baseCat[kk]||0;return {k:kk,c:c,b:b,df:c-b}});
   var up=ch.filter(function(x){return x.df>=1000&&(x.b===0||x.df/x.b>=0.3)}).sort(function(p,q){return q.df-p.df}).slice(0,3);
   var down=ch.filter(function(x){return x.df<=-1000&&x.b>0&&-x.df/x.b>=0.3}).sort(function(p,q){return p.df-q.df}).slice(0,2);
-  if(prev.length&&!early&&(up.length||down.length)){
+  if(prev.length&&(up.length||down.length)){
     H+='<div class="fine" style="font-weight:700;margin-top:4px">Что изменилось'+(cur?' к '+d+'-му числу':'')+' по сравнению с обычным</div><div class="list">'+
       up.concat(down).map(function(x){return '<div class="row"><span class="dot" style="background:'+ccol(x.k)+'"></span><div class="grow"><div class="t">'+esc(cname(x.k))+'</div><div class="s">'+money(x.c)+' · обычно '+money(x.b)+'</div></div><span class="amt '+(x.df>0?'out':'in')+'">'+(x.df>0?'+':'−')+money(Math.abs(x.df))+'</span></div>'}).join('')+'</div>';
   }
@@ -1339,14 +1339,13 @@ function reviewCard(){
   else if(cur&&base&&left>0){var rem=base-spent;
     tips.push(rem>0?'Чтобы уложиться в свой обычный месяц ('+money(base)+'), до конца месяца тратить не больше '+money(rem/left)+' в день.':'Уже потрачено больше, чем в обычный месяц ('+money(base)+')'+(bigSum?', в том числе из-за крупных покупок на '+money(bigSum):'')+'. До конца месяца лучше оставить только обязательное.')}
   var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+x.amt});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
-  if(tu&&prev.length&&!early)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
+  if(tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
   var eat=(curCat.cafe||0)+(curCat.taxi||0),eatB=(baseCat.cafe||0)+(baseCat.taxi||0),bTo=baseTo||0;
-  if(!early&&spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
+  if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
     tips.push('Кафе, доставка и такси — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
   if(!S.simple){var imp=list.filter(function(x){return x.cls==='imp'}).reduce(function(s,x){return s+x.amt},0);
     if(gross>0&&imp/gross>0.15)tips.push('Импульсивные покупки — '+pct(imp/gross)+' трат. Попробуй правило суток: хочешь что-то незапланированное — подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
-  if(early&&prev.length)tips.push('Сравнение с обычным месяцем и доли категорий появятся после 7-го числа: пока слишком мало трат, чтобы выводы были честными.');
   if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
   if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
   H+='<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Как считается</span>'+tipBtn('rv')+'</div>'+tipBox('rv','Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).');

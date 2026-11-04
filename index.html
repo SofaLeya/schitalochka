@@ -1075,7 +1075,9 @@ function monsterCard(me,net,dnum){
   var pp=payPraise();
   if(pp){mood='joy';var pa=money(pp.left);
     msg=pk(['Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Отложим их в накопления?','Дожила до зарплаты с деньгами: осталось '+pa+'. Вот это умница! Отложим в накопления?','Ура, зарплата, и ещё '+pa+' остались с прошлой! Давай отправим их в накопления?']);
-    nsBtn='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="payPut">Отложить '+pa+'</button><button class="btn sm ghost" data-a="payLater">Пропустить</button></div>'}
+    var noSv=!payTarget();
+    if(noSv)msg='Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Заведём копилку и отложим их?';
+    nsBtn='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="payPut">'+(noSv?'Завести копилку':'Отложить '+pa)+'</button><button class="btn sm ghost" data-a="payLater">Пропустить</button></div>'}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
     var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' На сегодня — до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
@@ -1900,7 +1902,7 @@ function outCard(me){
   var out=me.filter(function(x){return x.type==='e'&&!x.skip&&!x.demo&&!inLife[x.id]}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
   if(!out.length)return '';
   var sum=out.reduce(function(a,x){return a+x.amt},0);
-  return fcard('payout','Платежи и из копилок',money(sum),out.length+' '+plw(out.length,'запись','записи','записей')+' · не входят в траты на жизнь',
+  return fcard('payout',(S.accounts||[]).some(function(a){return a.type==='save'})?'Платежи и из копилок':'Платежи',money(sum),out.length+' '+plw(out.length,'запись','записи','записей')+' · не входят в траты на жизнь',
     '<div class="list">'+out.map(function(x){var c=CMAP[x.cat]||CMAP.other,a=accById(accOf(x));
       return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(x.note||c.name)+'</div><div class="s">'+dlabel(x.date)+(a?' · из «'+esc(accName(a))+'»':'')+' · '+esc(c.name)+'</div></div><span class="amt out">−'+money(x.amt)+'</span></button>'}).join('')+'</div>')}
 /* полный режим: траты на жизнь против плана на месяц; платежи, траты из копилок и доходы - отдельно */

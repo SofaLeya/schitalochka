@@ -1106,9 +1106,9 @@ function monsterCard(me,net,dnum){
   return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
-  var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.round(net-lnet);
+  var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
-  var hero='<div class="card hero"><span class="lbl">Свободные деньги</span><span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(net)+'</b>'+(ref>0?'<span class="fine">до возвратов '+money(exp)+'</span>':'')+'</div><div class="stat"><span class="lbl">Трачу в день</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">в среднем · план '+money(dayLimit())+'</span>':'')+'</div></div></div>';
+  var hero='<div class="card hero"><span class="lbl">Свободные деньги</span><span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(lnet)+'</b>'+(lout>0?'<span class="fine">платежи отдельно '+money(lout)+'</span>':'')+'</div><div class="stat"><span class="lbl">Трачу в день</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">в среднем · план '+money(dayLimit())+'</span>':'')+'</div></div></div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
   var recent='<div class="card"><h2>Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Нажмите «+», чтобы добавить трату.</p>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button><button class="btn sm" data-a="export">Выгрузить для анализа</button></div></div>';
   return demo+newsNote()+backupNote()+hero+monsterCard(me,lnet,dnum)+tplCard()+splitCard()+progCard()+accountsCard()+recent;
@@ -1118,7 +1118,7 @@ function viewHome(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),h=health(ym),st=streak();
   var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+'</span><span class="big">'+money(bal)+'</span>'+
-   '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(exp-refunds(me))+'</b>'+(refunds(me)>0?'<span class="fine">до возвратов '+money(exp)+'</span>':'')+'</div>'+
+   '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(lifeNet(me))+'</b>'+(Math.round(exp-sum(life(me),'e'))>0?'<span class="fine">платежи отдельно '+money(Math.round(exp-sum(life(me),'e')))+'</span>':'')+'</div>'+
    '<div class="stat"><span class="lbl">Трачу в день</span><b>'+money(lifeNet(me)/dnum)+'</b>'+(dayLimit()?'<span class="fine">в среднем · план '+money(dayLimit())+'</span>':'')+'</div>'+
    '<div class="stat"><span class="lbl">До зарплаты в день</span><b>'+money(pd.val)+'</b><span class="fine">до '+dlabel(pd.nextIn)+'</span></div></div></div>';
   var main;
@@ -1915,7 +1915,7 @@ function lifeCard(me,n){
 function viewAn(){
   var me=monthEntries(vym),inc=sum(me,'i'),exp=sum(me,'e'),a=vym.split('-'),n=dim(+a[0],+a[1]-1);
   var per=[];for(var i=0;i<n;i++)per.push(0);
-  for(var di=0;di<n;di++){var dl=me.filter(function(x){return parseInt(x.date.slice(8),10)===di+1});per[di]=Math.max(0,sum(dl,'e')-refunds(dl))}
+  for(var di=0;di<n;di++){var dl=life(me.filter(function(x){return parseInt(x.date.slice(8),10)===di+1}));per[di]=Math.max(0,sum(dl,'e')-refunds(dl))}
   var mx=Math.max.apply(null,per.concat([1])),W=340,H=120,pl=0,pb=18,pt=14,bw=W/n,svg='';
   svg+='<line x1="0" x2="'+W+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'" stroke="var(--line)"/>';
   svg+='<line x1="0" x2="'+W+'" y1="'+pt+'" y2="'+pt+'" stroke="var(--line)" stroke-dasharray="3 3"/>';
@@ -1925,16 +1925,17 @@ function viewAn(){
     svg+='<rect x="'+x.toFixed(1)+'" y="'+(H-pb-h).toFixed(1)+'" width="'+(bw*.7).toFixed(1)+'" height="'+Math.max(h,v>0?1.5:0).toFixed(1)+'" rx="1.5" fill="var(--out)"/>';
     var d=i+1;if(d===1||d%5===0)svg+='<text x="'+(i*bw+bw/2).toFixed(1)+'" y="'+(H-4)+'" font-size="9" text-anchor="middle">'+d+'</text>';
   });
-  var cat=netByCat(me),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
+  var cat=netByCat(life(me)),outC=Math.max(0,Math.round(sum(me,'e')-sum(life(me),'e'))),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});
   var diff=inc-exp,ref=refunds(me),net=exp-ref;
   var LM=catLimits();Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
-  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Расходов за этот месяц нет.</p>';
+  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
+  if(outC>0)catHtml+='<div class="row" style="margin-top:6px;padding-top:10px;border-top:1px solid var(--line)"><div class="grow t">Платежи и из копилок</div><span class="fine">не в тратах на жизнь</span><span class="amt">'+money(outC)+'</span></div>';
   return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
    '<div class="card"><div class="tiprow"><h2>Выгрузка</h2>'+tipBtn('ex')+'</div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'<div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
-   (S.simple?'<div class="card"><div class="note good"><b>Чистые расходы '+money(net)+'</b><span class="fine">В день: '+money(net/(vym===T.slice(0,7)?parseInt(T.slice(8),10):n))+'</span></div></div>':lifeCard(me,n))+
-   '<div class="card"><h2>Расходы по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
-   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats','Только твои деньги: после вычета возвратов.')+catHtml+'</div>';
+   lifeCard(me,n)+
+   '<div class="card"><h2>Траты на жизнь по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
+   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats','Траты на жизнь со свободных денег, после вычета возвратов. Платежи и траты из копилок показаны отдельной строкой внизу и в проценты не входят.')+catHtml+'</div>';
 }
 
 function planRow(kind,r,ym){

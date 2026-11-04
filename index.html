@@ -847,7 +847,7 @@ var MONS=[
  {id:'puff',name:'Пушистик',about:'розовый, рожки'},
  {id:'yolk',name:'Желток',about:'оранжевый, на яичнице'},
  {id:'slime',name:'Слизень',about:'мятный, один глаз'},
- {id:'ghost',name:'Призрачок',about:'лиловый, усики'},
+ {id:'ghost',name:'Призрачок',about:'синий, усики'},
  {id:'cube',name:'Кубик',about:'оранжевый, рог'},
  {id:'rat',name:'Крыска',about:'серый, хвостик'},
  {id:'pocto',name:'Осьминожек',about:'розовый, щупальца'},
@@ -860,8 +860,8 @@ var MONS=[
 ];
 function petKind(){var k=S&&S.pet&&S.pet.kind;if(k==='octo')k='pocto';return MONS.some(function(m){return m.id===k})?k:'puff'}
 /* ---------- цветовая тема под монстрика ---------- */
-var PTHEME={puff:{h:330,s:88,h2:345},yolk:{h:44,s:92,h2:30,la:34,hl:1},slime:{h:162,s:70,h2:180,la:30},ghost:{h:268,s:82,h2:282},cube:{h:24,s:92,h2:14,la:40},
- rat:{h:215,s:9,h2:210,force:1,gt:30,hl:1,silver:1},pocto:{h:342,s:80,h2:320},fluff:{h:272,s:75,h2:290},mouse:{h:30,s:28,h2:20,la:36,hl:1},frog:{h:128,s:62,h2:150,la:30},
+var PTHEME={puff:{h:330,s:88,h2:345},yolk:{h:44,s:92,h2:30,la:34,hl:1},slime:{h:162,s:70,h2:180,la:30},ghost:{h:238,s:85,h2:222},cube:{h:24,s:92,h2:14,la:40},
+ rat:{h:215,s:9,h2:210,force:1,gt:30,hl:1,silver:1},pocto:{h:342,s:80,h2:320},fluff:{h:260,s:85,h2:268},mouse:{h:30,s:28,h2:20,la:36,hl:1},frog:{h:128,s:62,h2:150,la:30},
  duck:{h:50,s:70,h2:42,la:32,hl:1},cat:{h:10,s:70,h2:24,la:40},hog:{h:38,s:30,h2:80,la:34}};
 function hsl(h,s,l){return 'hsl('+Math.round(h)+','+Math.round(Math.min(100,s))+'%,'+Math.round(l)+'%)'}
 function hslHex(h,s,l){s=Math.min(100,s)/100;l/=100;var a=s*Math.min(l,1-l),f=function(n){var k=(n+h/30)%12,c=l-a*Math.max(-1,Math.min(k-3,9-k,1));return ('0'+Math.round(c*255).toString(16)).slice(-2)};return '%23'+f(0)+f(8)+f(4)}
@@ -959,8 +959,8 @@ function stkChar(kind,mood){
     s+=SK([['circle','cx="70" cy="10" r="7"','#ffd166'],['path','d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z"',c]]);
     s+='<circle cx="72" cy="8" r="2" fill="#fff"/><path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>';
     s+=mCheeks([44,96],86,'#1f9e78')+sEyes(mood,[70],64,19,c)+mMouth(mood,70,94,15,'down');
-  }else if(kind==='ghost'){var c='#9b7bff';
-    ['M54 30 Q46 16 40 9','M86 30 Q94 16 100 9'].forEach(function(d){s+='<path d="'+d+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#7a5ae8" stroke-width="3" fill="none" stroke-linecap="round"/>'});
+  }else if(kind==='ghost'){var c='#7f9bff';
+    ['M54 30 Q46 16 40 9','M86 30 Q94 16 100 9'].forEach(function(d){s+='<path d="'+d+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#5a78e8" stroke-width="3" fill="none" stroke-linecap="round"/>'});
     s+=SK([['circle','cx="39" cy="7" r="6"','#ff8fc7'],['circle','cx="101" cy="7" r="6"','#ff8fc7'],['ellipse','cx="22" cy="80" rx="8" ry="13" transform="rotate(30 22 80)"',c],['ellipse','cx="118" cy="80" rx="8" ry="13" transform="rotate(-30 118 80)"',c],['path','d="M28 122 L28 64 C28 36 48 22 70 22 C92 22 112 36 112 64 L112 122 Q103 112 94 122 Q84 132 76 122 Q70 114 64 122 Q56 132 46 122 Q37 112 28 122Z"',c]]);
     s+='<path d="M40 52 C42 40 52 32 62 30" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><path d="M70 104 l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z" fill="#ffd166" stroke="'+INK+'" stroke-width="2" stroke-linejoin="round"/>';
     s+=mCheeks([44,96],80,'#ff8fc7')+sEyes(mood,[55,85],60,11,c)+mMouth(mood,70,84,14,'down');

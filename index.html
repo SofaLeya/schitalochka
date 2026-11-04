@@ -1091,6 +1091,13 @@ function payTarget(){
   return sv.filter(function(a){return pref.test(a.name)&&!skip.test(a.name)})[0]||sv.filter(function(a){return !skip.test(a.name)})[0]||sv[0]||null}
 function dayTick(){var t=iso(new Date());if(t!==T){T=t;try{render()}catch(e){}}}setInterval(dayTick,60000);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')dayTick()});
 function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),r=refunds(l);return {n:l0.length,e:e,r:r,v:e-r}}
+/* дни без трат: после полуночи засчитываются сами, если вечером того дня приложение открывали и трат не было */
+function autoNoSpend(){
+  try{var hr=new Date().getHours(),ch=false;S.eveSeen=S.eveSeen||[];
+    if(hr>=20&&S.eveSeen.indexOf(T)<0){S.eveSeen.push(T);S.eveSeen=S.eveSeen.slice(-14);ch=true}
+    if(S.entries.some(function(x){return !x.demo})){S.noSpend=S.noSpend||[];
+      S.eveSeen.forEach(function(d){if(d<T&&S.noSpend.indexOf(d)<0&&!S.entries.some(function(x){return x.date===d&&x.type==='e'&&!x.skip})&&iso(addDays(parse(d),7))>=T){S.noSpend.push(d);ch=true}})}
+    if(ch)save()}catch(e){}}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
@@ -1107,13 +1114,13 @@ function monsterCard(me,net,dnum){
   else if(!ns&&tn<=0&&hr>=15&&S.entries.some(function(x){return !x.demo})){
     var nb2='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="noSpend">Сегодня без трат</button></div>';
     if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а ты сегодня ни рубля не потратила - так держать! Если трат правда не было, отметь это.','Ни одной траты за день, и вечер уже близко. Горжусь! Если так и есть, отметь «без трат».','День пока без трат - мне нравится. Дотянем до вечера?']);nsBtn=nsLink}
-    else{mood='joy';msg=pk(['Целый день без трат - ты умница! Отметь это, и день засчитается.','Сегодня ни рубля. Вот это выдержка! Отметь день «без трат» и ложись отдыхать.','Ни одной траты за день! Горжусь тобой. Нажми кнопку, чтобы день засчитался.']);nsBtn=nb2}
+    else{mood='joy';msg=pk(['Целый день без трат - ты умница! Завтра засчитаю сама, а можно отметить сразу.','Сегодня ни рубля. Вот это выдержка! Завтра засчитаю сама, а можно отметить сразу.','Ни одной траты за день! Горжусь тобой. Завтра засчитаю сама, а можно нажать кнопку сейчас.']);nsBtn=nb2}
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','Утро-день позади, а трат на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
     var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' На сегодня — до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
-    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
+    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат, засчитала день. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
@@ -1122,7 +1129,7 @@ function monsterCard(me,net,dnum){
     else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' — в плане.'+tday}
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
-    nsBtn=hr>=17?nsLink:'';
+    nsBtn=(!yd.n&&!yns?'<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpendY">Вчера было без трат</button>':'')+(hr>=17?nsLink:'');if(nsBtn)nsBtn='<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">'+nsBtn+'</div>';
   }
   else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn='<button class="btn sm ghost" style="align-self:flex-start" data-a="noSpend">Сегодня без трат</button>'}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
@@ -2062,7 +2069,7 @@ function modeSwitch(){
 function render(){
   syncCats();
   try{document.documentElement.classList.add('cheer') /* оформление одинаковое в любом режиме */}catch(e){}
-  applyPetTheme();
+  applyPetTheme();autoNoSpend();
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
@@ -2413,6 +2420,7 @@ document.addEventListener('click',function(ev){
   else if(a==='planClear'){delete S.dayLimit;delete S.planCalc;S.planAsked=1;save();closeSheet();render()}
   else if(a==='planKeep'){S.planAsked=1;S.dayLimit=+v;save();render();toast('План оставлен: '+money(+v)+' в день')}
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
+  else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
   else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
   else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),name:(S.pet&&S.pet.name)||''}};petSheet()}
   else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet();try{var pf=document.getElementById('fm');if(pf)pf.scrollIntoView({block:'nearest'})}catch(e){}}

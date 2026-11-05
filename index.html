@@ -1230,6 +1230,16 @@ function curlChar(kind){
   /* лапки спят: расслабленные пальчики */
   s+='<path d="M34 114 v5 M40 113 v6 M54 115 v5 M60 114 v6" stroke="'+INK+'" stroke-width="2" stroke-linecap="round" opacity=".75"/>';
   return s}
+/* Слизень во сне растекается лужицей */
+function meltChar(){
+  var c='#34d3a0',pd='M4 124 C2 112 20 108 34 112 C40 96 54 84 72 84 C90 84 102 98 106 110 C120 106 138 110 136 124 C136 133 124 135 112 133 L28 133 C14 135 4 133 4 124Z';
+  var s=SK([['path','d="'+pd+'"',c]]);
+  var st='M72 86 Q76 68 94 74 Q104 80 102 92';
+  s+='<path d="'+st+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+st+'" stroke="'+INK+'" stroke-width="8" fill="none" stroke-linecap="round"/><path d="'+st+'" stroke="#1fae82" stroke-width="3.5" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="102" cy="94" r="7" fill="#fff" stroke="#fff" stroke-width="6"/><circle cx="102" cy="94" r="7" fill="#ffd166" stroke="'+INK+'" stroke-width="3"/>';
+  s+='<path d="M42 112 C46 100 56 92 66 90" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="116" cy="124" r="3.5" fill="#fff" opacity=".35"/><circle cx="24" cy="125" r="3" fill="#fff" opacity=".3"/><circle cx="92" cy="128" r="2.5" fill="#fff" opacity=".3"/>';
+  s+='<ellipse cx="56" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><ellipse cx="88" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><path d="M63 104 Q72 112 81 104" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="119" rx="3.4" ry="4" fill="'+INK+'"/>';
+  return s}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
@@ -1335,6 +1345,9 @@ function monster(mood,size,kind,lvl,act){
       var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
       s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
        '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
+    else if(kind==='slime'){
+      s='<ellipse cx="70" cy="134" rx="62" ry="4" fill="#000" opacity=".16"/><g transform="translate(70 0) scale(.9 1) translate(-70 0)"><g class="lyb" style="transform-origin:70px 133px">'+meltChar()+'</g></g>'+
+       '<g transform="translate(82 121)"><g class="snb"><circle r="6.5" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
     else if(kind==='cat'||kind==='rat'||kind==='mouse'||kind==='fluff'){
       s='<ellipse cx="72" cy="133" rx="58" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+curlChar(kind)+'</g>'+
        '<g transform="translate(72 103)"><g class="snb"><circle r="7" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3.5 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}

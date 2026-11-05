@@ -1306,8 +1306,12 @@ function monster(mood,size,kind,lvl,act){
       var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
       s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
        '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
-    else{ /* свернулся клубком: тело округлое, голова прижата, нос спрятан; хвосты не дорисовываем */
-      s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+
+    else{ /* свернулся клубком: тело округлое, голова прижата, нос спрятан; хвост дорисован только кошачьим: Котик, Крыска, Мышка, Мохнатик */
+      var TC={cat:'#ffa45c',rat:'#f2a7b5',mouse:'#f0b4be',fluff:'#8f6bff'},tailS='';
+      if(TC[kind]){s=s.replace(/<g class="tail"[^>]*>[\s\S]*?<\/g>/,'');
+        var tl='M112 88 C126 112 108 131 78 128 C66 127 56 124 52 117',tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
+        tailS=tw(19,'#fff')+tw(13.5,INK)+tw(7.5,TC[kind])}
+      s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+tailS+
        '<g transform="translate(103 92)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}}
   if(mood==='think'){var qa='x="103" y="40" font-size="42" font-weight="900" font-family="sans-serif" stroke-linejoin="round"';s+='<text '+qa+' style="fill:#fff;stroke:#fff;stroke-width:11px">?</text><text '+qa+' style="fill:#ffd166;stroke:'+INK+';stroke-width:5px;paint-order:stroke">?</text>'}
   if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';

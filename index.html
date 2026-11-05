@@ -327,13 +327,14 @@ function save(){saveLocal();syncSoon();ydChanged();clearTimeout(save.sn);save.sn
 S=load();
 function syncCats(){
   for(var i=CATS.length-1;i>=0;i--)if(CATS[i].custom){delete CMAP[CATS[i].id];CATS.splice(i,1)}
+  for(var j=ICATS.length-1;j>=0;j--)if(ICATS[j].custom){delete CMAP[ICATS[j].id];ICATS.splice(j,1)}
   if(!Array.isArray(S.ccats))S.ccats=[];
-  S.ccats.forEach(function(c){var o={id:c.id,name:c.name,color:c.color,custom:true};CATS.push(o);CMAP[c.id]=o});
+  S.ccats.forEach(function(c){var o={id:c.id,name:c.name,color:c.inc?'var(--in)':c.color,custom:true,inc:!!c.inc};(c.inc?ICATS:CATS).push(o);CMAP[c.id]=o});
 }
 function catPool(){return sh&&sh.d&&sh.d.type==='e'?CATS:ICATS.filter(function(c){return c.id!=='refund'})}
 function catFilter(q){ // поиск категории по первым буквам (по началу любого слова в названии)
   var sel=document.getElementById('f_cat');if(!sel||!sh||!sh.d)return;
-  var isE=sh.d.type==='e',pool=catPool(),n=norm(q),tail=isE?NEWCAT:'',mk=(isE&&n)?'<option value="__newq">＋ Создать «'+esc(String(q).trim())+'»…</option>':'';
+  var isE=sh.d.type==='e',pool=catPool(),n=norm(q),tail=NEWCAT,mk=n?'<option value="__newq">＋ Создать «'+esc(String(q).trim())+'»…</option>':'';
   if(!n){sel.innerHTML=opts(pool,sh.d.cat)+tail;return}
   var hit=pool.filter(function(c){return norm(c.name).split(/[^а-яa-z0-9]+/).some(function(w){return w.indexOf(n)===0})});
   if(!hit.length){sel.innerHTML='<option value="" selected disabled>Ничего не найдено</option>'+mk+tail;sh.d.cat='';return}
@@ -341,10 +342,10 @@ function catFilter(q){ // поиск категории по первым бук
   sel.innerHTML=opts(hit,first.id)+mk+tail;sel.value=first.id;
   sh.d.cat=first.id;sh.d.manual=true;sh.d.auto=false;var h=document.getElementById('f_hint');if(h)h.hidden=true;
 }
-function newCat(name){name=String(name||'').trim().slice(0,40);if(!name)return null;
+function newCat(name,inc){name=String(name||'').trim().slice(0,40);if(!name)return null;
   if(!Array.isArray(S.ccats))S.ccats=[];
-  var ex=CATS.filter(function(c){return norm(c.name)===norm(name)})[0];if(ex)return ex.id;
-  var c={id:'c_'+uid(),name:name,color:'hsl('+((S.ccats.length*47+15)%360)+' 70% 45%)'};S.ccats.push(c);save();syncCats();return c.id}
+  var ex=(inc?ICATS:CATS).filter(function(c){return norm(c.name)===norm(name)})[0];if(ex)return ex.id;
+  var c={id:'c_'+uid(),name:name,color:inc?'var(--in)':'hsl('+((S.ccats.length*47+15)%360)+' 70% 45%)'};if(inc)c.inc=true;S.ccats.push(c);save();syncCats();return c.id}
 var NEWCAT='<option value="__new">＋ Своя категория…</option>';
 syncCats();if(S.simple===undefined)S.simple=true;if(!Array.isArray(S.rules))S.rules=[];if(!Array.isArray(S.skips))S.skips=[];
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
@@ -2156,7 +2157,7 @@ function entrySheet(){
      (S.accounts.length<2?'<p class="fine">Для этого нужна хотя бы одна копилка. Заведи её на главном экране.</p>':'');
   }else{
     body='<div class="f"><label for="f_note">'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'</label><input id="f_note" value="'+esc(d.note||'')+'" placeholder="'+(isE?'Например: Пятёрочка, такси домой':(d.cat==='refund'?'Например: половина за продукты, возврат за заказ':'Например: аванс, подработка, подарок'))+'"></div>'+
-     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>':'<div class="f"><label for="f_cat">Категория</label><input id="f_catq" type="search" autocomplete="off" enterkeyhint="done" placeholder="Найти: начни вводить название"><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+(isE?NEWCAT:'')+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
+     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>':'<div class="f"><label for="f_cat">Категория</label><input id="f_catq" type="search" autocomplete="off" enterkeyhint="done" placeholder="Найти: начни вводить название"><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+NEWCAT+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
      (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">— не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'')+
      (isE&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'})?'<div class="f"><label for="f_acc">'+(S.simple?'Со счёта':'Чем оплатила')+'</label><select id="f_acc">'+srcOpts(d.acc)+'</select><span class="fine" id="f_fh"'+(d.fund?'':' hidden')+'>'+(d.fund?'Нашла копилку по заметке. Можно поменять.':'')+'</span></div>':'');
   }
@@ -2297,7 +2298,7 @@ function settingsSheet(){
    '<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>'+
    '<div class="help f" style="gap:8px">'+
     det('Регулярные траты'+(tpls().length?' · '+tpls().length:''),tplListHtml())+
-    det('Мои категории трат'+(S.ccats.length?' · '+S.ccats.length:''),(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты.</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Добавить категорию</button>')+
+    det('Мои категории'+(S.ccats.length?' · '+S.ccats.length:''),(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+(c.inc?' <span class="fine">· доход</span>':'')+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты или дохода.</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Категория трат</button><button type="button" class="btn ghost" data-a="ccAddI">＋ Категория дохода</button>')+
     det('Копии и синхронизация'+((ydOn()||tgOn)?' ✅':''),
       det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
       det('Копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+
@@ -2443,9 +2444,10 @@ document.addEventListener('click',function(ev){
   else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),name:(S.pet&&S.pet.name)||''}};petSheet()}
   else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet();try{var pf=document.getElementById('fm');if(pf)pf.scrollIntoView({block:'nearest'})}catch(e){}}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
+  else if(a==='ccAddI'){var n3=window.prompt('Название новой категории дохода');if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}}
   else if(a==='ccAdd'){var n1=window.prompt('Название новой категории');if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}}
   else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){var n2=window.prompt('Новое название',c1.name);if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}}}
-  else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2&&window.confirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».')){S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat='other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()}}
+  else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2&&window.confirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».')){S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat=c2.inc?'other_in':'other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()}}
   else if(a==='help'){sh={hp:true};helpSheet()}
   else if(a==='copyPrompt'){var ta=document.getElementById('h_prompt');var done=function(){toast('Запрос скопирован')};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}else{ta.select();document.execCommand('copy');done()}}catch(e){toast('Не получилось, выдели текст вручную',true)}}
   else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
@@ -2606,8 +2608,8 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='h_sk'){if(hd)hd.sk=ev.target.value;hdSync();return}
   if(ev.target.id==='a_type'&&sh&&sh.ac){readAcc();accSheet();return}
   if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true}
-  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var nm0=window.prompt('Название новой категории',t0);var nid0=nm0?newCat(nm0):null;if(q0)q0.value='';ev.target.innerHTML=opts(CATS,nid0||sh.d.cat)+NEWCAT;if(nid0){ev.target.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;return}
-  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var nm=window.prompt('Название новой категории');var nid=nm?newCat(nm):null;ev.target.innerHTML=opts(CATS,nid||sh.d.cat)+NEWCAT;if(nid){ev.target.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;return}
+  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var nm0=window.prompt('Название новой категории',t0);var nid0=nm0?newCat(nm0,sh.d.type==='i'):null;if(q0)q0.value='';ev.target.innerHTML=opts(catPool(),nid0||sh.d.cat)+NEWCAT;if(nid0){ev.target.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;return}
+  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var nm=window.prompt('Название новой категории');var nid=nm?newCat(nm,sh.d.type==='i'):null;ev.target.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){ev.target.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
 });
 document.addEventListener('change',function(ev){

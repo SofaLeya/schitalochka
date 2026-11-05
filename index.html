@@ -1026,8 +1026,8 @@ function skFlower(x,y,r,pc,cc){var s='<g stroke="'+INK+'" stroke-width="2" strok
   for(var i=0;i<5;i++){var a=-Math.PI/2+i*2*Math.PI/5;s+='<circle cx="'+(x+Math.cos(a)*r*0.62).toFixed(1)+'" cy="'+(y+Math.sin(a)*r*0.62).toFixed(1)+'" r="'+(r*0.5).toFixed(1)+'" fill="'+pc+'"/>'}
   return s+'<circle cx="'+x+'" cy="'+y+'" r="'+(r*0.36).toFixed(1)+'" fill="'+cc+'"/></g>'}
 function skelChar(g,mood){
-  var C=g?{bone:'#ece4fb',cav:'#4b2a7c',pup:'#7a3cff',lc:'#e6dcff',bc:'#4b2a7c',ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3',fl:INK,hl:0}
-    :{bone:'#3a3641',cav:'#a3142b',pup:'#e5133a',lc:'#ffd24a',bc:'#ffd24a',ring:'#d9a62b',sock:'#120a0d',mline:'#f5c542',mfill:'#8f1024',tc:'#f5c542',nose:'#b3122b',cheek:'#d4263f',stud:'#f5c542',fl:'#9a95a6',hl:1},
+  var C=g?{bone:'#fbf9ff',cav:'#4b2a7c',pup:'#7a3cff',lc:'#e6dcff',bc:'#4b2a7c',ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3',fl:INK,hl:0}
+    :{bone:'#fbf8f3',cav:'#a3142b',pup:'#e5133a',lc:'#ffd24a',bc:'#a3142b',ring:'#d9a62b',sock:'#120a0d',mline:INK,mfill:'#8f1024',tc:'#f5c542',nose:'#a3142b',cheek:'#d4263f',stud:'#f5c542',fl:INK,hl:0},
     bn=C.bone,s='<g transform="translate(0 -10)">';
   function st(d,W,white){var ln=' fill="none" stroke-linecap="round" stroke-linejoin="round"';
     return (white?'<path d="'+d+'" stroke="#fff" stroke-width="'+(W+16)+'"'+ln+'/>':'')+'<path d="'+d+'" stroke="'+INK+'" stroke-width="'+(W+7)+'"'+ln+'/><path d="'+d+'" stroke="'+bn+'" stroke-width="'+W+'"'+ln+'/>'}

@@ -549,7 +549,7 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05g';
+var APP_VER='2026-11-05h';
 var NEWS=['Двое новых монстриков: Клубничка и Вишенка (две вишенки на веточке), у каждой своя цветовая тема.',
  'Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
  'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
@@ -1244,7 +1244,7 @@ function stkChar(kind,mood,act){
     s+='<g '+EAR('l',46,56,0.4)+'><circle cx="34" cy="42" r="12" fill="'+p+'"/></g><g '+EAR('r',94,56,2.6)+'><circle cx="106" cy="42" r="12" fill="'+p+'"/></g><ellipse cx="70" cy="110" rx="24" ry="12" fill="#fff3e2"/><path d="M40 62 C44 52 52 46 60 44" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".55"/>';
     s+=mCheeks([40,100],88,p)+sEyes(mood,[54,86],70,11,c)+whisk(88)+'<ellipse cx="70" cy="85" rx="6" ry="4.5" fill="#ff6f91" stroke="'+INK+'" stroke-width="2"/>'+mMouth(mood,70,93,11,'down');
   }else if(kind==='frog'){var c='#7bd85a',d='#58b53f';
-    s+=SK([['circle','cx="46" cy="44" r="21"',c],['circle','cx="94" cy="44" r="21"',c],['ellipse','cx="40" cy="126" rx="15" ry="6"',c],['ellipse','cx="100" cy="126" rx="15" ry="6"',c],['path','d="M16 94 C16 64 40 48 70 48 C100 48 124 64 124 94 C124 118 100 127 70 127 C40 127 16 118 16 94Z"',c]]);
+    s+=SK([['ellipse','cx="13" cy="96" rx="9" ry="14" transform="'+armR(mood,'l',20,90)+'rotate(20 13 96)"',c],['ellipse','cx="127" cy="96" rx="9" ry="14" transform="'+armR(mood,'r',120,90)+'rotate(-20 127 96)"',c],['circle','cx="46" cy="44" r="21"',c],['circle','cx="94" cy="44" r="21"',c],['ellipse','cx="40" cy="126" rx="15" ry="6"',c],['ellipse','cx="100" cy="126" rx="15" ry="6"',c],['path','d="M16 94 C16 64 40 48 70 48 C100 48 124 64 124 94 C124 118 100 127 70 127 C40 127 16 118 16 94Z"',c]]);
     s+='<rect x="26" y="40" width="88" height="14" fill="'+c+'"/><ellipse cx="70" cy="106" rx="32" ry="15" fill="#d6f5b8"/><circle cx="28" cy="84" r="4" fill="'+d+'"/><circle cx="113" cy="88" r="5" fill="'+d+'"/><circle cx="102" cy="68" r="3" fill="'+d+'"/><circle cx="36" cy="66" r="3" fill="'+d+'"/>';
     s+=mCheeks([30,110],82,'#ff9fb6')+sEyes(mood,[46,94],44,12,c)+mMouth(mood,70,72,22,'down');
   }else if(kind==='duck'){var c='#ffd84d';

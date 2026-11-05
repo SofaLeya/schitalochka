@@ -99,6 +99,13 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .tabs .plus{width:52px;height:52px;border-radius:16px;background:var(--accent);color:var(--accent-ink);margin:-18px auto 0;display:grid;place-items:center;box-shadow:0 4px 14px rgba(106,69,232,.4)}
 .tabs .plus svg{width:26px;height:26px}
 .ov{position:fixed;inset:0;background:rgba(10,6,20,.55);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.pk{position:fixed;inset:0;background:rgba(10,6,20,.6);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.pkb{background:var(--surface);color:var(--ink);width:100%;max-width:480px;max-height:75%;overflow-y:auto;border-radius:20px 20px 0 0;padding:6px 0 calc(10px + env(safe-area-inset-bottom,0px));border:1px solid var(--line);border-bottom:0}
+.pkb button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:14px 18px;font-size:16px;line-height:1.3;border-bottom:1px solid var(--line)}
+.pkb button:last-child{border-bottom:0}
+.pkb button.on{color:var(--accent);font-weight:700}
+.pkb button .ck{margin-left:auto;flex:none}
+.pkb .pkg{padding:10px 18px 4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .ov[hidden],[hidden]{display:none!important}
 .sheet>h3:first-child{position:relative;cursor:grab;touch-action:none;padding-block:8px;margin-block:-8px;-webkit-user-select:none;user-select:none}.sheet>h3:first-child::before{content:'';position:absolute;left:50%;top:-6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--muted,#888);opacity:.55}
 .sheet{background:var(--bg);width:100%;max-width:480px;max-height:92%;overflow-y:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
@@ -2905,6 +2912,32 @@ document.addEventListener('click',function(ev){
   }
   else if(a==='wipe'){snapTake('pre',true);var ydWas=false;try{if(ydOn()){ydWas=true;var yd0=ydGet().dev;localStorage.removeItem(YD.key);ydSet({dev:yd0});YD.st='off'}}catch(e){}S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[],onb:1,seenVer:APP_VER};save();closeSheet();render();toast('Всё очищено'+(ydWas?'. Яндекс Диск отключён, копия там осталась':''))}
 });
+/* тёмный выбор из списка вместо системного (системный на Android всегда светлый) */
+function pkClose(){var o=document.getElementById('pk');if(o)o.remove()}
+function pkOpen(sel){
+  pkClose();
+  var o=document.createElement('div');o.id='pk';o.className='pk';
+  var b=document.createElement('div');b.className='pkb';b.setAttribute('role','listbox');
+  function addOpt(op){
+    if(op.hidden||op.disabled&&!op.value)return;
+    var bt=document.createElement('button');bt.type='button';bt.setAttribute('role','option');
+    var on=op.value===sel.value;if(on)bt.className='on';
+    var sp=document.createElement('span');sp.textContent=op.textContent;bt.appendChild(sp);
+    if(on){var ck=document.createElement('span');ck.className='ck';ck.textContent='✓';bt.appendChild(ck)}
+    bt.addEventListener('click',function(ev){ev.stopPropagation();pkClose();if(sel.value!==op.value){sel.value=op.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}))}try{sel.focus({preventScroll:true})}catch(e){}});
+    b.appendChild(bt);
+  }
+  Array.prototype.forEach.call(sel.children,function(ch){
+    if(ch.tagName==='OPTGROUP'){var g=document.createElement('div');g.className='pkg';g.textContent=ch.label;b.appendChild(g);Array.prototype.forEach.call(ch.children,addOpt)}
+    else if(ch.tagName==='OPTION')addOpt(ch);
+  });
+  o.appendChild(b);o.addEventListener('click',function(ev){if(ev.target===o)pkClose()});
+  document.body.appendChild(o);
+  var cur=b.querySelector('button.on');if(cur)try{cur.scrollIntoView({block:'center'})}catch(e){}
+}
+document.addEventListener('mousedown',function(ev){var t=ev.target;if(t&&t.tagName==='SELECT'&&!t.disabled&&!t.multiple)ev.preventDefault()});
+document.addEventListener('click',function(ev){var t=ev.target;if(t&&t.tagName==='SELECT'&&!t.disabled&&!t.multiple){ev.preventDefault();pkOpen(t)}});
+document.addEventListener('keydown',function(ev){var t=ev.target;if(ev.key==='Escape'&&document.getElementById('pk')){pkClose();ev.stopPropagation();return}if(t&&t.tagName==='SELECT'&&!t.disabled&&(ev.key===' '||ev.key==='Enter'||ev.key==='ArrowDown')){ev.preventDefault();pkOpen(t)}},true);
 document.addEventListener('submit',function(ev){
   ev.preventDefault();
   if(!sh)return;

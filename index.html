@@ -559,15 +559,25 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-10-31a';
-var NEWS=['Яндекс Диск: записи с телефона и компьютера теперь склеиваются, даже если вносила на обоих одновременно. Ничего не теряется.',
- 'Яндекс Диск: войди в настройках, и данные будут храниться в твоём Диске и сами появятся на другом телефоне или компьютере.',
- 'Копии в Телеграм: подключи своего бота в настройках, и приложение само будет присылать файл-копию раз в день.',
- 'Автокопии: приложение само сохраняет снимок данных раз в день и перед восстановлением. Вернуть любой из последних 10 дней можно в настройках, «Автокопии в браузере».',
- 'Если приложение открыто и в Chrome, и значком, одно окно больше не затирает данные другого.',
- 'Восстановление из копии возвращает всё: копилки, план, монстрика. Записи, сделанные после копии, сохраняются.',
- 'Записи «не в тратах» отмечены синим и не входят в итог дня.',
- 'Кнопка «Назад» закрывает окно или возвращает на главную, а не выходит из приложения.'];
+var APP_VER='2026-11-05a';
+var NEWS=['Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
+ 'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
+ 'Рядом с цифрами на главном экране появилась «i»: нажми, и расскажу, что это за цифра.',
+ 'После новой записи и после удаления есть кнопка «Отменить». Запись в истории можно смахнуть влево, чтобы удалить.',
+ 'Карточку «Прогресс» можно свернуть.',
+ 'Если стоит Android-приложение: в настройках есть вечернее напоминание записать траты (нужна свежая версия apk).'];
+/* плашка «есть новая версия apk»: только внутри Android-приложения */
+var APKN={latest:0};
+function apkCur(){try{return typeof AndroidApp.versionCode==='function'?+AndroidApp.versionCode()||0:0}catch(e){return 0}}
+function apkCheck(){
+  try{if(typeof AndroidApp==='undefined')return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<6*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
+  fetch('https://api.github.com/repos/sofaleya/schitalochka/releases/tags/apk').then(function(r){return r.ok?r.json():null}).then(function(j){
+    var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
+    if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}
+function apkNote(){
+  try{if(typeof AndroidApp==='undefined')return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip')||0;
+    if(!lt||lt<=apkCur()||skip>=lt)return '';
+    return '<div class="note info"><b>Есть новая версия приложения</b><span class="fine">Скачай файл и открой его: он встанет поверх старого, данные сохранятся.'+(typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span><div class="btns" style="margin-top:8px"><a class="btn sm" href="https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk" style="text-decoration:none;text-align:center">Скачать</a><button class="btn sm ghost" data-a="apkLater">Позже</button></div></div>'}catch(e){return ''}}
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
   return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
 /* ---------- резервная копия ---------- */
@@ -1362,7 +1372,7 @@ function viewHomeSimple(){
   var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.')+'<span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц '+tipBtn('h_sp')+'</span><b>'+money(lnet)+'</b>'+(lout>0?'<span class="fine">+ платежи '+money(lout)+'</span>':'')+'</div><div class="stat"><span class="lbl">Трачу в день '+tipBtn('h_pd')+'</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div></div>'+tipBox('h_sp','<b>Потрачено за месяц</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи и траты не с основного счёта показаны рядом после «+ платежи».')+tipBox('h_pd','<b>Трачу в день</b> - траты за месяц, поделённые на число прошедших дней. Рядом твой план на день.')+'</div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
   var recent='<div class="card"><h2>Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Нажмите «+», чтобы добавить трату.</p>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button><button class="btn sm" data-a="export">Выгрузить для анализа</button></div></div>';
-  return demo+newsNote()+backupNote()+hero+monsterCard(me,lnet,dnum)+tplCard()+splitCard()+progCard()+accountsCard()+recent;
+  return demo+apkNote()+newsNote()+backupNote()+hero+monsterCard(me,lnet,dnum)+tplCard()+splitCard()+progCard()+accountsCard()+recent;
 }
 function viewHome(){
   if(S.simple)return viewHomeSimple();
@@ -1403,7 +1413,7 @@ function viewHome(){
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и баланс ниже показаны для знакомства. Когда будете готовы, очистите их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var pend=pendingPayouts(),nudge=pend.length?'<div class="note info"><b>Разложить по плану</b><span>Выплат ждёт раскладки: '+pend.length+', всего '+money(pend.reduce(function(a,p){return a+p.sum},0))+' в копилки.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="tab" data-v="plan">Открыть</button></div></div>':'';
   var conn='';
-  return demo+newsNote()+backupNote()+conn+hero+nudge+monsterCard(me,lifeNet(me),dnum)+tplCard()+splitCard()+progCard()+accountsCard()+main+upHtml+hh;
+  return demo+apkNote()+newsNote()+backupNote()+conn+hero+nudge+monsterCard(me,lifeNet(me),dnum)+tplCard()+splitCard()+progCard()+accountsCard()+main+upHtml+hh;
 }
 
 
@@ -2650,6 +2660,7 @@ document.addEventListener('click',function(ev){
   else if(a==='tplEdit'){var te=tpls().filter(function(x){return x.id===id})[0];if(te){sh={tp:true,tid:te.id,t:JSON.parse(JSON.stringify(te))};tplSheet()}}
   else if(a==='tplFrom'&&sh&&sh.d){var src=readEntry(),dd=parse(src.date||petDay());sh={tp:true,tid:null,t:{note:src.note||'',amt:num(src.amt)||'',cat:src.cat||'other',rep:'w',dow:dd.getDay(),dom:dd.getDate(),half:!!src.split}};tplSheet()}
   else if(a==='tplDel'&&sh&&sh.tp){S.tpls=tpls().filter(function(x){return x.id!==sh.tid});save();closeSheet();render();toast('Удалено')}
+  else if(a==='apkLater'){try{localStorage.setItem('sch-apkskip',String(APKN.latest||+localStorage.getItem('sch-apklast')||0))}catch(e){}render()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
@@ -3085,7 +3096,7 @@ if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast('Ян�
 snapTake('day');
 try{if(window.TGBK)TGBK.init({app:'schitalochka',title:'считалОчка',accent:'#6a45e8',file:function(d){return 'schitalochka-'+d+'.json'},data:function(){return S.demo||!realCount()?'':JSON.stringify(S)}})}catch(e){}
 if(!S.onb&&(realCount()>0||S.accounts.length>1||S.pet)){S.onb=1;saveLocal()}
-render();try{remSync()}catch(e){}
+render();try{remSync()}catch(e){}try{apkCheck()}catch(e){}
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}
   if(q){try{history.replaceState(null,'',location.pathname)}catch(e){}
     if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}

@@ -231,6 +231,17 @@ public class MainActivity extends Activity {
             Reminder.schedule(MainActivity.this);
         }
 
+        // номер сборки: по нему приложение понимает, что вышла новая версия apk
+        @JavascriptInterface
+        public int versionCode() {
+            try {
+                android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+                return (int) (Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode);
+            } catch (Exception e) {
+                return 0;
+            }
+        }
+
         // Android 13+ спрашивает разрешение на уведомления; true, если оно уже есть
         @JavascriptInterface
         public boolean askNotifications() {

@@ -1053,7 +1053,6 @@ function skelChar(g,mood){
     [[44,33,-35],[60,22,-10],[80,22,10],[96,33,35]].forEach(function(l){s+='<ellipse cx="'+l[0]+'" cy="'+l[1]+'" rx="6" ry="3" transform="rotate('+l[2]+' '+l[0]+' '+l[1]+')" fill="#6a5a34" stroke="'+INK+'" stroke-width="1.2"/>'});
     s+=skRose(40,39,9.5,'#6a1424')+skRose(100,39,9.5,'#7d1a2b')+skRose(51,24,12,'#7d1a2b')+skRose(89,24,12,'#6a1424')+skRose(70,17,13,'#93222f');
   }else s+='<path d="M72 16 L68 25 L75 29 L70 36" stroke="#c8102e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
-  s+=mCheeks([45,95],72,C.cheek);
   s+=kEyes(mood,[53,87],54,9,C.pup,C.lc,C.ring,C.sock,C.bc);
   if(g)s+='<path d="M41 49 L35 45 M40 54 L34 53 M99 49 L105 45 M100 54 L106 53" stroke="'+INK+'" stroke-width="2.5" stroke-linecap="round"/>';
   s+='<path d="M70 66 C66 66 63 72 65 75 C67 76 69 74 70 73 C71 74 73 76 75 75 C77 72 74 66 70 66Z" fill="'+C.nose+'"/>';

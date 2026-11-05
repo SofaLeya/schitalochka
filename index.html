@@ -570,7 +570,7 @@ var NEWS=['Монстрики ожили: моргают, подёргивают
 var APKN={latest:0};
 function apkCur(){try{return typeof AndroidApp.versionCode==='function'?+AndroidApp.versionCode()||0:0}catch(e){return 0}}
 function apkCheck(){
-  try{if(typeof AndroidApp==='undefined')return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<6*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
+  try{if(typeof AndroidApp==='undefined')return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<7*24*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
   fetch('https://api.github.com/repos/sofaleya/schitalochka/releases/tags/apk').then(function(r){return r.ok?r.json():null}).then(function(j){
     var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
     if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}

@@ -1035,7 +1035,6 @@ function skelChar(g,mood){
     return (white?'<path d="'+d+'" stroke="#fff" stroke-width="'+(W+8)+'"'+ln+'/>':'')+'<path d="'+d+'" stroke="'+INK+'" stroke-width="'+(W+3.5)+'"'+ln+'/><path d="'+d+'" stroke="'+bn+'" stroke-width="'+W+'"'+ln+'/>'}
   function stud(x,y,r){return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+C.stud+'" stroke="'+INK+'" stroke-width="1.2"/>'}
   /* грудная клетка: тёмная пустота, рёбра, позвоночник */
-  s+=SKt([['path','d="M36 104 C32 120 36 150 40 172 L100 172 C104 150 108 120 104 104 C90 98 50 98 36 104Z"',C.cav]]);
   s+=SKt([['circle','cx="70" cy="96" r="8"',bn]]);
   s+=st('M70 104 Q50 97 32 108',5.5,0)+st('M70 104 Q90 97 108 108',5.5,0);
   [109,121,133,145].forEach(function(y){
@@ -1061,7 +1060,7 @@ function skelChar(g,mood){
   s+='</g>';
   /* руки поверх всего: жесты зависят от настроения (координаты уже в рамке) */
   function mir(a){return a.map(function(p){return p.length>2?[140-p[0],p[1],-p[2]]:[140-p[0],p[1]]})}
-  var DN=[[31,94],[24,113],[27,127],[27,129,180]],JY=[[31,94],[14,86],[12,68],[12,63,-8]],WO=[[31,94],[20,112],[42,94],[44,89,15]],SD=[[31,94],[19,80],[39,63],[42,59,25]];
+  var DN=[[31,94],[25,109],[27,121],[27,123,180]],JY=[[31,94],[14,86],[12,68],[12,63,-8]],WO=[[31,94],[20,112],[42,94],[44,89,15]],SD=[[31,94],[19,80],[39,63],[42,59,25]];
   var POSE={calm:[DN,mir(DN)],
     happy:[DN,[[109,94],[124,106],[122,86],[122,81,8]]],          // машет правой
     joy:[JY,mir(JY)],                                             // обе вверх
@@ -1072,9 +1071,9 @@ function skelChar(g,mood){
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
   pz.forEach(function(a){
     ar+=st('M'+a[0][0]+' '+a[0][1]+' L'+a[1][0]+' '+a[1][1]+' L'+a[2][0]+' '+a[2][1],6.5,1);
-    jt+=SKt([['circle','cx="'+a[0][0]+'" cy="'+a[0][1]+'" r="6.5"',bn]])+stud(a[0][0],a[0][1],2.2);
-    var h=a[3],fd=[[-36,7.5],[-12,10],[12,10],[36,7.5]].map(function(f){var r=(h[2]+f[0])*Math.PI/180;return 'M'+h[0]+' '+h[1]+' L'+(h[0]+Math.sin(r)*f[1]).toFixed(1)+' '+(h[1]-Math.cos(r)*f[1]).toFixed(1)}),q=' fill="none" stroke-linecap="round"';
-    hd+=SKt([['circle','cx="'+h[0]+'" cy="'+h[1]+'" r="4.6"',bn]])+fd.map(function(d){return '<path d="'+d+'" stroke="#fff" stroke-width="9.8"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+INK+'" stroke-width="5.8"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+bn+'" stroke-width="2.8"'+q+'/>'}).join('')});
+    jt+=SKt([['circle','cx="'+a[0][0]+'" cy="'+a[0][1]+'" r="4.4"',bn]])+stud(a[0][0],a[0][1],1.7);
+    var h=a[3],fd=[[-36,10.5],[-12,14],[12,14],[36,10.5]].map(function(f){var r=(h[2]+f[0])*Math.PI/180;return 'M'+h[0]+' '+h[1]+' L'+(h[0]+Math.sin(r)*f[1]).toFixed(1)+' '+(h[1]-Math.cos(r)*f[1]).toFixed(1)}),q=' fill="none" stroke-linecap="round"';
+    hd+=SKt([['circle','cx="'+h[0]+'" cy="'+h[1]+'" r="6.4"',bn]])+fd.map(function(d){return '<path d="'+d+'" stroke="#fff" stroke-width="10.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+INK+'" stroke-width="6.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+bn+'" stroke-width="3.6"'+q+'/>'}).join('')});
   return s+ar+jt+hd}
 function stkChar(kind,mood){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';

@@ -559,7 +559,7 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05a';
+var APP_VER='2026-11-05b';
 var NEWS=['Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
  'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
  'Рядом с цифрами на главном экране появилась «i»: нажми, и расскажу, что это за цифра.',
@@ -579,7 +579,7 @@ function apkCheck(){
     var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
     if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}
 function apkNote(){
-  try{if(!apkIs())return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip')||0;
+  try{if(!apkIs())return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip2')||0;
     if(!lt||lt<=apkCur()||skip>=lt)return '';
     return '<div class="note info"><b>Есть новая версия приложения</b><span class="fine">Скачай файл и открой его: он встанет поверх старого, данные сохранятся.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span><div class="btns" style="margin-top:8px"><a class="btn sm" href="https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk" style="text-decoration:none;text-align:center">Скачать</a><button class="btn sm ghost" data-a="apkLater">Позже</button></div></div>'}catch(e){return ''}}
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
@@ -2665,7 +2665,7 @@ document.addEventListener('click',function(ev){
   else if(a==='tplEdit'){var te=tpls().filter(function(x){return x.id===id})[0];if(te){sh={tp:true,tid:te.id,t:JSON.parse(JSON.stringify(te))};tplSheet()}}
   else if(a==='tplFrom'&&sh&&sh.d){var src=readEntry(),dd=parse(src.date||petDay());sh={tp:true,tid:null,t:{note:src.note||'',amt:num(src.amt)||'',cat:src.cat||'other',rep:'w',dow:dd.getDay(),dom:dd.getDate(),half:!!src.split}};tplSheet()}
   else if(a==='tplDel'&&sh&&sh.tp){S.tpls=tpls().filter(function(x){return x.id!==sh.tid});save();closeSheet();render();toast('Удалено')}
-  else if(a==='apkLater'){try{localStorage.setItem('sch-apkskip',String(APKN.latest||+localStorage.getItem('sch-apklast')||0))}catch(e){}render()}
+  else if(a==='apkLater'){try{localStorage.setItem('sch-apkskip2',String(APKN.latest||+localStorage.getItem('sch-apklast')||0))}catch(e){}render()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}

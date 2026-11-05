@@ -37,7 +37,7 @@ h1,h2,h3,p{margin:0}
 .hero .lbl{font-size:13px;opacity:.8}
 .hero .big{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
-.drag{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 10px 0 2px;margin-left:-4px;color:var(--muted);font-size:20px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.drag{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 14px 0 6px;margin-left:-6px;color:var(--muted);font-size:20px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .row.dragging{position:relative;z-index:5;background:var(--surface2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .foldhead{display:flex;align-items:flex-start;gap:10px;width:100%;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
 .foldhead .h2like{display:block;font-size:13px;font-weight:600;letter-spacing:.06em;margin-bottom:4px;text-transform:uppercase;color:var(--muted)}
@@ -2560,16 +2560,27 @@ function showErr(m){var e=document.getElementById('f_err');if(e){e.textContent=m
 function newDraft(type){return {type:type||'e',amt:'',cat:'',acc:defAcc(),from:'',to:'',date:T,note:'',cls:'need',manual:false,auto:false,clsManual:false}}
 
 /* ---------- перетаскивание копилок ---------- */
-(function(){var drag=null;
+(function(){var drag=null,pend=null;
+  /* перетаскивание копилок: на телефоне нужно зажать значок ⠿ на долю секунды (лёгкая вибрация), обычный свайп по нему просто листает экран */
+  function begin(p){var rows=[].slice.call(p.list.querySelectorAll('[data-acc]'));
+    drag={row:p.row,list:p.list,y0:p.y,rows:rows,from:rows.indexOf(p.row),to:rows.indexOf(p.row),h:p.row.getBoundingClientRect().height,id:p.id,moved:false};
+    try{p.h.setPointerCapture(p.id)}catch(x){}p.row.classList.add('dragging');try{if(navigator.vibrate)navigator.vibrate(18)}catch(x){}}
+  function pendClear(){if(pend){clearTimeout(pend.t);pend=null}}
   document.addEventListener('pointerdown',function(e){var h=e.target.closest&&e.target.closest('.drag');if(!h)return;var row=h.closest('[data-acc]'),list=row&&row.parentNode;if(!row)return;
-    e.preventDefault();var rows=[].slice.call(list.querySelectorAll('[data-acc]'));
-    drag={row:row,list:list,y0:e.clientY,rows:rows,from:rows.indexOf(row),to:rows.indexOf(row),h:row.getBoundingClientRect().height,id:e.pointerId,moved:false};
-    try{h.setPointerCapture(e.pointerId)}catch(x){}row.classList.add('dragging')});
-  document.addEventListener('pointermove',function(e){if(!drag||e.pointerId!==drag.id)return;e.preventDefault();var dy=e.clientY-drag.y0;if(Math.abs(dy)>3)drag.moved=true;
+    pendClear();var p={row:row,list:list,h:h,id:e.pointerId,x:e.clientX,y:e.clientY};
+    if(e.pointerType==='mouse'){e.preventDefault();begin(p);return}
+    p.t=setTimeout(function(){var q=pend;pend=null;if(q)begin(q)},260);pend=p});
+  document.addEventListener('pointermove',function(e){
+    if(pend&&e.pointerId===pend.id){if(Math.abs(e.clientX-pend.x)>8||Math.abs(e.clientY-pend.y)>8)pendClear();return}
+    if(!drag||e.pointerId!==drag.id)return;e.preventDefault();var dy=e.clientY-drag.y0;if(Math.abs(dy)>3)drag.moved=true;
     drag.row.style.transform='translateY('+dy+'px)';
     var to=Math.max(0,Math.min(drag.rows.length-1,drag.from+Math.round(dy/drag.h)));drag.to=to;
     drag.rows.forEach(function(r,i){if(r===drag.row)return;var sh=0;if(drag.from<to&&i>drag.from&&i<=to)sh=-drag.h;else if(drag.from>to&&i<drag.from&&i>=to)sh=drag.h;r.style.transition='transform .15s';r.style.transform=sh?'translateY('+sh+'px)':''})},{passive:false});
-  function end(e){if(!drag||(e&&e.pointerId!==drag.id))return;var d=drag;drag=null;
+  /* пока тянем строку, страница не должна прокручиваться */
+  document.addEventListener('touchmove',function(e){if(drag&&e.cancelable)e.preventDefault()},{passive:false});
+  document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.drag'))e.preventDefault()});
+  function end(e){if(pend&&(!e||e.pointerId===pend.id))pendClear();
+    if(!drag||(e&&e.pointerId!==drag.id))return;var d=drag;drag=null;
     d.rows.forEach(function(r){r.style.transform='';r.style.transition=''});d.row.classList.remove('dragging');
     window._dragJustEnded=Date.now();
     if(d.to!==d.from){var ids=d.rows.map(function(r){return r.getAttribute('data-acc')});var mv=ids.splice(d.from,1)[0];ids.splice(d.to,0,mv);

@@ -1210,14 +1210,14 @@ function curlChar(kind){
   var head=kind==='fluff'?['path','d="'+fuzz(46,90,27,25,14,4)+'"',c]:['circle','cx="46" cy="90" r="27"',c];
   var ears=[];
   if(kind==='cat')ears=[['path','d="M21 80 L22 50 L46 66Z"',c],['path','d="M71 80 L70 50 L46 66Z"',c]];
-  else if(kind==='rat')ears=[['circle','cx="27" cy="70" r="12"',c],['circle','cx="65" cy="70" r="12"',c]];
+  else if(kind==='rat')ears=[['path','d="M17 80 C10 62 15 49 25 43 C36 47 45 55 48 66 C41 78 27 86 17 80Z"',c],['path','d="M75 80 C82 62 77 49 67 43 C56 47 47 55 44 66 C51 78 65 86 75 80Z"',c]];
   else if(kind==='mouse')ears=[['circle','cx="24" cy="70" r="15"',c],['circle','cx="68" cy="70" r="15"',c]];
   else ears=[['path','d="M30 70 Q20 56 27 44 Q38 56 42 68Z"','#fff1c9'],['path','d="M62 70 Q72 56 65 44 Q54 56 50 68Z"','#fff1c9']];
   var paws=[['ellipse','cx="38" cy="116" rx="12" ry="7.5"',c],['ellipse','cx="58" cy="117" rx="12" ry="7.5"',c]];
   s+=SK([body])+tw(P.tw+4.5,INK)+tw(P.tw,P.tc)+SK(ears.concat([head],paws));
   /* внутренности ушей и узор */
   if(kind==='cat')s+='<path d="M26 74 L27 58 L39 67Z M66 74 L65 58 L53 67Z" fill="#ff9fb6"/><path d="M88 74 q6 10 0 20 M102 77 q6 10 2 22 M115 84 q4 8 0 16" stroke="'+d+'" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M46 63 L46 71 M38 64 L40 71 M54 64 L52 71" stroke="'+d+'" stroke-width="3.5" stroke-linecap="round"/>';
-  if(kind==='rat')s+='<circle cx="27" cy="70" r="6.5" fill="#f6b6c4"/><circle cx="65" cy="70" r="6.5" fill="#f6b6c4"/><ellipse cx="46" cy="101" rx="13" ry="9.5" fill="#dde1e7"/>';
+  if(kind==='rat')s+='<path d="M22 73 C19 63 21 55 26 51 C32 54 38 59 41 65 C37 72 28 77 22 73Z M70 73 C73 63 71 55 66 51 C60 54 54 59 51 65 C55 72 64 77 70 73Z" fill="#f6b6c4"/><ellipse cx="46" cy="101" rx="13" ry="9.5" fill="#dde1e7"/>';
   if(kind==='mouse')s+='<circle cx="24" cy="70" r="9" fill="'+pk+'"/><circle cx="68" cy="70" r="9" fill="'+pk+'"/><ellipse cx="46" cy="102" rx="12" ry="8.5" fill="#fff6e8"/>';
   if(kind==='fluff')s+='<path d="M36 90 Q46 99 56 90" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
   /* лицо: закрытые глазки, носик, ротик, щёчки */

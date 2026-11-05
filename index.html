@@ -1240,6 +1240,20 @@ function meltChar(){
   s+='<path d="M42 112 C46 100 56 92 66 90" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="116" cy="124" r="3.5" fill="#fff" opacity=".35"/><circle cx="24" cy="125" r="3" fill="#fff" opacity=".3"/><circle cx="92" cy="128" r="2.5" fill="#fff" opacity=".3"/>';
   s+='<ellipse cx="56" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><ellipse cx="88" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><path d="M63 104 Q72 112 81 104" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="119" rx="3.4" ry="4" fill="'+INK+'"/>';
   return s}
+/* Крыска и Мышка спят шариком: круглая спинка, мордочка спрятана вниз, торчит только носик */
+function ballChar(kind){
+  var rat=kind==='rat',c=rat?'#8b94a2':'#f5dcb6',pk=rat?'#f6b6c4':'#ff9fb6',mz=rat?'#dde1e7':'#fff6e8',tc=rat?'#f2a7b5':'#f0b4be';
+  function sp(d,s,tx,ty){return d.replace(/(-?[\d.]+) (-?[\d.]+)/g,function(_,x,y){return (x*s+tx).toFixed(1)+' '+(y*s+ty).toFixed(1)})}
+  var tl='M112 108 C128 112 130 128 116 130 C108 131 100 130 98 127';
+  var tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
+  SKMID=tw(10,'#fff')+tw(6.5,INK)+tw(3,tc);
+  var EL='M20 62 C10 46 16 28 28 22 C42 26 56 36 60 48 C52 62 30 70 20 62Z';
+  var ears=rat?[['path','d="'+sp(EL,.4,60,83.6)+'"',c],['path','d="'+sp(EL.replace(/(-?[\d.]+) (-?[\d.]+)/g,function(_,x,y){return (140-x)+' '+y}),.4,56,83.6)+'"',c]]:[['circle','cx="73" cy="101" r="10"',c],['circle','cx="99" cy="101" r="10"',c]];
+  var s=SK([['ellipse','cx="66" cy="88" rx="52" ry="40"',c]].concat(ears,[['circle','cx="86" cy="114" r="19"',c],['ellipse','cx="74" cy="128" rx="7.5" ry="4.8"',pk],['ellipse','cx="99" cy="128" rx="7.5" ry="4.8"',pk]]));
+  s+='<path d="M24 82 C28 62 42 52 58 49" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/><path d="M40 70 q3 7 0 14 M52 62 q3 7 0 14 M66 58 q2 8 -1 15" stroke="'+(rat?'#6f7885':'#e3c298')+'" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>';
+  s+=rat?'<path d="M69 105 C66 101 66 97 70 95 C74 98 76 102 75 106Z M103 105 C106 101 106 97 102 95 C98 98 96 102 97 106Z" fill="#f6b6c4"/>':'<circle cx="73" cy="101" r="6" fill="'+pk+'"/><circle cx="99" cy="101" r="6" fill="'+pk+'"/>';
+  s+='<ellipse cx="86" cy="121" rx="10" ry="7" fill="'+mz+'"/><path d="M76 112 Q80 116 84 112 M88 112 Q92 116 96 112" stroke="'+INK+'" stroke-width="2.8" fill="none" stroke-linecap="round"/><ellipse cx="86" cy="118" rx="4" ry="3" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.6"/><ellipse cx="73" cy="119" rx="4" ry="3" fill="#ff9fb6" opacity=".7"/><ellipse cx="99" cy="119" rx="4" ry="3" fill="#ff9fb6" opacity=".7"/><path d="M76 121 L66 119 M76 123 L66 125 M96 121 L106 119 M96 123 L106 125" stroke="'+INK+'" stroke-width="1.6" stroke-linecap="round"/>';
+  return s}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
@@ -1348,7 +1362,10 @@ function monster(mood,size,kind,lvl,act){
     else if(kind==='slime'){
       s='<ellipse cx="70" cy="134" rx="62" ry="4" fill="#000" opacity=".16"/><g transform="translate(70 0) scale(.9 1) translate(-70 0)"><g class="lyb" style="transform-origin:70px 133px">'+meltChar()+'</g></g>'+
        '<g transform="translate(82 121)"><g class="snb"><circle r="6.5" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
-    else if(kind==='cat'||kind==='rat'||kind==='mouse'||kind==='fluff'){
+    else if(kind==='rat'||kind==='mouse'){
+      s='<ellipse cx="68" cy="133" rx="60" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+ballChar(kind)+'</g>'+
+       '<g transform="translate(98 121)"><g class="snb"><circle r="6.5" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
+    else if(kind==='cat'||kind==='fluff'){
       s='<ellipse cx="72" cy="133" rx="58" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+curlChar(kind)+'</g>'+
        '<g transform="translate(72 103)"><g class="snb"><circle r="7" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3.5 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
     else{ /* остальные: компактный клубок */

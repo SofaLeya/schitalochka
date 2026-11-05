@@ -1051,7 +1051,7 @@ function skelChar(g,mood){
   if(g){
     s+='<path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="'+INK+'" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="#6b4a2f" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
     [[44,33,-35],[60,22,-10],[80,22,10],[96,33,35]].forEach(function(l){s+='<ellipse cx="'+l[0]+'" cy="'+l[1]+'" rx="6" ry="3" transform="rotate('+l[2]+' '+l[0]+' '+l[1]+')" fill="#6a5a34" stroke="'+INK+'" stroke-width="1.2"/>'});
-    s+=skRose(40,40,7,'#6a1424')+skRose(100,40,7,'#7d1a2b')+skRose(50,25,9,'#7d1a2b')+skRose(90,25,9,'#6a1424')+skRose(70,19,10,'#93222f');
+    s+=skRose(40,39,9.5,'#6a1424')+skRose(100,39,9.5,'#7d1a2b')+skRose(51,24,12,'#7d1a2b')+skRose(89,24,12,'#6a1424')+skRose(70,17,13,'#93222f');
   }else s+='<path d="M72 16 L68 25 L75 29 L70 36" stroke="#c8102e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
   s+=mCheeks([45,95],72,C.cheek);
   s+=kEyes(mood,[53,87],54,9,C.pup,C.lc,C.ring,C.sock,C.bc);
@@ -1059,22 +1059,39 @@ function skelChar(g,mood){
   s+='<path d="M70 66 C66 66 63 72 65 75 C67 76 69 74 70 73 C71 74 73 76 75 75 C77 72 74 66 70 66Z" fill="'+C.nose+'"/>';
   s+=kMouth(mood,70,79,13,C.mline,C.mfill,C.tc);
   s+='</g>';
-  /* руки поверх всего: жесты зависят от настроения (координаты уже в рамке) */
-  function mir(a){return a.map(function(p){return p.length>2?[140-p[0],p[1],-p[2]]:[140-p[0],p[1]]})}
-  var DN=[[31,94],[25,109],[27,121],[27,123,180]],JY=[[31,94],[14,86],[12,68],[12,63,-8]],WO=[[31,94],[20,112],[42,94],[44,89,15]],SD=[[31,94],[19,80],[39,63],[42,59,25]];
-  var POSE={calm:[DN,mir(DN)],
-    happy:[DN,[[109,94],[124,106],[122,86],[122,81,8]]],          // машет правой
-    joy:[JY,mir(JY)],                                             // обе вверх
-    think:[DN,[[109,94],[121,112],[102,92],[99,87,-25]]],         // рука у щеки
-    worried:[WO,mir(WO)],                                         // обе у лица
-    sad:[SD,mir(DN)],                                             // вытирает слезу
-    hungry:[DN,[[109,94],[122,106],[92,82],[86,77,-40]]]};        // зевает, прикрыв рот
+  /* руки поверх всего: жесты зависят от настроения; позы заданы для левой руки, правая зеркалится */
+  var SHL=[31,89],L1=11,L2=10,KH=1.15;
+  function arm(w,mirror){ // w=[x,y,угол кисти,сторона изгиба] -> точки плеча, локтя, запястья
+    var S=SHL,dx=w[0]-S[0],dy=w[1]-S[1],d=Math.sqrt(dx*dx+dy*dy),R=L1+L2-0.2;
+    if(d>R){dx*=R/d;dy*=R/d;d=R}
+    var a=(L1*L1-L2*L2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,L1*L1-a*a)),ex=S[0]+a*dx/d+w[3]*hh*(-dy)/d,ey=S[1]+a*dy/d+w[3]*hh*dx/d,wx=S[0]+dx,wy=S[1]+dy,m=mirror?-1:1;
+    function X(x){return mirror?140-x:x}
+    return {s:[X(S[0]),S[1]],e:[X(ex),ey],w:[X(wx),wy],a:w[2]*m}}
+  var CALM=[26,105,176,1],WAVE=[20,77,-8,-1],UP=[22,76,-6,-1];
+  var POSE={calm:[CALM,CALM],
+    happy:[CALM,WAVE],                       // машет правой
+    joy:[UP,UP],                             // обе вверх
+    think:[CALM,[42,90,26,1]],               // рука у щеки
+    worried:[[44,96,22,1],[44,96,22,1]],     // обе у лица
+    sad:[[38,87,20,1],CALM],                 // вытирает слезу
+    hungry:[CALM,[48,84,38,1]]};             // зевает, прикрыв рот
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
-  pz.forEach(function(a){
-    ar+=st('M'+a[0][0]+' '+a[0][1]+' L'+a[1][0]+' '+a[1][1]+' L'+a[2][0]+' '+a[2][1],6.5,1);
-    jt+=SKt([['circle','cx="'+a[0][0]+'" cy="'+a[0][1]+'" r="4.4"',bn]]);
-    var h=a[3],fd=[[-36,10.5],[-12,14],[12,14],[36,10.5]].map(function(f){var r=(h[2]+f[0])*Math.PI/180;return 'M'+h[0]+' '+h[1]+' L'+(h[0]+Math.sin(r)*f[1]).toFixed(1)+' '+(h[1]-Math.cos(r)*f[1]).toFixed(1)}),q=' fill="none" stroke-linecap="round"';
-    hd+=SKt([['circle','cx="'+h[0]+'" cy="'+h[1]+'" r="6.4"',bn]])+fd.map(function(d){return '<path d="'+d+'" stroke="#fff" stroke-width="10.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+INK+'" stroke-width="6.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+bn+'" stroke-width="3.6"'+q+'/>'}).join('')});
+  /* кисть: пясть веером, у каждого пальца фаланги; крупно и по косточкам */
+  var KN=[[-6.2,-8.2,-14,[5.5,4,3.2]],[-2.1,-10.2,-4,[6.5,4.6,3.4]],[2.1,-10.2,4,[6.5,4.6,3.4]],[6.2,-8.2,14,[5.5,4,3.2]]];
+  var HB=[],HJ=[];
+  KN.forEach(function(k){HB.push([[0,0],[k[0],k[1]]]);var p=[k[0],k[1]];HJ.push(p);
+    k[3].forEach(function(l){var r=k[2]*Math.PI/180,q=[p[0]+Math.sin(r)*l,p[1]-Math.cos(r)*l];HB.push([p,q]);p=q;HJ.push(p)})});
+  HB.push([[-1.5,-1],[-7,-5.5]]);HJ.push([-7,-5.5]);
+  (function(){var p=[-7,-5.5];[5,3.6].forEach(function(l){var r=-52*Math.PI/180,q=[p[0]+Math.sin(r)*l,p[1]-Math.cos(r)*l];HB.push([p,q]);p=q;HJ.push(p)})})();
+  function hand(x,y,ang){
+    var seg=function(wd,col){return HB.map(function(b){return '<path d="M'+b[0][0]+' '+b[0][1]+' L'+b[1][0]+' '+b[1][1]+'" stroke="'+col+'" stroke-width="'+wd+'" fill="none" stroke-linecap="round"/>'}).join('')};
+    return '<g transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+ang+') scale('+KH+')">'+seg(8.4,'#fff')+seg(4.1,INK)+seg(2.3,bn)+
+      HJ.map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="1.45" fill="'+bn+'" stroke="'+INK+'" stroke-width="1"/>'}).join('')+'</g>'}
+  pz.forEach(function(w,i){
+    var A=arm(w,i===1);
+    ar+=st('M'+A.s[0].toFixed(1)+' '+A.s[1]+' L'+A.e[0].toFixed(1)+' '+A.e[1].toFixed(1)+' L'+A.w[0].toFixed(1)+' '+A.w[1].toFixed(1),5.5,1);
+    jt+=SKt([['circle','cx="'+A.s[0]+'" cy="'+A.s[1]+'" r="4.4"',bn]]);
+    hd+=hand(A.w[0],A.w[1],A.a)});
   return s+ar+jt+hd}
 function stkChar(kind,mood){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';

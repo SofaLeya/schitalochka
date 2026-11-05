@@ -549,14 +549,15 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05m';
-var NEWS=['Двое новых монстриков: Клубничка и Вишенка (две вишенки на веточке), у каждой своя цветовая тема.',
- 'Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
- 'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
+var APP_VER='2026-11-05n';
+/* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
+var NEWS=['Новые монстрики: Клубничка и Вишенка.',
+ 'У монстриков появились ручки, они меняют позу по настроению.',
+ 'Выбор монстриков стал короче, главный теперь Мохнатик.'];
+var NEWS_OLD=['Монстрики ожили: моргают, подёргивают ушками и хвостиками. Появились Скелетон и Скелетесса.',
+ 'Кнопка «↻ Обновить» синхронизирует с Яндекс Диском одним нажатием.',
  'Рядом с цифрами на главном экране появилась «i»: нажми, и расскажу, что это за цифра.',
- 'После новой записи и после удаления есть кнопка «Отменить». Запись в истории можно смахнуть влево, чтобы удалить.',
- 'Карточку «Прогресс» можно свернуть.',
- 'Если стоит Android-приложение: в настройках есть вечернее напоминание записать траты (нужна свежая версия apk).'];
+ 'Android-приложение: в настройках есть вечернее напоминание записать траты (нужна свежая версия apk).'];
 /* плашка «есть новая версия apk»: только внутри Android-приложения */
 var APKN={latest:0};
 /* старый apk (из PWABuilder) открывает сайт в Chrome без моста AndroidApp; его выдаёт referrer android-app://ПАКЕТ */
@@ -581,7 +582,7 @@ function apkNote(){
     hint=APKN.dl?'<span class="fine">Открой скачанный файл и нажми «Установить». Старое приложение удалять не нужно: новое встанет поверх, данные сохранятся.</span>':'<span class="fine">Старое удалять не нужно: новое встанет поверх.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span>';
     return '<div class="note info"><b>Есть новая версия приложения</b>'+bk+'<div class="btns" style="margin-top:8px">'+b1+b3+'</div><div class="btns" style="margin-top:8px">'+b2+'<button class="btn sm ghost" data-a="apkLater">Позже</button></div>'+hint+'</div>'}catch(e){return ''}}
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
-  return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
+  return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><details style="margin-top:6px"><summary class="fine" style="cursor:pointer">Что было раньше</summary><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:13px">'+NEWS_OLD.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul></details><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
 /* ---------- резервная копия ---------- */
 function bkDays(){if(!S.lastBackup)return null;return diffDays(S.lastBackup,T)}
 function realCount(){return S.entries.filter(function(e){return !e.demo}).length}

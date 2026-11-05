@@ -549,7 +549,7 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05f';
+var APP_VER='2026-11-05g';
 var NEWS=['Двое новых монстриков: Клубничка и Вишенка (две вишенки на веточке), у каждой своя цветовая тема.',
  'Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
  'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
@@ -938,26 +938,28 @@ function monthNav(){
 
 /* ---------- views ---------- */
 /* ---------- монстрики ---------- */
+/* hidden:1 - убран из выбора, но у тех, кто его уже выбрал, остаётся */
 var MONS=[
+ {id:'fluff',name:'Мохнатик',about:'один глаз, рожки, 4 лапки'},
  {id:'puff',name:'Пушистик',about:'розовый, рожки'},
- {id:'yolk',name:'Желток',about:'оранжевый, на яичнице'},
  {id:'slime',name:'Слизень',about:'мятный, один глаз'},
- {id:'ghost',name:'Призрачок',about:'синий, усики'},
- {id:'cube',name:'Кубик',about:'оранжевый, рог'},
  {id:'rat',name:'Крыска',about:'серый, хвостик'},
  {id:'pocto',name:'Осьминожек',about:'розовый, щупальца'},
- {id:'fluff',name:'Мохнатик',about:'один глаз, рожки, 4 лапки'},
  {id:'mouse',name:'Мышка',about:'бежевый, усы'},
  {id:'frog',name:'Лягушонок',about:'зелёный, пятнышки'},
  {id:'duck',name:'Утёнок',about:'жёлтый, хохолок'},
  {id:'cat',name:'Котик',about:'рыжий, полоски'},
- {id:'hog',name:'Ёжик',about:'колючки'},
  {id:'skel',name:'Скелетон',about:'чёрный, кровь и золото'},
  {id:'skelf',name:'Скелетесса',about:'веночек, фиолет и серебро'},
  {id:'straw',name:'Клубничка',about:'красная, зелёные листики'},
- {id:'cher',name:'Вишенка',about:'бордовая, хвостик с листиком'}
+ {id:'cher',name:'Вишенка',about:'бордовая, хвостик с листиком'},
+ {id:'yolk',name:'Желток',about:'оранжевый, на яичнице',hidden:1},
+ {id:'cube',name:'Кубик',about:'оранжевый, рог',hidden:1},
+ {id:'hog',name:'Ёжик',about:'колючки',hidden:1},
+ {id:'ghost',name:'Призрачок',about:'синий, усики',hidden:1}
 ];
-function petKind(){var k=S&&S.pet&&S.pet.kind;if(k==='octo')k='pocto';return MONS.some(function(m){return m.id===k})?k:'puff'}
+function petKind(){var k=S&&S.pet&&S.pet.kind;if(k==='octo')k='pocto';return MONS.some(function(m){return m.id===k})?k:'fluff'}
+function monsVisible(cur){return MONS.filter(function(m){return !m.hidden||m.id===cur})}
 /* ---------- цветовая тема под монстрика ---------- */
 var PTHEME={puff:{h:330,s:88,h2:345},yolk:{h:44,s:92,h2:30,la:34,hl:1},slime:{h:162,s:70,h2:180,la:30},ghost:{h:238,s:85,h2:222},cube:{h:24,s:92,h2:14,la:40},
  rat:{h:215,s:9,h2:210,force:1,gt:30,hl:1,silver:1},pocto:{h:342,s:80,h2:320},fluff:{h:260,s:85,h2:268},mouse:{h:30,s:28,h2:20,la:36,hl:1},frog:{h:128,s:62,h2:150,la:30},
@@ -1293,11 +1295,11 @@ function monster(mood,size,kind,lvl,act){
 }
 function pet(L,mood,size){return monster(mood,size,null,L)}
 function petSheet(){
-  var d=sh.d,si=0;MONS.forEach(function(m,i){if(m.id===d.kind)si=i});
-  var end=Math.min(si-si%2+1,MONS.length-1);
+  var d=sh.d,si=0;if(!sh.k0)sh.k0=d.kind;var VM=monsVisible(sh.k0);VM.forEach(function(m,i){if(m.id===d.kind)si=i});
+  var end=Math.min(si-si%2+1,VM.length-1);
   var form='<form id="fm" class="f" style="gap:12px;grid-column:1/-1;background:var(--surface2);border-radius:16px;padding:12px" autocomplete="off"><div class="f"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div></form>';
-  openSheet('<h3>Твой монстрик</h3><div class="mgrid">'+MONS.map(function(m,i){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b><span class="fine">'+m.about+'</span></button>'+(i===end?form:'')}).join('')+'</div>');
+  openSheet('<h3>Твой монстрик</h3><div class="mgrid">'+VM.map(function(m,i){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b><span class="fine">'+m.about+'</span></button>'+(i===end?form:'')}).join('')+'</div>');
 }
 
 function planAsk(){
@@ -2183,7 +2185,7 @@ function onbSheet(){
   if(st===1)body='<h3>Привет! Это считалОчка</h3><p>Записывай траты, а приложение подскажет, сколько можно тратить в день, и покажет, куда уходят деньги. Всё хранится только в этом телефоне.</p><div class="f"><label for="ob_bal">Сколько сейчас денег на карте, ₽</label><input id="ob_bal" inputmode="decimal" value="'+esc(d.bal)+'" placeholder="Например, 25000"><span class="fine">Деньги на жизнь, без копилок. Потом можно поправить.</span></div>';
   else if(st===2){var c=d.pc||{};body='<h3>Сколько можно тратить в день</h3><p class="fine">Посчитаем план: доход минус обязательное и отложенное. Если не хочется считать сейчас, пропусти шаг.</p>'+
     [['pc_inc','Доход в месяц, ₽','inc'],['pc_fix','Обязательные платежи в месяц, ₽','fixed'],['pc_sav','Откладывать в месяц, ₽','save'],['pc_irr','Редкие расходы в среднем за месяц, ₽','irr']].map(function(f){return '<div class="f"><label for="'+f[0]+'">'+f[1]+'</label><input id="'+f[0]+'" inputmode="decimal" value="'+(c[f[2]]||'')+'" placeholder="0"></div>'}).join('')+'<div id="pc_out" class="note info"></div>'}
-  else body='<h3>Выбери монстрика</h3><p class="fine">Он будет подсказывать, как идут дела. Поменять можно в любой момент.</p><div class="mgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+MONS.map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" style="padding:8px 4px" data-a="onbPet" data-v="'+m.id+'"><span style="width:64px;height:64px;display:block">'+monster('happy',64,m.id)+'</span><span class="fine" style="font-weight:600">'+m.name+'</span></button>'}).join('')+'</div><div class="f"><label for="ob_name">Как его зовут</label><input id="ob_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>';
+  else body='<h3>Выбери монстрика</h3><p class="fine">Он будет подсказывать, как идут дела. Поменять можно в любой момент.</p><div class="mgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+monsVisible(d.kind).map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" style="padding:8px 4px" data-a="onbPet" data-v="'+m.id+'"><span style="width:64px;height:64px;display:block">'+monster('happy',64,m.id)+'</span><span class="fine" style="font-weight:600">'+m.name+'</span></button>'}).join('')+'</div><div class="f"><label for="ob_name">Как его зовут</label><input id="ob_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>';
   openSheet(dots+body+'<div class="btns">'+(st>1?'<button type="button" class="btn ghost" data-a="onbBack">Назад</button>':'<button type="button" class="btn ghost" data-a="onbSkip">Пропустить</button>')+(st===2?'<button type="button" class="btn ghost" data-a="onbNext" data-v="skip">Позже</button>':'')+'<button type="button" class="btn" data-a="onbNext">'+(st===3?'Готово':'Дальше')+'</button></div>');
   if(st===2)planCalcOut();
 }
@@ -2195,7 +2197,7 @@ function onbFinish(){var d=sh.d;
   S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});
   var m=S.accounts.filter(function(a){return a.type==='main'})[0];if(m){delete m.demoStart;var bv=num(d.bal);m.start=bv>0?bv:0}S.start=0;S.demo=false;
   if(d.pc&&d.pc.inc>0){S.planCalc=d.pc;delete S.dayLimit}S.planAsked=1;
-  S.pet={kind:d.kind||'puff',name:String(d.name||'').trim().slice(0,20)};S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Записывай первую трату кнопкой «+»');
+  S.pet={kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)};S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Записывай первую трату кнопкой «+»');
 }
 /* меню «Платежи и из копилок»: траты месяца, которые не входят в траты на жизнь (раскрывается по нажатию) */
 function outCard(me){
@@ -3150,7 +3152,7 @@ render();try{remSync()}catch(e){}try{apkCheck()}catch(e){}
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}
   if(q){try{history.replaceState(null,'',location.pathname)}catch(e){}
     if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}
-  if(!S.onb){sh={onb:true,step:1,d:{bal:'',pc:null,kind:'puff',name:''}};onbSheet()}})();
+  if(!S.onb){sh={onb:true,step:1,d:{bal:'',pc:null,kind:'fluff',name:''}};onbSheet()}})();
 })();
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script>

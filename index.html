@@ -1197,6 +1197,8 @@ function vineArms(mood,SL,SR){
   return one(pz[0],SL,1,'arl')+one(pz[1],SR,-1,mood==='happy'?'sw':'arr')}
 /* ручки обычных монстриков: поворот вокруг плеча по настроению (l - левая, r - правая) */
 function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-155],joy:[160,-160],think:[0,-55],worried:[45,-45],sad:[0,0],hungry:[0,0]}[mood]||[0,0],a=T[side==='l'?0:1];return a?(Math.abs(a)>=100?'translate('+(side==='l'?-6:6)+' -6) ':'')+'rotate('+a+' '+sx+' '+sy+') ':''}
+/* пушистый контур: зубчики-шерстинки по эллипсу */
+function fuzz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
@@ -1205,7 +1207,7 @@ function stkChar(kind,mood,act){
     s+=mCheeks([44,96],86,'#ff6a4d')+sEyes(mood,[56,84],68,11,c)+mMouth(mood,70,86,15,'down');
     s=sh0+'<g class="br">'+s+'</g>';
   }else if(kind==='puff'){var c='#ff6fae',y='#ffd166';
-    s+=SK([['path','d="M42 30 L34 6 L58 22Z"',y,EAR('l',50,26,2.0)],['path','d="M98 30 L106 6 L82 22Z"',y,EAR('r',90,26,5.0)],['ellipse','cx="20" cy="88" rx="9" ry="14" transform="'+armR(mood,'l',26,80)+'rotate(20 20 88)"',c],['ellipse','cx="120" cy="88" rx="9" ry="14" transform="'+armR(mood,'r',114,80)+'rotate(-20 120 88)"',c],['ellipse','cx="52" cy="127" rx="12" ry="6"',y],['ellipse','cx="88" cy="127" rx="12" ry="6"',y],['path','d="M58 22 Q62 8 70 14 Q76 4 82 22Z"',c],['path','d="M24 86 C18 40 44 18 70 18 C96 18 122 40 116 86 C114 110 96 124 70 124 C44 124 26 110 24 86Z"',c]]);
+    s+=SK([['path','d="M42 30 L34 6 L58 22Z"',y,EAR('l',50,26,2.0)],['path','d="M98 30 L106 6 L82 22Z"',y,EAR('r',90,26,5.0)],['ellipse','cx="20" cy="88" rx="9" ry="14" transform="'+armR(mood,'l',26,80)+'rotate(20 20 88)"',c],['ellipse','cx="120" cy="88" rx="9" ry="14" transform="'+armR(mood,'r',114,80)+'rotate(-20 120 88)"',c],['ellipse','cx="52" cy="127" rx="12" ry="6"',y],['ellipse','cx="88" cy="127" rx="12" ry="6"',y],['path','d="M58 22 Q62 8 70 14 Q76 4 82 22Z"',c],['path','d="'+fuzz(70,72,46,50,22,6)+'"',c]]);
     s+='<ellipse cx="70" cy="106" rx="30" ry="14" fill="#fff" opacity=".22"/><circle cx="34" cy="52" r="5" fill="#fff" opacity=".35"/><circle cx="104" cy="46" r="4" fill="#fff" opacity=".35"/><path d="M36 64 C38 48 48 36 60 32" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>';
     s+=mCheeks([36,104],82,'#ff3d8b')+sEyes(mood,[54,86],62,12,c)+mMouth(mood,70,90,20,'down');
   }else if(kind==='slime'){var c='#34d3a0';

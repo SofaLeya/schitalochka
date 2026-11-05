@@ -2603,8 +2603,9 @@ function settingsSheet(){
       '<p class="fine" style="margin:0">Лучше всего Яндекс Диск: копии делаются сами. Нет облака - скачай файл на устройство.</p>'+
       det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
       det('Скачать файл на устройство',bkHtml)+
-      det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
-      det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>'))+
+      '<div style="display:flex;align-items:center;gap:12px"><span class="fine" style="flex:1">Есть ещё автокопии в браузере и копии в Телеграм - нажми на звёздочку.</span><button type="button" class="ibtn" style="width:40px;height:40px;border-color:var(--accent);color:var(--accent);font:700 30px/1 Arial,sans-serif;padding-top:10px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё способы">*</button></div>'+
+      tipBox('bk','<div class="f" style="gap:10px">'+det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
+        det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+'</div>'))+
     det('Загрузить данные',
       det('Траты из таблицы','<p class="fine" style="margin:0">Своя таблица Excel (.xlsx, .xls) или CSV: нужны хотя бы дата и сумма. Покажу, как прочитала, и дам всё проверить перед добавлением.</p><input id="s_xl" type="file" accept=".xlsx,.xls,.csv,.txt"><p class="fine" id="s_xlmsg" hidden></p>')+
       det('Выписка из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+

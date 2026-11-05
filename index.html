@@ -549,9 +549,9 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05q';
+var APP_VER='2026-11-05r';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['Когда монстрик спит, он лежит и посапывает: грудка дышит, из носа надувается пузырь.',
+var NEWS=['Когда монстрик спит, он сворачивается клубком и посапывает. Скелетики спят в гробиках.',
  'Цвета приложения можно выбрать отдельно от монстрика: нажми «сменить» у монстрика.',
  'Новые монстрики: Клубничка и Вишенка. У монстриков появились ручки, они меняют позу по настроению.'];
 var NEWS_OLD=['Выбор монстриков стал короче, главный теперь Мохнатик.',
@@ -1167,6 +1167,7 @@ function skelChar(g,mood,act){
     sad:[[40,81,20,1],CALM],                 // вытирает слезу
     hungry:[CALM,[48,84,38,1]]};             // зевает, прикрыв рот
   var SHRUG=[20,99,-48,-1];
+  var FOLD=[56,120,44,1];if(act==='sleep')POSE.hungry=[FOLD,FOLD];
   if(act==='pay')POSE.joy=[UP,UP];
   if(act==='shrug')POSE.sad=[SHRUG,SHRUG];
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
@@ -1296,17 +1297,18 @@ function stkChar(kind,mood,act){
 function monster(mood,size,kind,lvl,act){
   kind=kind||petKind();
   if(!STKCROWN[kind])kind='puff';
-  var s=stkChar(kind,mood,act),crown=STKCROWN[kind];
+  var isSk=(kind==='skel'||kind==='skelf'),s=stkChar(kind,mood,(mood==='hungry'&&isSk)?'sleep':act),crown=STKCROWN[kind];
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
-  if(mood==='hungry'){ /* спит как кошка или собака: сидит «буханкой», голова лежит на передних лапках, посапывает */
+  if(mood==='hungry'){ /* спит */
     s=s.replace('<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>','');
-    var PC={fluff:'#8f6bff',puff:'#ff6fae',slime:'#34d3a0',rat:'#8b94a2',mouse:'#f5dcb6',frog:'#7bd85a',duck:'#ffd84d',cat:'#ffa45c',straw:'#e3213a',cher:'#cc1632',skel:'#fbf8f3',skelf:'#fbf8f3',yolk:'#ffb22e',ghost:'#7f9bff',cube:'#ff9f43',pocto:'#ff9ccc',hog:'#f3d3a8'},pc=PC[kind]||'#ff6fae';
-    function paw(cx,tilt){var g='<ellipse cx="'+cx+'" cy="122" rx="15" ry="9" transform="rotate('+tilt+' '+cx+' 122)"';
-      return '<g>'+g+' fill="#fff" stroke="#fff" stroke-width="9"/>'+g+' fill="'+pc+'" stroke="'+INK+'" stroke-width="3"/><path d="M'+(cx-4)+' 119 v6 M'+(cx+4)+' 119 v6" stroke="'+INK+'" stroke-width="2" stroke-linecap="round" opacity=".7"/></g>'}
-    s='<ellipse cx="70" cy="132" rx="52" ry="5" fill="#000" opacity=".16"/><g transform="translate(70 131) rotate(-3) scale(1.06 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+
-     paw(50,-8)+paw(90,8)+
-     '<g transform="translate(100 100)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
+    if(isSk){ /* скелетик лежит в гробике, ручки сложены на рёбрах (вид сверху) */
+      var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
+      s='<ellipse cx="70" cy="132" rx="62" ry="4" fill="#000" opacity=".16"/><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
+       '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g>'}
+    else{ /* свернулся клубком: тело округлое, голова прижата, нос спрятан; хвосты не дорисовываем */
+      s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+
+       '<g transform="translate(103 92)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}}
   if(mood==='think'){var qa='x="103" y="40" font-size="42" font-weight="900" font-family="sans-serif" stroke-linejoin="round"';s+='<text '+qa+' style="fill:#fff;stroke:#fff;stroke-width:11px">?</text><text '+qa+' style="fill:#ffd166;stroke:'+INK+';stroke-width:5px;paint-order:stroke">?</text>'}
   if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';
   if(mood==='joy')s+='<path d="M20 30 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z M118 22 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M124 70 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5-3.5 -3.5-1.5 3.5-1.5z" fill="#ffd166"/>';

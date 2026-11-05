@@ -31,7 +31,7 @@
   --accent:#a98bff; --accent-ink:#17102b; --in:#6fdca6; --out:#ff8080; --warn:#f0c674; --warn-bg:#3a2f18; --bad-bg:#3b1f24; --good-bg:#1b3328; --gold:#f0c674; color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;padding-inline:16px;padding-block:0 96px;font-variant-numeric:tabular-nums}
+body{overscroll-behavior-y:contain;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;padding-inline:16px;padding-block:0 96px;font-variant-numeric:tabular-nums}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -126,6 +126,11 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .sum3 .r{text-align:right;white-space:nowrap}
 .fine{font-size:12.5px;color:var(--muted)}
 .ibtn{flex:none;position:relative;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);background:transparent;display:inline-flex;align-items:center;justify-content:center;padding:0;font:italic 700 13px/1 Georgia,'Times New Roman',serif}
+.row[data-a="edit"]{touch-action:pan-y;transition:transform .15s,background .15s}
+button.fine{position:relative}button.fine::after{content:'';position:absolute;inset:-12px -8px}
+#ptr{position:fixed;left:50%;top:0;z-index:98;transform:translate(-50%,-60px);background:var(--surface);color:var(--ink);box-shadow:0 4px 16px rgba(0,0,0,.3);border-radius:999px;padding:8px 16px;font-weight:600;font-size:13px;pointer-events:none;opacity:0}
+.hero .ibtn{width:18px;height:18px;font-size:11px;border-color:currentColor;color:inherit;opacity:.85;vertical-align:middle}
+.hero .tipbox,.hero .tipbox.fine,.cheer .hero .tipbox.fine{background:var(--surface);color:var(--ink);opacity:1;margin-top:8px}.hero .tipbox b{color:inherit}
 .ibtn::after{content:'';position:absolute;inset:-9px}
 .ibtn[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tipbox{background:var(--surface2);border-radius:12px;padding:10px 12px;line-height:1.4}
@@ -1354,7 +1359,7 @@ function monsterCard(me,net,dnum){
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
-  var hero='<div class="card hero"><span class="lbl">Свободные деньги</span><span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(lnet)+'</b>'+(lout>0?'<span class="fine">платежи отдельно '+money(lout)+'</span>':'')+'</div><div class="stat"><span class="lbl">Трачу в день</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">в среднем · план '+money(dayLimit())+'</span>':'')+'</div></div></div>';
+  var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.')+'<span class="big">'+money(bal)+'</span><button class="btn sm ghost" style="align-self:flex-start;background:rgba(255,255,255,.25);color:inherit" data-a="editAcc" data-id="'+defAcc()+'">Поправить остаток</button><div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц '+tipBtn('h_sp')+'</span><b>'+money(lnet)+'</b>'+(lout>0?'<span class="fine">+ платежи '+money(lout)+'</span>':'')+'</div><div class="stat"><span class="lbl">Трачу в день '+tipBtn('h_pd')+'</span><b>'+money(lnet/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div></div>'+tipBox('h_sp','<b>Потрачено за месяц</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи и траты не с основного счёта показаны рядом после «+ платежи».')+tipBox('h_pd','<b>Трачу в день</b> - траты за месяц, поделённые на число прошедших дней. Рядом твой план на день.')+'</div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
   var recent='<div class="card"><h2>Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Нажмите «+», чтобы добавить трату.</p>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button><button class="btn sm" data-a="export">Выгрузить для анализа</button></div></div>';
   return demo+newsNote()+backupNote()+hero+monsterCard(me,lnet,dnum)+tplCard()+splitCard()+progCard()+accountsCard()+recent;
@@ -1363,10 +1368,13 @@ function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),h=health(ym),st=streak();
-  var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+'</span><span class="big">'+money(bal)+'</span>'+
-   '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц</span><b>'+money(lifeNet(me))+'</b>'+(Math.round(exp-sum(life(me),'e'))>0?'<span class="fine">платежи отдельно '+money(Math.round(exp-sum(life(me),'e')))+'</span>':'')+'</div>'+
-   '<div class="stat"><span class="lbl">Трачу в день</span><b>'+money(lifeNet(me)/dnum)+'</b>'+(dayLimit()?'<span class="fine">в среднем · план '+money(dayLimit())+'</span>':'')+'</div>'+
-   '<div class="stat"><span class="lbl">До зарплаты в день</span><b>'+money(pd.val)+'</b><span class="fine">до '+dlabel(pd.nextIn)+'</span></div></div></div>';
+  var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.')+'<span class="big">'+money(bal)+'</span>'+
+   '<div class="stats"><div class="stat"><span class="lbl">Потрачено за месяц '+tipBtn('h_sp')+'</span><b>'+money(lifeNet(me))+'</b>'+(Math.round(exp-sum(life(me),'e'))>0?'<span class="fine">+ платежи '+money(Math.round(exp-sum(life(me),'e')))+'</span>':'')+'</div>'+
+   '<div class="stat"><span class="lbl">Трачу в день '+tipBtn('h_pd')+'</span><b>'+money(lifeNet(me)/dnum)+'</b>'+(dayLimit()?'<span class="fine">план '+money(dayLimit())+'</span>':'')+'</div>'+
+   '<div class="stat"><span class="lbl">До зарплаты в день '+tipBtn('h_ps')+'</span><b>'+money(pd.val)+'</b><span class="fine">до '+dlabel(pd.nextIn)+'</span></div></div>'+
+   tipBox('h_sp','<b>Потрачено за месяц</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты не с основного счёта сюда не входят: они показаны рядом после «+ платежи».')+
+   tipBox('h_pd','<b>Трачу в день</b> - траты за месяц, поделённые на число прошедших дней. Рядом твой план на день: если цифра ниже плана, всё хорошо.')+
+   tipBox('h_ps','<b>До зарплаты в день</b> - сколько можно тратить в день, чтобы денег хватило до ближайшего поступления. Обязательные платежи до этой даты уже вычтены.')+'</div>';
   var main;
   if(fc.date){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократите необязательные траты или сверьтесь с планом платежей.</span></div>';
@@ -2087,7 +2095,8 @@ function progCard(){
     return '<div style="display:flex;flex-direction:column;gap:4px"><div class="row"><div class="grow t" style="font-size:14px">'+esc(x.t)+'</div><span class="fine">'+x.hint+(x.reward?' · '+x.reward+' ★':'')+'</span></div><div class="bar"><i style="width:'+p+'%;background:'+col+'"></i></div></div>'};
   if(S.g2L&&g.L>S.g2L)setTimeout(function(){toast('Новый уровень: '+g.L+' · '+g.title)},300);
   if(S.g2L!==g.L){S.g2L=g.L;saveLocal()}
-  return '<div class="card"><div class="row"><h2 class="grow">Прогресс</h2><button class="fine" data-a="g2How" style="text-decoration:underline">как это работает</button></div>'+
+  if(uiFold('prog'))return '<div class="card">'+fhead('prog','Прогресс','Уровень '+g.L+' · '+g.title)+'</div>';
+  return '<div class="card">'+fhead('prog','Прогресс',null)+'<div class="row"><span class="grow"></span><button class="fine" data-a="g2How" style="text-decoration:underline">как это работает</button></div>'+
    '<div class="row"><div class="grow"><b>Уровень '+g.L+' · '+g.title+'</b><div class="bar" style="margin-top:6px"><i style="width:'+pct+'%;background:var(--gold)"></i></div></div><span class="amt" style="color:var(--gold)">'+g.stars+' ★</span></div>'+
    '<div class="stats3"><div><b>'+g.streak+'</b><span class="fine">хороших дней подряд</span></div><div><b style="color:'+(g.saved>=0?'var(--in)':'var(--out)')+'">'+(g.saved>=0?'+':'−')+Math.round(Math.abs(g.saved)).toLocaleString('ru-RU')+'</b><span class="fine">₽ к плану в этом месяце</span></div><div><b>'+g.nospend+'</b><span class="fine">дней без трат</span></div></div>'+
    goals.map(bar).join('')+'</div>';
@@ -2516,7 +2525,13 @@ function settingsSheet(){
    (sh.confirm?'<div class="note bad" style="gap:8px"><b>Точно очистить всё?</b><span>Удалятся все записи, копилки, долги, план, платежи и регулярные траты на этом устройстве.'+(ydOn()?' Яндекс Диск отключится, а копия в нём останется.':'')+' На всякий случай приложение сохранит автокопию — её можно вернуть в «Автокопиях в браузере».</span><div class="btns"><button type="button" class="btn danger" data-a="wipe">Да, очистить всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div></div>':'<button type="button" class="btn danger" data-a="askDel">Очистить всё</button>')+
    '<button type="button" class="btn ghost" data-a="close">Закрыть</button>');
 }
-function toast(m,bad){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent=(bad?'✕ ':'✓ ')+m;t.hidden=false;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},4000)}
+function toast(m,bad,undo){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}
+  t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent='';var sp=document.createElement('span');sp.textContent=(bad?'✕ ':'✓ ')+m;t.appendChild(sp);
+  if(undo){var ub=document.createElement('button');ub.type='button';ub.textContent='Отменить';ub.style.cssText='margin-left:12px;background:rgba(255,255,255,.25);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:8px 14px;min-height:36px';ub.onclick=function(){clearTimeout(t._h);t.style.display='none';undo()};t.appendChild(ub)}
+  t.hidden=false;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},undo?7000:4000)}
+function delEntryUndo(id){var ix=-1,en=null;S.entries.forEach(function(e,i){if(e.id===id){ix=i;en=e}});if(!en)return;
+  S.entries=S.entries.filter(function(e){return e.id!==id});save();render();
+  toast('Запись удалена',false,function(){S.entries.splice(Math.min(ix,S.entries.length),0,en);save();render();toast('Запись вернула')})}
 function showErr(m){var e=document.getElementById('f_err');if(e){e.textContent=m;e.hidden=false}}
 
 function newDraft(type){return {type:type||'e',amt:'',cat:'',acc:defAcc(),from:'',to:'',date:T,note:'',cls:'need',manual:false,auto:false,clsManual:false}}
@@ -2565,7 +2580,7 @@ document.addEventListener('click',function(ev){
   else if(a==='close')closeSheet();
   else if(a==='askDel'){sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
   else if(a==='noDel'){sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}
-  else if(a==='delEntry'){S.entries=S.entries.filter(function(e){return e.id!==sh.id});save();closeSheet();render()}
+  else if(a==='delEntry'){var did=sh.id;closeSheet();delEntryUndo(did)}
   else if(a==='newPlan'){sh={id:null,k:k,d:{name:'',amt:'',day:'',cat:'other'}};planSheet()}
   else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||''}};planSheet()}}
   else if(a==='delPlan'){if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id});save();closeSheet();render()}
@@ -2752,9 +2767,11 @@ document.addEventListener('submit',function(ev){
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec)}
+    var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);
     vym=rec.date.slice(0,7);
-    save();closeSheet();render();toast('Записано');
+    save();closeSheet();render();
+    toast('Записано',false,wasNew?function(){S.entries=S.entries.filter(function(e){return e.id!==newId});save();render();toast('Запись отменена')}:null);
   }else if(document.getElementById('p_name')){
     var nm=document.getElementById('p_name').value.trim(),am=num(document.getElementById('p_amt').value),dy=parseInt(document.getElementById('p_day').value,10),ce=document.getElementById('p_cat'),pa=document.getElementById('p_acc');
     if(!nm)return showErr('Введите название.');
@@ -3027,6 +3044,25 @@ document.addEventListener('visibilitychange',function(){if(!ydOn())return;
   if(document.visibilityState==='visible')setTimeout(ydSync,800);
   else if(ydDirty()){clearTimeout(YD.t);ydSync()}}); // свернули с неотправленным - отправляем сразу
 window.addEventListener('pagehide',function(){if(ydOn()&&ydDirty()&&!YD.busy){clearTimeout(YD.t);ydSync()}});
+(function(){
+  var sx=null,sy,row,ptrOn,dx=0,dy=0,swiping=false,ptr=null;
+  function ind(){if(!ptr){ptr=document.createElement('div');ptr.id='ptr';document.body.appendChild(ptr)}return ptr}
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1||NAV.sheet)return;var tt=e.touches[0];sx=tt.clientX;sy=tt.clientY;dx=dy=0;swiping=false;
+    row=e.target.closest&&e.target.closest('.row[data-a="edit"]');
+    ptrOn=!row&&window.scrollY<=0&&ydOn()&&!DB&&!(e.target.closest&&e.target.closest('input,select,textarea,.sheet'))},{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(sx==null)return;var tt=e.touches[0];dx=tt.clientX-sx;dy=tt.clientY-sy;
+    if(row){if(!swiping&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.6)swiping=true;
+      if(swiping){var c=Math.max(-120,Math.min(120,dx));row.style.transition='none';row.style.transform='translateX('+c+'px)';row.style.background=c<-60?'rgba(220,60,60,.22)':c>60?'rgba(120,120,255,.22)':''}}
+    else if(ptrOn&&dy>8&&Math.abs(dx)<dy){var p=ind(),k=Math.min(dy,110);p.style.opacity=Math.min(1,k/60);p.style.transform='translate(-50%,'+(k-50)+'px)';p.textContent=k>=80?'Отпусти, чтобы обновить':'Потяни, чтобы обновить'}},{passive:true});
+  document.addEventListener('touchend',function(){
+    if(row&&swiping){var r=row,c=dx;r.style.transition='';r.style.transform='';r.style.background='';
+      if(c>90){setTimeout(function(){r.click()},0)}else{window.__swiped=Date.now();if(c<-90)delEntryUndo(r.getAttribute('data-id'))}}
+    if(ptr&&ptr.style.opacity!=='0'){var go=dy>=80&&ptrOn;ptr.style.opacity=0;ptr.style.transform='translate(-50%,-60px)';if(go)ydTap()}
+    sx=null;row=null;ptrOn=false;swiping=false},{passive:true});
+  document.addEventListener('click',function(e){if(window.__swiped&&Date.now()-window.__swiped<350){window.__swiped=0;e.stopPropagation();e.preventDefault()}},true);
+})();
 window.addEventListener('beforeunload',function(e){if(!YD.leaving&&ydOn()&&YD.st!=='err'&&(ydDirty()||YD.busy)){clearTimeout(YD.t);if(!YD.busy)ydSync();e.preventDefault();e.returnValue=''}});
 setInterval(function(){if(ydOn()&&!YD.busy&&document.visibilityState==='visible')ydSync()},60000); // открыто долго - раз в минуту проверяем, не появилось ли новое
 window.addEventListener('storage',function(e){if(e.key===YD.key){var was=YD.st==='off';if(ydOn()&&was)ydSync();else ydBadge()}});

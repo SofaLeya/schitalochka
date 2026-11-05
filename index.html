@@ -198,10 +198,17 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .skyawn{transform-origin:70px 79px;animation:skyawn 3.2s ease-in-out infinite}
 @keyframes earl{0%,82%,100%{transform:rotate(0)}86%{transform:rotate(-11deg)}90%{transform:rotate(4deg)}94%{transform:rotate(-6deg)}}
 @keyframes earr{0%,82%,100%{transform:rotate(0)}86%{transform:rotate(11deg)}90%{transform:rotate(-4deg)}94%{transform:rotate(6deg)}}
-.earl{animation:earl 6s infinite}.earr{animation:earr 7.3s infinite}
+.earl{animation:earl 6s infinite}
+@keyframes foot{0%,72%,100%{transform:translateY(0)}77%{transform:translateY(-4px)}82%{transform:translateY(0)}87%{transform:translateY(-2px)}91%{transform:translateY(0)}}
+.ft{animation:foot 3.6s infinite}
+@keyframes arml{from{transform:rotate(-9deg)}to{transform:rotate(11deg)}}
+@keyframes armr{from{transform:rotate(9deg)}to{transform:rotate(-11deg)}}
+.arl{animation:arml 2.8s ease-in-out infinite alternate}.arr{animation:armr 2.8s ease-in-out infinite alternate}
+@keyframes swl{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
+.sw{animation:swl 2.2s ease-in-out infinite alternate}.earr{animation:earr 7.3s infinite}
 @keyframes tailw{from{transform:rotate(-7deg)}to{transform:rotate(9deg)}}
 .tail{animation:tailw 1.2s ease-in-out infinite alternate}
-@media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn,.earl,.earr,.tail{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn,.earl,.earr,.tail,.ft,.arl,.arr,.sw{animation:none!important}}
 .syncrow{display:flex;margin:-4px 0 0}
 .syncrow[hidden]{display:none}
 .syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
@@ -1003,9 +1010,18 @@ function mMouth(mood,cx,cy,w,teeth){
 function mCheeks(xs,y,c){return xs.map(function(x){return '<ellipse cx="'+x+'" cy="'+y+'" rx="7" ry="5" fill="'+c+'" opacity=".6"/>'}).join('')}
 /* ---------- стикерные монстрики: белая обводка, тёмный контур ---------- */
 var STKCROWN={yolk:[42,28],puff:[34,22],slime:[38,40],ghost:[36,26],cube:[30,40],rat:[40,24],fluff:[40,26],pocto:[40,22],mouse:[40,22],frog:[36,18],duck:[38,20],cat:[40,22],hog:[40,16],skel:[40,26],skelf:[40,24]};
-function SK(shapes){var b='',f='';shapes.forEach(function(x){var t=x[0],a=x[1],c=x[2],w=x[3]?function(z){return '<g '+x[3]+'>'+z+'</g>'}:function(z){return z};
+function autoLimb(t,a){var m,n;
+  if(t==='ellipse'&&(m=a.match(/cx="([\d.]+)" cy="([\d.]+)" rx="([\d.]+)"/))){var cx=+m[1],cy=+m[2],rx=+m[3];
+    if(cy>=124&&rx<=16)return 'class="ft" style="animation-delay:-'+(cx<70?0.3:2.1)+'s"';
+    if(/rotate/.test(a)&&(cx<30||cx>110))return 'class="'+(cx<70?'arl':'arr')+'" style="transform-origin:'+(cx<70?cx+6:cx-6)+'px '+(cy-10)+'px"'}
+  if(t==='rect'&&(m=a.match(/x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"/))){var x=+m[1],y=+m[2],wd=+m[3];
+    if(y===114&&wd<=20)return 'class="ft" style="animation-delay:-'+(x<70?0.3:2.1)+'s"';
+    if(y===66&&wd<=14)return 'class="'+(x<70?'arl':'arr')+'" style="transform-origin:'+(x+wd/2)+'px 68px"'}
+  return ''}
+var SKMID='';
+function SK(shapes){var b='',f='';shapes.forEach(function(x){var t=x[0],a=x[1],c=x[2];if(!x[3])x=[t,a,c,autoLimb(t,a)];var w=x[3]?function(z){return '<g '+x[3]+'>'+z+'</g>'}:function(z){return z};
   b+=w('<'+t+' '+a+' fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>');
-  f+=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>')});return b+f}
+  f+=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>')});var mid=SKMID;SKMID='';return b+mid+f}
 /* ушки и хвосты: ear(сторона,x,y) даёт атрибуты группы; tailG(мордочка, настроение) */
 function EAR(side,ox,oy,d){return 'class="ear'+side+'" style="transform-origin:'+ox+'px '+oy+'px;animation-delay:-'+d+'s"'}
 function tailG(inner,ox,oy,mood){var du={joy:.45,happy:.7,calm:1.6,think:2,worried:.25,sad:3.2,hungry:3.2}[mood]||1.2;
@@ -1140,13 +1156,15 @@ function stkChar(kind,mood,act){
     s+='<ellipse cx="70" cy="106" rx="30" ry="14" fill="#fff" opacity=".22"/><circle cx="34" cy="52" r="5" fill="#fff" opacity=".35"/><circle cx="104" cy="46" r="4" fill="#fff" opacity=".35"/><path d="M36 64 C38 48 48 36 60 32" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>';
     s+=mCheeks([36,104],82,'#ff3d8b')+sEyes(mood,[54,86],62,12,c)+mMouth(mood,70,90,20,'down');
   }else if(kind==='slime'){var c='#34d3a0';
-    s+='<path d="M70 36 Q65 22 70 12" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="'+INK+'" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="#1fae82" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
-    s+=SK([['circle','cx="70" cy="10" r="7"','#ffd166'],['path','d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z"',c]]);
-    s+='<circle cx="72" cy="8" r="2" fill="#fff"/><path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>';
+    var SWS='class="sw" style="transform-origin:70px 36px"';
+    SKMID='<g '+SWS+'><path d="M70 36 Q65 22 70 12" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="'+INK+'" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="#1fae82" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>';
+    s+=SK([['circle','cx="70" cy="10" r="7"','#ffd166',SWS],['path','d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z"',c]]);
+    s+='<g '+SWS+'><circle cx="72" cy="8" r="2" fill="#fff"/></g><path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>';
     s+=mCheeks([44,96],86,'#1f9e78')+sEyes(mood,[70],64,19,c)+mMouth(mood,70,94,15,'down');
   }else if(kind==='ghost'){var c='#7f9bff';
-    ['M54 30 Q46 16 40 9','M86 30 Q94 16 100 9'].forEach(function(d){s+='<path d="'+d+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#5a78e8" stroke-width="3" fill="none" stroke-linecap="round"/>'});
-    s+=SK([['circle','cx="39" cy="7" r="6"','#ff8fc7'],['circle','cx="101" cy="7" r="6"','#ff8fc7'],['ellipse','cx="22" cy="80" rx="8" ry="13" transform="rotate(30 22 80)"',c],['ellipse','cx="118" cy="80" rx="8" ry="13" transform="rotate(-30 118 80)"',c],['path','d="M28 122 L28 64 C28 36 48 22 70 22 C92 22 112 36 112 64 L112 122 Q103 112 94 122 Q84 132 76 122 Q70 114 64 122 Q56 132 46 122 Q37 112 28 122Z"',c]]);
+    var GA='class="sw" style="transform-origin:54px 30px"',GB='class="sw" style="transform-origin:86px 30px;animation-delay:-1.3s"';
+    SKMID='';['M54 30 Q46 16 40 9','M86 30 Q94 16 100 9'].forEach(function(d,i){SKMID+='<g '+(i?GB:GA)+'><path d="'+d+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#5a78e8" stroke-width="3" fill="none" stroke-linecap="round"/></g>'});
+    s+=SK([['circle','cx="39" cy="7" r="6"','#ff8fc7',GA],['circle','cx="101" cy="7" r="6"','#ff8fc7',GB],['ellipse','cx="22" cy="80" rx="8" ry="13" transform="rotate(30 22 80)"',c],['ellipse','cx="118" cy="80" rx="8" ry="13" transform="rotate(-30 118 80)"',c],['path','d="M28 122 L28 64 C28 36 48 22 70 22 C92 22 112 36 112 64 L112 122 Q103 112 94 122 Q84 132 76 122 Q70 114 64 122 Q56 132 46 122 Q37 112 28 122Z"',c]]);
     s+='<path d="M40 52 C42 40 52 32 62 30" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><path d="M70 104 l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z" fill="#ffd166" stroke="'+INK+'" stroke-width="2" stroke-linejoin="round"/>';
     s+=mCheeks([44,96],80,'#ff8fc7')+sEyes(mood,[55,85],60,11,c)+mMouth(mood,70,84,14,'down');
   }else if(kind==='cube'){var c='#ff9f43',d='#e8781a';
@@ -1162,13 +1180,14 @@ function stkChar(kind,mood,act){
   }else if(kind==='fluff'){var c='#8f6bff',d='#6f4be0',l='#b9a2ff';
     function fz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
     function leg(x){return 'M'+(x-9)+' 100 L'+(x-9)+' 120 Q'+(x-11)+' 128 '+(x-5)+' 127 Q'+(x-3)+' 131 '+x+' 128 Q'+(x+3)+' 131 '+(x+5)+' 127 Q'+(x+11)+' 128 '+(x+9)+' 120 L'+(x+9)+' 100Z'}
-    s+=SK([['path','d="'+fz(34,112,11,14,10,3.5)+'"',d],['path','d="'+fz(106,112,11,14,10,3.5)+'"',d],['path','d="'+fz(56,117,11,13,10,3.5)+'"',c],['path','d="'+fz(84,117,11,13,10,3.5)+'"',c],
+    s+=SK([['path','d="'+fz(34,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-0.3s"'],['path','d="'+fz(106,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-2.1s"'],['path','d="'+fz(56,117,11,13,10,3.5)+'"',c,'class="ft" style="animation-delay:-1.2s"'],['path','d="'+fz(84,117,11,13,10,3.5)+'"',c,'class="ft" style="animation-delay:-3s"'],
       ['path','d="M42 42 Q30 24 36 6 Q50 20 58 36Z"','#fff1c9'],['path','d="M98 42 Q110 24 104 6 Q90 20 82 36Z"','#fff1c9'],['path','d="'+fz(70,68,46,40,28,5)+'"',c]]);
     s+='<path d="M40 26 l7 -3 M44 33 l7 -3 M100 26 l-7 -3 M96 33 l-7 -3" stroke="#e2c98a" stroke-width="2.5" stroke-linecap="round"/><path d="M34 66 C36 52 46 42 58 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><path d="M28 120 l2 6 M36 122 l0 6 M52 125 l1 5 M60 125 l-1 5 M80 125 l1 5 M88 125 l-1 5 M104 122 l0 6 M112 120 l-2 6" stroke="'+INK+'" stroke-width="2.5" stroke-linecap="round"/>';
     s+=mCheeks([42,98],86,'#ff8fd0')+sEyes(mood,[70],60,19,c)+mMouth(mood,70,90,16,'down');
   }else if(kind==='pocto'){var c='#ff9ccc',d='#f27ab4',l='#ffd0e6';
     var T=['M34 96 C22 104 16 116 24 124 C30 129 36 122 32 117','M50 104 C44 116 44 126 52 129 C58 131 60 124 55 121','M70 106 C70 118 68 128 74 130 C80 131 81 124 76 122','M90 104 C96 116 96 126 88 129 C82 131 80 124 85 121','M106 96 C118 104 124 116 116 124 C110 129 104 122 108 117'];
-    s+=T.map(function(t){return '<path d="'+t+'" stroke="#fff" stroke-width="22" fill="none" stroke-linecap="round"/>'}).join('')+T.map(function(t){return '<path d="'+t+'" stroke="'+INK+'" stroke-width="16" fill="none" stroke-linecap="round"/>'}).join('')+T.map(function(t){return '<path d="'+t+'" stroke="'+c+'" stroke-width="9" fill="none" stroke-linecap="round"/>'}).join('');
+    function TW(t,i,inner){var m=t.match(/^M([\d.]+) ([\d.]+)/);return '<g class="sw" style="transform-origin:'+m[1]+'px '+m[2]+'px;animation-delay:-'+(i*0.7).toFixed(1)+'s;animation-duration:'+(2+i%2*0.5)+'s">'+inner+'</g>'}
+    s+=T.map(function(t,i){return TW(t,i,'<path d="'+t+'" stroke="#fff" stroke-width="22" fill="none" stroke-linecap="round"/>')}).join('')+T.map(function(t,i){return TW(t,i,'<path d="'+t+'" stroke="'+INK+'" stroke-width="16" fill="none" stroke-linecap="round"/>')}).join('')+T.map(function(t,i){return TW(t,i,'<path d="'+t+'" stroke="'+c+'" stroke-width="9" fill="none" stroke-linecap="round"/>')}).join('');
     s+=SK([['path','d="M20 78 C20 42 42 22 70 22 C98 22 120 42 120 78 C120 100 98 110 70 110 C42 110 20 100 20 78Z"',c]]);
     s+='<circle cx="44" cy="40" r="5" fill="'+d+'"/><circle cx="98" cy="46" r="4" fill="'+d+'"/><circle cx="88" cy="32" r="3" fill="'+d+'"/><path d="M34 60 C36 46 46 36 58 32" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".6"/>';
     s+=mCheeks([42,98],82,'#ff5fa8')+sEyes(mood,[55,85],62,12,c)+mMouth(mood,70,83,17,'down');

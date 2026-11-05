@@ -1211,7 +1211,7 @@ function stkChar(kind,mood,act){
   }else if(kind==='slime'){var c='#34d3a0';
     var SWS='class="sw" style="transform-origin:70px 36px"';
     SKMID='<g '+SWS+'><path d="M70 36 Q65 22 70 12" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="'+INK+'" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M70 36 Q65 22 70 12" stroke="#1fae82" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>';
-    s+=SK([['circle','cx="70" cy="10" r="7"','#ffd166',SWS],['path','d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z"',c]]);
+    s+=SK([['circle','cx="70" cy="10" r="7"','#ffd166',SWS],['ellipse','cx="15" cy="96" rx="8" ry="13" transform="'+armR(mood,'l',21,92)+'rotate(20 15 96)"',c],['ellipse','cx="125" cy="96" rx="8" ry="13" transform="'+armR(mood,'r',119,92)+'rotate(-20 125 96)"',c],['path','d="M18 114 C12 72 34 32 70 32 C106 32 128 72 122 114 C119 123 111 121 109 113 C107 126 96 128 94 115 C91 129 79 129 77 115 C73 128 61 128 59 115 C56 126 45 125 43 114 C39 123 22 124 18 114Z"',c]]);
     s+='<g '+SWS+'><circle cx="72" cy="8" r="2" fill="#fff"/></g><path d="M30 70 C34 50 50 40 66 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="104" cy="60" r="5" fill="#fff" opacity=".35"/><circle cx="112" cy="74" r="3" fill="#fff" opacity=".35"/><circle cx="36" cy="98" r="4" fill="#fff" opacity=".3"/>';
     s+=mCheeks([44,96],86,'#1f9e78')+sEyes(mood,[70],64,19,c)+mMouth(mood,70,94,15,'down');
   }else if(kind==='ghost'){var c='#7f9bff';

@@ -166,7 +166,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .monster .mt{display:flex;flex-direction:column;gap:4px;min-width:0}
 .monster .mt b{font-size:15px}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
-@media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}}
+@media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -1066,7 +1066,7 @@ function tailG(inner,ox,oy,mood){var du={joy:.45,happy:.7,calm:1.6,think:2,worri
 function blinkG(inner){return '<g class="bl" style="animation-duration:'+(4+Math.random()*3).toFixed(1)+'s;animation-delay:-'+(Math.random()*5).toFixed(1)+'s">'+inner+'</g>'}
 function peekG(closed,open){var st='style="animation-duration:'+(14+Math.random()*3).toFixed(1)+'s;animation-delay:-'+(Math.random()*14).toFixed(1)+'s"';
   return '<g class="pkc" '+st+'>'+closed+'</g><g class="pko" '+st+'>'+open+'</g>'}
-function sEyes(mood,xs,y,r,col){var pre='';if(mood==='hungry')return mEyes(mood,xs.map(function(x){return x+4}),y+1,r,col);if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});if(mood==='hungry'||mood==='joy'){var op='';xs.forEach(function(x){op+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});return peekG(mEyes(mood,xs,y,r,col),op+mEyes('calm',xs,y,r,col))}
+function sEyes(mood,xs,y,r,col){var pre='';if(mood==='hungry')return mEyes(mood,xs,y,r,col);if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});if(mood==='hungry'||mood==='joy'){var op='';xs.forEach(function(x){op+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});return peekG(mEyes(mood,xs,y,r,col),op+mEyes('calm',xs,y,r,col))}
   var e=pre+mEyes(mood,xs,y,r,col);return blinkG(e)}
 function whisk(y){return '<path d="M56 '+y+' L32 '+(y-5)+' M56 '+(y+3)+' L32 '+(y+8)+' M84 '+y+' L108 '+(y-5)+' M84 '+(y+3)+' L108 '+(y+8)+'" stroke="'+INK+'" stroke-width="2.2" stroke-linecap="round"/>'}
 function duckBeak(mood){
@@ -1082,7 +1082,7 @@ function kEyes(mood,xs,y,r,pup,lc,ring,sock,bc,sh){
   var s='',ry=r*1.15,SH=ry+4.2;
   if(sh)xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+(y+1)+'" rx="'+(r+5)+'" ry="'+(SH+1.5)+'" fill="'+sh+'" opacity=".38"/>'});
   xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+4.2)+'" ry="'+SH+'" fill="'+sock+'"'+(ring?' stroke="'+ring+'" stroke-width="2.5"':'')+'/>'});
-  if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x+2.5-r)+' '+y+' Q'+(x+2.5)+' '+(y+r*0.9)+' '+(x+2.5+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
+  if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
   if(mood==='joy'){var cl='',op='';xs.forEach(function(x,i){var dir=i?-1:1;
     cl+=mood==='hungry'?'<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>':'<path d="M'+(x-r)+' '+(y+r*0.3)+' Q'+x+' '+(y-r*1.1)+' '+(x+r)+' '+(y+r*0.3)+'" stroke="'+lc+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>';
     op+='<circle cx="'+(x+dir*r*0.12)+'" cy="'+y+'" r="'+(r*0.6)+'" fill="'+pup+'"/>'});
@@ -1167,6 +1167,7 @@ function skelChar(g,mood,act){
     sad:[[40,81,20,1],CALM],                 // вытирает слезу
     hungry:[CALM,[48,84,38,1]]};             // зевает, прикрыв рот
   var SHRUG=[20,99,-48,-1];
+  var FOLD=[56,120,44,1];if(act==='sleep')POSE.hungry=[FOLD,FOLD];
   if(act==='pay')POSE.joy=[UP,UP];
   if(act==='shrug')POSE.sad=[SHRUG,SHRUG];
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
@@ -1296,9 +1297,22 @@ function stkChar(kind,mood,act){
 function monster(mood,size,kind,lvl,act){
   kind=kind||petKind();
   if(!STKCROWN[kind])kind='puff';
-  var s=stkChar(kind,mood,act),crown=STKCROWN[kind];
+  var isSk=(kind==='skel'||kind==='skelf'),s=stkChar(kind,mood,(mood==='hungry'&&isSk)?'sleep':act),crown=STKCROWN[kind];
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
+  if(mood==='hungry'){ /* спит */
+    s=s.replace('<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>','');
+    if(isSk){ /* скелетик лежит в гробике, поставленном вертикально, ручки сложены на рёбрах */
+      var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
+      s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
+       '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
+    else{ /* остальные: чуть наклонены набок */
+      var TC={cat:'#ffa45c',rat:'#f2a7b5',mouse:'#f0b4be',fluff:'#8f6bff'},tailS='';
+      if(TC[kind]){s=s.replace(/<g class="tail"[^>]*>[\s\S]*?<\/g>/,'');
+        var tl='M112 88 C126 112 108 131 78 128 C66 127 56 124 52 117',tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
+        tailS=tw(19,'#fff')+tw(13.5,INK)+tw(7.5,TC[kind])}
+      s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+tailS+
+       '<g transform="translate(103 92)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}}
   if(mood==='think'){var qa='x="103" y="40" font-size="42" font-weight="900" font-family="sans-serif" stroke-linejoin="round"';s+='<text '+qa+' style="fill:#fff;stroke:#fff;stroke-width:11px">?</text><text '+qa+' style="fill:#ffd166;stroke:'+INK+';stroke-width:5px;paint-order:stroke">?</text>'}
   if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';
   if(mood==='joy')s+='<path d="M20 30 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z M118 22 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M124 70 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5-3.5 -3.5-1.5 3.5-1.5z" fill="#ffd166"/>';
@@ -1307,7 +1321,7 @@ function monster(mood,size,kind,lvl,act){
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3.6"/>'}).join('')+[[94,41,3.2],[89,47,2]].map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3"/>'}).join('');
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(c[2]-1.8)+'" fill="#fff"/>'}).join('');
     s+='<g class="zzz">'+cc+'<text x="115" y="30" font-size="15" font-weight="900" text-anchor="middle" font-family="sans-serif" style="fill:'+INK+'">Zzz</text></g>'}
-  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" style="display:block;max-width:100%">'+s+'</svg>';
+  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" class="'+(mood==='hungry'?'lying':'')+'" style="display:block;max-width:100%">'+s+'</svg>';
 }
 function pet(L,mood,size){return monster(mood,size,null,L)}
 function petSheet(){

@@ -1296,7 +1296,11 @@ function monster(mood,size,kind,lvl,act){
   if(mood==='think'){var qa='x="103" y="40" font-size="42" font-weight="900" font-family="sans-serif" stroke-linejoin="round"';s+='<text '+qa+' style="fill:#fff;stroke:#fff;stroke-width:11px">?</text><text '+qa+' style="fill:#ffd166;stroke:'+INK+';stroke-width:5px;paint-order:stroke">?</text>'}
   if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';
   if(mood==='joy')s+='<path d="M20 30 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z M118 22 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M124 70 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5-3.5 -3.5-1.5 3.5-1.5z" fill="#ffd166"/>';
-  if(mood==='hungry')s+='<text x="110" y="30" font-size="18" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text><text x="122" y="16" font-size="12" font-weight="800" fill="var(--muted)" font-family="sans-serif">z</text>';
+  if(mood==='hungry'){var cl=[[102,27,8],[113,19,10],[125,24,9],[117,31,8],[107,32,6]],cc='';
+    cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="#fff" stroke-width="10"/>'}).join('')+[[94,41,3.2],[89,47,2]].map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="#fff" stroke-width="8"/>'}).join('');
+    cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3.6"/>'}).join('')+[[94,41,3.2],[89,47,2]].map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3"/>'}).join('');
+    cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(c[2]-1.8)+'" fill="#fff"/>'}).join('');
+    s+='<g class="zzz">'+cc+'<text x="115" y="30" font-size="15" font-weight="900" text-anchor="middle" font-family="sans-serif" style="fill:'+INK+'">Zzz</text></g>'}
   return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" style="display:block;max-width:100%">'+s+'</svg>';
 }
 function pet(L,mood,size){return monster(mood,size,null,L)}

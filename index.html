@@ -1582,7 +1582,7 @@ function viewHist(){
     grp('a','Сумма',hdLabel('a'),'<select id="h_a" style="'+SEL+'">'+HAOPT.map(function(o){return '<option value="'+o[0]+'"'+((D.a||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>')+
     grp('sk','Особые',hdLabel('sk'),'<select id="h_sk" style="'+SEL+'">'+HSKOPT.map(function(o){return '<option value="'+o[0]+'"'+((D.sk||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>')+
     '</div><div class="btns"><button class="btn ghost" data-a="hClear">Сбросить</button><button class="btn" data-a="hApply">Применить</button></div></div>':'';
-  return '<div class="top"><h1>История</h1></div>'+sr+fp+seg+'<div id="hlist" style="display:flex;flex-direction:column;gap:14px">'+histList()+'</div>';
+  return '<div class="top"><h1>История</h1>'+topBtns()+'</div>'+sr+fp+seg+'<div id="hlist" style="display:flex;flex-direction:column;gap:14px">'+histList()+'</div>';
 }
 
 /* ---------- разбор месяца ---------- */
@@ -2277,7 +2277,7 @@ function viewAn(){
   var LM=catLimits();Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></div>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
 
-  return '<div class="top"><h1>Анализ</h1></div>'+monthNav()+reviewCard()+
+  return '<div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+reviewCard()+
    '<div class="card"><div class="tiprow"><h2>Выгрузка</h2>'+tipBtn('ex')+'</div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'<div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
    lifeCard(me,n)+
    '<div class="card"><h2>Траты на жизнь по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
@@ -2351,7 +2351,7 @@ function viewPlan(){
   }).join('');
   var sorted=function(a){return a.slice().sort(function(p,q){return p.day-q.day})};
   var rTot=0,iTot=0,rLate=0;S.recur.forEach(function(r){rTot+=perMonth(r);if(dueIn(r,ym)&&!doneFor('rid',r.id,ym)&&planned(ym,r.day)<=T&&!(S.planFrom&&planned(ym,r.day)<S.planFrom))rLate++});S.incomes.forEach(function(r){iTot+=r.amt});
-  return '<div class="top"><h1>Платежи и доходы</h1></div>'+rulesCard('pend')+
+  return '<div class="top"><h1>Платежи и доходы</h1>'+topBtns()+'</div>'+rulesCard('pend')+
    fcard('recur','Регулярные платежи',money(rTot)+' в месяц',(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет')+(rLate?' · не отмечено: '+rLate:''),
      (S.recur.length?sorted(S.recur).map(function(r){return planRow('r',r,ym)}).join(''):'<p class="empty">Добавь аренду, связь, подписки.</p>'),'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button>')+
    fcard('inc','Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
@@ -2364,6 +2364,7 @@ function viewPlan(){
 function modeSwitch(){
   var tip='<p style="margin:0"><b>Простой</b> - записываешь траты и видишь, сколько потрачено и укладываешься ли в план на день. Хватает большинству.</p><p style="margin:6px 0 0"><b>Полный</b> - для планирования от зарплаты до зарплаты. Добавляет:</p><ul style="margin:4px 0 0;padding-left:18px"><li>вкладку «Платежи»: зарплата и обязательные платежи по дням;</li><li>«Доступно в день» до зарплаты с учётом будущих платежей;</li><li>раскладку зарплаты по копилкам одной кнопкой;</li><li>тип траты (обязательная, осознанная, импульсивная) и «Финансовое здоровье».</li></ul><p style="margin:6px 0 0">Переключаться можно когда угодно, данные не теряются.</p>';
   return '<div class="tiprow" style="margin:-4px 0 4px"><div class="seg" style="flex:1" role="group" aria-label="Режим приложения"><button type="button" data-a="setMode" data-v="simple" aria-pressed="'+(S.simple?'true':'false')+'" class="'+(S.simple?'on':'')+'">Простой режим</button><button type="button" data-a="setMode" data-v="full" aria-pressed="'+(S.simple?'false':'true')+'" class="'+(S.simple?'':'on')+'">Полный режим</button></div>'+tipBtn('mode')+'</div>'+tipBox('mode',tip)}
+function topBtns(){return '<span style="margin-left:auto"></span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button>'}
 function render(){
   syncCats();
   try{document.documentElement.classList.add('cheer') /* оформление одинаковое в любом режиме */}catch(e){}

@@ -333,12 +333,12 @@ function syncCats(){
 function catPool(){return sh&&sh.d&&sh.d.type==='e'?CATS:ICATS.filter(function(c){return c.id!=='refund'})}
 function catFilter(q){ // поиск категории по первым буквам (по началу любого слова в названии)
   var sel=document.getElementById('f_cat');if(!sel||!sh||!sh.d)return;
-  var isE=sh.d.type==='e',pool=catPool(),n=norm(q),tail=isE?NEWCAT:'';
+  var isE=sh.d.type==='e',pool=catPool(),n=norm(q),tail=isE?NEWCAT:'',mk=(isE&&n)?'<option value="__newq">＋ Создать «'+esc(String(q).trim())+'»…</option>':'';
   if(!n){sel.innerHTML=opts(pool,sh.d.cat)+tail;return}
   var hit=pool.filter(function(c){return norm(c.name).split(/[^а-яa-z0-9]+/).some(function(w){return w.indexOf(n)===0})});
-  if(!hit.length){sel.innerHTML='<option value="" selected disabled>Ничего не найдено</option>'+tail;sh.d.cat='';return}
+  if(!hit.length){sel.innerHTML='<option value="" selected disabled>Ничего не найдено</option>'+mk+tail;sh.d.cat='';return}
   var first=sortCats(hit)[0];
-  sel.innerHTML=opts(hit,first.id)+tail;sel.value=first.id;
+  sel.innerHTML=opts(hit,first.id)+mk+tail;sel.value=first.id;
   sh.d.cat=first.id;sh.d.manual=true;sh.d.auto=false;var h=document.getElementById('f_hint');if(h)h.hidden=true;
 }
 function newCat(name){name=String(name||'').trim().slice(0,40);if(!name)return null;
@@ -2606,6 +2606,7 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='h_sk'){if(hd)hd.sk=ev.target.value;hdSync();return}
   if(ev.target.id==='a_type'&&sh&&sh.ac){readAcc();accSheet();return}
   if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true}
+  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var nm0=window.prompt('Название новой категории',t0);var nid0=nm0?newCat(nm0):null;if(q0)q0.value='';ev.target.innerHTML=opts(CATS,nid0||sh.d.cat)+NEWCAT;if(nid0){ev.target.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;return}
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var nm=window.prompt('Название новой категории');var nid=nm?newCat(nm):null;ev.target.innerHTML=opts(CATS,nid||sh.d.cat)+NEWCAT;if(nid){ev.target.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
 });

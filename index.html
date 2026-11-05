@@ -1484,8 +1484,8 @@ function histList(){
     out+='<div class="mhead"><b>'+cap(MONTHS[+a[1]-1])+' '+a[0]+'</b><span class="fine">'+(sp>0?'расходы '+money(sp):'')+'</span></div>';
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
-      var tot=by[d].reduce(function(s,x){return s+(x.skip||x.type==='t'?0:x.type==='e'?-x.amt:x.amt)},0),dt=parse(d);
-      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+', '+WD[dt.getDay()]+'</span><span>'+money(tot)+'</span></div><div class="list">'+by[d].slice().reverse().map(entryRow).join('')+'</div></div>';
+      var dsp=by[d].filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(s,x){return s+x.amt},0)-refunds(by[d]),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),dsum=(dsp>0?'расходы '+money(dsp):'')+(din?(dsp>0?' · ':'')+'доходы +'+money(din):'');
+      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+', '+WD[dt.getDay()]+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(entryRow).join('')+'</div></div>';
     });
   });
   if(!flt&&mlist.length>shown.length)out+='<button class="btn ghost" data-a="hMore">Показать ещё месяц</button>';

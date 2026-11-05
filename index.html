@@ -508,7 +508,7 @@ function netByCat(list){
     if(tw<=0)return v;var left=v;Object.keys(w).forEach(function(c){left-=take(c,Math.min(v*w[c]/tw,w[c]))});return Math.max(0,left)}
   ex.forEach(function(x){if(x.split>0&&!x.splitDone)take(x.cat,Math.min(x.split,x.amt))});
   rf.forEach(function(r){
-    var v=r.amt,lk=ex.filter(function(e){return e.splitDone===r.id})[0];
+    var v=r.amt,lk=ex.filter(function(e){return e.id===r.for})[0]||ex.filter(function(e){return e.splitDone===r.id})[0];
     if(lk){take(lk.cat,v);return}
     var m=String(r.note||'').match(/^Возврат:\s*(.+)$/i);
     if(m){var nm=norm(m[1]),c=ex.filter(function(e){return e.note&&norm(e.note)===nm&&e.date<=r.date}).sort(function(p,q){return p.date<q.date?1:-1})[0];
@@ -1545,23 +1545,61 @@ function histMatch(x){
   if(!hq)return true;var q=norm(hq),c=x.type==='t'?'перевод':norm((CMAP[x.cat]||CMAP.other).name);
   if(norm(x.note).indexOf(q)>=0||c.indexOf(q)>=0)return true;var qn=q.replace(/\s/g,'');return /^\d+$/.test(qn)&&String(Math.round(x.amt)).indexOf(qn)>=0;
 }
+/* связь возврата с тратой: явная (поле for), по «Делю с кем-то» (splitDone) или по заметке «Возврат: …»; только внутри одного месяца */
+function refLinks(){
+  var byId={},byExp={},linked={},ex=[];
+  S.entries.forEach(function(x){if(x.demo)return;byId[x.id]=x;if(x.type==='e'&&!x.skip)ex.push(x)});
+  S.entries.forEach(function(r){
+    if(r.demo||r.type!=='i'||r.cat!=='refund'||r.skip)return;
+    var e=r.for&&byId[r.for]&&byId[r.for].type==='e'?byId[r.for]:null;
+    if(!e)e=ex.filter(function(z){return z.splitDone===r.id})[0]||null;
+    if(!e){var m=String(r.note||'').match(/^Возврат:\s*(.+)$/i);
+      if(m){var nm=norm(m[1]);e=ex.filter(function(z){return z.note&&norm(z.note)===nm&&z.date<=r.date}).sort(function(a,b){return a.date<b.date?1:-1})[0]||null}}
+    if(e&&e.date.slice(0,7)===r.date.slice(0,7)){linked[r.id]=e.id;(byExp[e.id]=byExp[e.id]||[]).push(r)}
+  });
+  return {byExp:byExp,linked:linked};
+}
+function netOf(x,LK){
+  var back=(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0),pend=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
+  return Math.max(0,x.amt-back-pend);
+}
+function histRow(x,LK){
+  if(x.type!=='e'||x.skip)return entryRow(x);
+  var rl=LK.byExp[x.id]||[],pend=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
+  if(!rl.length&&!pend)return entryRow(x);
+  var c=CMAP[x.cat]||CMAP.other,back=rl.reduce(function(a,r){return a+r.amt},0),net=Math.max(0,x.amt-back-pend);
+  var main='<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:'+c.color+'"></span><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.cls?CLS[x.cls][0]:''))+' · было '+money(x.amt)+(pend?' · ждёшь возврат '+money(pend):'')+'</div></div><span class="amt out">−'+money(net)+'</span></button>';
+  var subs=rl.map(function(r){
+    var nt=String(r.note||'').replace(/^Возврат:\s*/i,'').trim();if(nt&&x.note&&norm(nt)===norm(x.note))nt='';
+    return '<button class="row" data-a="edit" data-id="'+r.id+'" style="padding-top:0;padding-left:22px"><div class="grow"><div class="s">↩ вернули'+(nt?' · '+esc(nt):'')+(r.date!==x.date?' · '+fdate(r.date):'')+'</div></div><span class="amt in" style="font-size:14px">+'+money(r.amt)+'</span></button>'}).join('');
+  return main+subs;
+}
+function sumNet(l,LK){
+  return l.reduce(function(s,x){
+    if(x.type==='e'&&!x.skip)return s+netOf(x,LK);
+    if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return s-x.amt;
+    return s},0);
+}
 function histList(){
   var flt=histFiltered();
+  var LK=refLinks();
   var all=S.entries.filter(function(x){return !x.demo&&(hf==='all'||x.type===hf)&&histMatch(x)});
+  var allIds={};all.forEach(function(x){allIds[x.id]=1});
+  var hid=function(x){return x.type==='i'&&LK.linked[x.id]&&allIds[LK.linked[x.id]]};
   var months={};all.forEach(function(x){months[x.date.slice(0,7)]=1});
   var mlist=Object.keys(months).sort().reverse(),shown=flt?mlist:mlist.slice(0,hMonths);
   var head='';
-  if(flt){var e=0,i=0;all.forEach(function(x){if(x.type==='e'&&!x.skip)e+=x.amt;else if(x.type==='i'&&x.cat!=='refund'&&!x.skip)i+=x.amt});e-=refunds(all);var sv=hd;hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};var lb=[];if(hfrom||hto)lb.push(hdLabel('per'));if(hc)lb.push(hdLabel('c'));if(hacc)lb.push(hdLabel('acc'));if(ha)lb.push(hdLabel('a'));if(hsk)lb.push(hdLabel('sk'));hd=sv;
+  if(flt){var e=sumNet(all,LK),i=0;all.forEach(function(x){if(x.type==='i'&&x.cat!=='refund'&&!x.skip)i+=x.amt});var sv=hd;hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};var lb=[];if(hfrom||hto)lb.push(hdLabel('per'));if(hc)lb.push(hdLabel('c'));if(hacc)lb.push(hdLabel('acc'));if(ha)lb.push(hdLabel('a'));if(hsk)lb.push(hdLabel('sk'));hd=sv;
   head=(lb.length?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+lb.map(function(t){return '<span class="chip" style="font-size:12.5px;padding:4px 10px">'+esc(t)+'</span>'}).join('')+'</div>':'')+'<p class="fine" style="padding:0 2px;margin:0">Найдено: '+all.length+(e?' · расходы '+money(e):'')+(i?' · поступления '+money(i):'')+' · <button class="fine" data-a="hClear" style="text-decoration:underline">сбросить</button></p>'}
   if(!mlist.length)return head+'<div class="card"><p class="empty">'+(flt?'Ничего не нашлось.':'Записей пока нет. Нажми «+», чтобы добавить первую.')+'</p></div>';
   var out=head;
   shown.forEach(function(m){
-    var me=all.filter(function(x){return x.date.slice(0,7)===m}),a=m.split('-'),sp=me.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(s,x){return s+x.amt},0)-refunds(me);
+    var me=all.filter(function(x){return x.date.slice(0,7)===m&&!hid(x)}),a=m.split('-'),sp=sumNet(me,LK);
     out+='<div class="mhead"><b>'+cap(MONTHS[+a[1]-1])+' '+a[0]+'</b><span class="fine">'+(sp>0?'расходы '+money(sp):'')+'</span></div>';
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
-      var dsp=by[d].filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(s,x){return s+x.amt},0)-refunds(by[d]),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),dsum=(dsp>0?'расходы '+money(dsp):'')+'';
-      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+', '+WD[dt.getDay()]+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(entryRow).join('')+'</div></div>';
+      var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),dsum=(dsp>0?'расходы '+money(dsp):'')+'';
+      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+', '+WD[dt.getDay()]+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
     });
   });
   if(!flt&&mlist.length>shown.length)out+='<button class="btn ghost" data-a="hMore">Показать ещё месяц</button>';
@@ -2460,6 +2498,11 @@ function tplListHtml(){var l=tpls();return (l.length?'<div class="list">'+l.map(
 var MODES=[['own','Обычная запись'],['proxy','Не моя, но с моей карты'],['other','Не с моей карты']];
 var MODEH={own:'Считается в тратах и меняет остаток.',proxy:'Купила за кого-то или обмен: остаток меняется, в траты и план не идёт. Когда вернут деньги, запиши их доходом так же.',other:'Платил кто-то другой или другая карта: остаётся только в истории, ни остаток, ни траты не меняются.'};
 function entryMode(d){return d.nobal?'other':d.skip?'proxy':'own'}
+function forSelect(d){
+  var ym=(d.date||T).slice(0,7),cur=d.for||'';
+  var l=S.entries.filter(function(x){return !x.demo&&x.type==='e'&&!x.skip&&x.date.slice(0,7)===ym&&x.date<=(d.date||T)}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,60);
+  return '<div class="f"><label for="f_for">К какой трате относится</label><select id="f_for"><option value="">Ни к какой (общий возврат)</option>'+l.map(function(x){var c=CMAP[x.cat]||CMAP.other;return '<option value="'+x.id+'"'+(cur===x.id?' selected':'')+'>'+esc(fdate(x.date)+' · '+(x.note||c.name)+' · '+money(x.amt))+'</option>'}).join('')+'</select><span class="fine">Если вернули за одну трату, выбери её: возврат покажется прямо под ней. Если за много сразу, оставь «Ни к какой».</span></div>';
+}
 function entrySheet(){
   var d=sh.d,isE=d.type==='e',isT=d.type==='t',body;
   var curSeg=d.type==='i'?(d.cat==='refund'?'r':'i'):d.type;
@@ -2470,7 +2513,7 @@ function entrySheet(){
      (S.accounts.length<2?'<p class="fine">Для этого нужна хотя бы одна копилка. Заведи её на главном экране.</p>':'');
   }else{
     body='<div class="f"><label for="f_note">'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'</label><input id="f_note" value="'+esc(d.note||'')+'" placeholder="'+(isE?'Например: Пятёрочка, такси домой':(d.cat==='refund'?'Например: половина за продукты, возврат за заказ':'Например: аванс, подработка, подарок'))+'"></div>'+
-     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>':'<div class="f"><label for="f_cat">Категория</label><input id="f_catq" type="search" autocomplete="off" enterkeyhint="done" placeholder="Найти: начни вводить название"><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+NEWCAT+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
+     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>'+forSelect(d):'<div class="f"><label for="f_cat">Категория</label><input id="f_catq" type="search" autocomplete="off" enterkeyhint="done" placeholder="Найти: начни вводить название"><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+NEWCAT+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
      (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">— не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'')+
      (isE&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'})?'<div class="f"><label for="f_acc">'+(S.simple?'Со счёта':'Чем оплатила')+'</label><select id="f_acc">'+srcOpts(d.acc)+'</select><span class="fine" id="f_fh"'+(d.fund?'':' hidden')+'>'+(d.fund?'Нашла копилку по заметке. Можно поменять.':'')+'</span></div>':'');
   }
@@ -2499,7 +2542,7 @@ function readEntry(){
   d.amt=g('f_amt');d.cat=g('f_cat')||d.cat;d.date=g('f_date')||d.date;d.note=g('f_note');
   var fm=document.getElementById('f_mode');if(fm){d.skip=fm.value!=='own';d.nobal=fm.value==='other'}
   var sp=document.getElementById('f_split');if(sp){d.split=sp.checked;d.splitAmt=g('f_splitamt')}
-  d.acc=g('f_acc')||d.acc;d.from=g('f_from')||d.from;d.to=g('f_to')||d.to;return d;
+  d.acc=g('f_acc')||d.acc;d.from=g('f_from')||d.from;d.to=g('f_to')||d.to;var ff=document.getElementById('f_for');if(ff)d.for=ff.value;return d;
 }
 function exCat(c){return (CMAP[c]||CMAP.other).name}
 function exAmt(n){return String(Math.round(n*100)/100).replace('.',',')}
@@ -2701,7 +2744,7 @@ document.addEventListener('click',function(ev){
   else if(a==='hClear'){hq='';ha='';hc='';hacc='';hsk='';hfrom='';hto='';hd=null;hfo=false;render()}
   else if(a==='hPer'){if(!hd)hd={};var tp=petDay(),ymp=tp.slice(0,7);if(v==='m0'){hd.from=ymp+'-01';hd.to=tp}else if(v==='m1'){var pm=nextYM(ymp,-1),pa=pm.split('-');hd.from=pm+'-01';hd.to=pm+'-'+p2(dim(+pa[0],+pa[1]-1))}else if(v==='d7'){hd.from=iso(addDays(parse(tp),-6));hd.to=tp}else if(v==='d30'){hd.from=iso(addDays(parse(tp),-29));hd.to=tp}else{hd.from='';hd.to=''}var f1=document.getElementById('h_from'),f2=document.getElementById('h_to');if(f1)f1.value=hd.from;if(f2)f2.value=hd.to;hdSync()}
   else if(a==='newEntry'){sh={id:null,d:newDraft('e')};entrySheet()}
-  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,amt:x.amt,cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(x.split):''}};entrySheet()}}
+  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,amt:x.amt,cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(x.split):'',for:x.for||''}};entrySheet()}}
   else if(a==='stype'){var d=readEntry(),ref=v==='r',tv=ref?'i':v,curR=d.type==='i'&&d.cat==='refund';if(d.type!==tv||ref!==curR){d.type=tv;d.cat='';if(tv==='i')d.acc=defAcc();d.manual=false;d.auto=false;if(ref){d.cat='refund';d.manual=true}else if(tv==='t')tDefaults(d);else{var g=guess(d.note,tv);if(g&&!(tv==='i'&&g==='refund')){d.cat=g;d.auto=true}}}entrySheet()}
   else if(a==='quick'){var dq=readEntry(),qq=(sh.q||[])[+b.dataset.i];if(qq){dq.note=qq.note;dq.cat=qq.cat;dq.manual=true;dq.auto=false;if(!(num(dq.amt)>0))dq.amt=qq.amt;if(dq.type==='e'){dq.cls=qq.cls||dq.cls;dq.clsManual=true}if(qq.acc&&accById(qq.acc))dq.acc=qq.acc;entrySheet()}}
   else if(a==='qcat'){var dc=readEntry();dc.cat=v;dc.manual=true;dc.auto=false;if(dc.type==='e'){dc.cls=NEEDC[v]?'need':'mind'}entrySheet()}
@@ -2901,8 +2944,9 @@ document.addEventListener('submit',function(ev){
     if(d.type==='i')d.acc=defAcc();
     if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=e.amt})}if(accBal(sa)+had<n)return showErr('В копилке «'+sa.name+'» только '+money(accBal(sa)+had)+'. Выбери другой источник или сначала отложи деньги.')}}
     var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip,nobal:!!d.nobal};
+    if(d.type==='i'&&d.cat==='refund'&&d.for)rec.for=d.for;
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
-    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
+    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec)}
     var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);

@@ -1054,9 +1054,11 @@ function autoLimb(t,a){var m,n;
     if(y===66&&wd<=14)return 'class="'+(x<70?'arl':'arr')+'" style="transform-origin:'+(x+wd/2)+'px 68px"'}
   return ''}
 var SKMID='';
-function SK(shapes){var b='',f='';shapes.forEach(function(x){var t=x[0],a=x[1],c=x[2];if(!x[3])x=[t,a,c,autoLimb(t,a)];var w=x[3]?function(z){return '<g '+x[3]+'>'+z+'</g>'}:function(z){return z};
+function SK(shapes){var b='',f='',ft='';shapes.forEach(function(x){var t=x[0],a=x[1],c=x[2];if(!x[3])x=[t,a,c,autoLimb(t,a)];var w=x[3]?function(z){return '<g '+x[3]+'>'+z+'</g>'}:function(z){return z};
+  /* поднятая ручка рисуется поверх тела, иначе её не видно за головой */
+  var up=(t==='rect'&&/transform=/.test(a))||(t==='ellipse'&&/rotate\([^)]*\) rotate\(/.test(a));
   b+=w('<'+t+' '+a+' fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>');
-  f+=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>')});var mid=SKMID;SKMID='';return b+mid+f}
+  var fl=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>');if(up)ft+=fl;else f+=fl});var mid=SKMID;SKMID='';return b+mid+f+ft}
 /* ушки и хвосты: ear(сторона,x,y) даёт атрибуты группы; tailG(мордочка, настроение) */
 function EAR(side,ox,oy,d){return 'class="ear'+side+'" style="transform-origin:'+ox+'px '+oy+'px;animation-delay:-'+d+'s"'}
 function tailG(inner,ox,oy,mood){var du={joy:.45,happy:.7,calm:1.6,think:2,worried:.25,sad:3.2,hungry:3.2}[mood]||1.2;
@@ -1194,7 +1196,7 @@ function vineArms(mood,SL,SR){
     return '<g class="'+cls+'" style="transform-origin:'+S[0]+'px '+S[1]+'px"><path d="'+a+'" stroke="#fff" stroke-width="12" '+ln+'/><path d="'+a+'" stroke="'+INK+'" stroke-width="7.5" '+ln+'/><path d="'+a+'" stroke="#4cc46a" stroke-width="3.6" '+ln+'/></g>'}
   return one(pz[0],SL,1,'arl')+one(pz[1],SR,-1,mood==='happy'?'sw':'arr')}
 /* ручки обычных монстриков: поворот вокруг плеча по настроению (l - левая, r - правая) */
-function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-140],joy:[150,-150],think:[0,-55],worried:[45,-45],sad:[0,0],hungry:[0,0]}[mood]||[0,0],a=T[side==='l'?0:1];return a?'rotate('+a+' '+sx+' '+sy+') ':''}
+function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-155],joy:[160,-160],think:[0,-55],worried:[45,-45],sad:[0,0],hungry:[0,0]}[mood]||[0,0],a=T[side==='l'?0:1];return a?(Math.abs(a)>=100?'translate('+(side==='l'?-6:6)+' -6) ':'')+'rotate('+a+' '+sx+' '+sy+') ':''}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';

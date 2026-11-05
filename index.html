@@ -1060,14 +1060,14 @@ function skelChar(g,mood){
   s+=kMouth(mood,70,79,13,C.mline,C.mfill,C.tc);
   s+='</g>';
   /* руки поверх всего: жесты зависят от настроения; позы заданы для левой руки, правая зеркалится */
-  var SHL=[31,89],L1=14,L2=13,KH=0.9;
+  var SHL=[31,89],L1=16,L2=15,KH=0.9;
   function arm(w,mirror){ // w=[x,y,угол кисти,сторона изгиба] -> точки плеча, локтя, запястья
     var S=SHL,dx=w[0]-S[0],dy=w[1]-S[1],d=Math.sqrt(dx*dx+dy*dy),R=L1+L2-0.2;
     if(d>R){dx*=R/d;dy*=R/d;d=R}
     var a=(L1*L1-L2*L2+d*d)/(2*d),hh=Math.sqrt(Math.max(0,L1*L1-a*a)),ex=S[0]+a*dx/d+w[3]*hh*(-dy)/d,ey=S[1]+a*dy/d+w[3]*hh*dx/d,wx=S[0]+dx,wy=S[1]+dy,m=mirror?-1:1;
     function X(x){return mirror?140-x:x}
     return {s:[X(S[0]),S[1]],e:[X(ex),ey],w:[X(wx),wy],a:w[2]*m}}
-  var CALM=[26,113,176,1],WAVE=[20,70,-8,-1],UP=[21,68,-6,-1];
+  var CALM=[25,118,176,1],WAVE=[19,66,-8,-1],UP=[20,64,-6,-1];
   var POSE={calm:[CALM,CALM],
     happy:[CALM,WAVE],                       // машет правой
     joy:[UP,UP],                             // обе вверх

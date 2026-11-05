@@ -222,6 +222,30 @@ public class MainActivity extends Activity {
             }
         }
 
+        // on: включено ли, h/m: время, done: дата (гггг-мм-дд), за которую траты уже записаны (тогда не напоминать)
+        @JavascriptInterface
+        public void setReminder(boolean on, int h, int m, String done) {
+            Reminder.prefs(MainActivity.this).edit()
+                .putBoolean("on", on).putInt("h", h).putInt("m", m)
+                .putString("done", done == null ? "" : done).apply();
+            Reminder.schedule(MainActivity.this);
+        }
+
+        // Android 13+ спрашивает разрешение на уведомления; true, если оно уже есть
+        @JavascriptInterface
+        public boolean askNotifications() {
+            if (Build.VERSION.SDK_INT < 33) return true;
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) return true;
+            runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 42));
+            return false;
+        }
+
+        @JavascriptInterface
+        public boolean notificationsAllowed() {
+            if (Build.VERSION.SDK_INT < 33) return true;
+            return checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+
         @JavascriptInterface
         public void shareText(String text) {
             Intent send = new Intent(Intent.ACTION_SEND);

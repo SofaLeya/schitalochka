@@ -1041,9 +1041,9 @@ function skelChar(g,mood){
   /* грудная клетка: тёмная пустота, рёбра, позвоночник */
   s+=SKt([['circle','cx="70" cy="96" r="8"',bn]]);
   s+=st('M70 104 Q50 97 32 108',5.5,0)+st('M70 104 Q90 97 108 108',5.5,0);
-  [109,121,133,145].forEach(function(y){
+  [111,126,141].forEach(function(y){
     s+=st('M70 '+y+' C58 '+(y-7)+' 46 '+(y-4)+' 41 '+(y+9),5.5,0)+st('M70 '+y+' C82 '+(y-7)+' 94 '+(y-4)+' 99 '+(y+9),5.5,0)});
-  [109,121,133,145].forEach(function(y){s+='<circle cx="70" cy="'+y+'" r="5" fill="'+bn+'" stroke="'+INK+'" stroke-width="2"/>'});
+  [111,126,141].forEach(function(y){s+='<circle cx="70" cy="'+y+'" r="5" fill="'+bn+'" stroke="'+INK+'" stroke-width="2"/>'});
   s+='</g><g transform="translate(70 14) scale(.86) translate(-70 -14)">';
   /* череп */
   s+=SKt([['path','d="M70 16 C96 16 108 34 107 54 C106 66 99 72 95 76 L95 84 C95 88 91 90 87 90 L53 90 C49 90 45 88 45 84 L45 76 C41 72 34 66 33 54 C32 34 44 16 70 16Z"',bn]]);

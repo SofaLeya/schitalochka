@@ -1201,6 +1201,35 @@ function vineArms(mood,SL,SR){
 function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-155],joy:[160,-160],think:[0,-55],worried:[45,-45],sad:[0,0],hungry:[0,0]}[mood]||[0,0],a=T[side==='l'?0:1];return a?(Math.abs(a)>=100?'translate('+(side==='l'?-6:6)+' -6) ':'')+'rotate('+a+' '+sx+' '+sy+') ':''}
 /* пушистый контур: зубчики-шерстинки по эллипсу */
 function fuzz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
+/* поза сна клубком для кошачьих (Котик, Крыска, Мышка, Мохнатик): свёрнутое тело, голова на лапках, хвост вдоль тела */
+function curlChar(kind){
+  var P={cat:{c:'#ffa45c',d:'#e8783a',tw:11,tc:'#ffa45c'},rat:{c:'#8b94a2',d:'#6f7885',tw:5,tc:'#f2a7b5'},mouse:{c:'#f5dcb6',d:'#e3c298',tw:5,tc:'#f0b4be'},fluff:{c:'#8f6bff',d:'#6f4be0',tw:10,tc:'#6f4be0'}}[kind],c=P.c,d=P.d,s='',pk='#ff9fb6';
+  var tl='M121 98 C124 119 98 127 76 123 C64 121 56 119 52 116';
+  var tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
+  var body=kind==='fluff'?['path','d="'+fuzz(78,100,50,30,22,4)+'"',c]:['ellipse','cx="78" cy="100" rx="50" ry="30"',c];
+  var head=kind==='fluff'?['path','d="'+fuzz(46,90,27,25,14,4)+'"',c]:['circle','cx="46" cy="90" r="27"',c];
+  var ears=[];
+  if(kind==='cat')ears=[['path','d="M21 80 L22 50 L46 66Z"',c],['path','d="M71 80 L70 50 L46 66Z"',c]];
+  else if(kind==='rat')ears=[['circle','cx="27" cy="70" r="12"',c],['circle','cx="65" cy="70" r="12"',c]];
+  else if(kind==='mouse')ears=[['circle','cx="24" cy="70" r="15"',c],['circle','cx="68" cy="70" r="15"',c]];
+  else ears=[['path','d="M30 70 Q20 56 27 44 Q38 56 42 68Z"','#fff1c9'],['path','d="M62 70 Q72 56 65 44 Q54 56 50 68Z"','#fff1c9']];
+  var paws=[['ellipse','cx="38" cy="116" rx="12" ry="7.5"',c],['ellipse','cx="58" cy="117" rx="12" ry="7.5"',c]];
+  s+=SK([body])+tw(P.tw+4.5,INK)+tw(P.tw,P.tc)+SK(ears.concat([head],paws));
+  /* внутренности ушей и узор */
+  if(kind==='cat')s+='<path d="M26 74 L27 58 L39 67Z M66 74 L65 58 L53 67Z" fill="#ff9fb6"/><path d="M88 74 q6 10 0 20 M102 77 q6 10 2 22 M115 84 q4 8 0 16" stroke="'+d+'" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M46 63 L46 71 M38 64 L40 71 M54 64 L52 71" stroke="'+d+'" stroke-width="3.5" stroke-linecap="round"/>';
+  if(kind==='rat')s+='<circle cx="27" cy="70" r="6.5" fill="#f6b6c4"/><circle cx="65" cy="70" r="6.5" fill="#f6b6c4"/><ellipse cx="46" cy="101" rx="13" ry="9.5" fill="#dde1e7"/>';
+  if(kind==='mouse')s+='<circle cx="24" cy="70" r="9" fill="'+pk+'"/><circle cx="68" cy="70" r="9" fill="'+pk+'"/><ellipse cx="46" cy="102" rx="12" ry="8.5" fill="#fff6e8"/>';
+  if(kind==='fluff')s+='<path d="M36 90 Q46 99 56 90" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  /* лицо: закрытые глазки, носик, ротик, щёчки */
+  if(kind!=='fluff')s+='<path d="M32 89 Q37.5 95 43 89 M49 89 Q54.5 95 60 89" stroke="'+INK+'" stroke-width="3.2" fill="none" stroke-linecap="round"/>';
+  s+='<ellipse cx="30" cy="99" rx="5.5" ry="4" fill="'+(kind==='fluff'?'#ff8fd0':'#ff9fb6')+'" opacity=".7"/><ellipse cx="62" cy="99" rx="5.5" ry="4" fill="'+(kind==='fluff'?'#ff8fd0':'#ff9fb6')+'" opacity=".7"/>';
+  if(kind==='cat')s+='<path d="M42 97 L50 97 L46 102Z" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/>';
+  if(kind==='rat'||kind==='mouse')s+='<ellipse cx="46" cy="97" rx="4.4" ry="3.2" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.8"/>';
+  s+='<ellipse cx="46" cy="'+(kind==='fluff'?'101':'107')+'" rx="3" ry="3.6" fill="'+INK+'"/>';
+  if(kind!=='fluff')s+='<path d="M33 100 L18 97 M33 103 L18 106 M59 100 L74 97 M59 103 L74 106" stroke="'+INK+'" stroke-width="1.8" stroke-linecap="round"/>';
+  /* лапки спят: расслабленные пальчики */
+  s+='<path d="M34 114 v5 M40 113 v6 M54 115 v5 M60 114 v6" stroke="'+INK+'" stroke-width="2" stroke-linecap="round" opacity=".75"/>';
+  return s}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
@@ -1306,7 +1335,10 @@ function monster(mood,size,kind,lvl,act){
       var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
       s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
        '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
-    else{ /* свернулся клубком: тело округлое, голова прижата, нос спрятан; хвост дорисован только кошачьим: Котик, Крыска, Мышка, Мохнатик */
+    else if(kind==='cat'||kind==='rat'||kind==='mouse'||kind==='fluff'){
+      s='<ellipse cx="72" cy="133" rx="58" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+curlChar(kind)+'</g>'+
+       '<g transform="translate(72 103)"><g class="snb"><circle r="7" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3.5 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
+    else{ /* остальные: компактный клубок */
       var TC={cat:'#ffa45c',rat:'#f2a7b5',mouse:'#f0b4be',fluff:'#8f6bff'},tailS='';
       if(TC[kind]){s=s.replace(/<g class="tail"[^>]*>[\s\S]*?<\/g>/,'');
         var tl='M112 88 C126 112 108 131 78 128 C66 127 56 124 52 117',tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};

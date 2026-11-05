@@ -498,6 +498,7 @@ function bkDays(){if(!S.lastBackup)return null;return diffDays(S.lastBackup,T)}
 function realCount(){return S.entries.filter(function(e){return !e.demo}).length}
 function backupNote(){
   if(S.demo||realCount()<3)return '';
+  if(ydOn()&&YD.st!=='err')return ''; // Яндекс Диск подключён и работает — данные уже в облаке, напоминание не нужно
   var d=bkDays();if(d!==null&&d<7)return '';
   try{var tl=JSON.parse(localStorage.getItem('tgbk-last:schitalochka')||'{}');if(tl.t&&Date.now()-tl.t<7*864e5)return ''}catch(e){}
   return '<div class="note warn"><b>Сделайте копию данных</b><span>'+(d===null?'Копию ещё не делали.':'Последняя копия была '+d+' дн. назад.')+' Данные лежат только в этом браузере.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="settings">Сделать копию</button></div></div>';

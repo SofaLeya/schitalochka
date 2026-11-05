@@ -186,9 +186,11 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .help details details[open]>summary::after{content:'\2212';margin-top:0;transform:none}
 .help .hb ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .ico.q{font-weight:800;font-size:18px;color:var(--accent)}
-.syncbtn{margin-left:auto;height:40px;padding:0 12px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15;white-space:nowrap}
-.syncbtn b{font-size:13px;font-weight:800;color:var(--accent)}
-.syncbtn span{font-size:10.5px;font-weight:600}
+.syncrow{display:flex;margin:-4px 0 0}
+.syncrow[hidden]{display:none}
+.syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.syncbtn b{font-size:13.5px;font-weight:800;color:var(--accent)}
+.syncbtn span{font-size:12.5px;font-weight:600}
 .syncbtn[hidden]{display:none}
 .syncbtn:active{background:var(--surface2)}
 .mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -2218,7 +2220,7 @@ function render(){
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<button type="button" class="syncbtn" id="syncb" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+modeSwitch()+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':'')+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -2780,7 +2782,7 @@ function syncBtnHtml(){ // подпись кнопки в шапке: что д�
   if(YD.st==='wait'||(YD.st!=='err'&&ydDirty(m)))return '<b>Синхронизирую…</b><span>с Яндекс Диском</span>';
   if(YD.st==='err')return '<b>↻ Повторить</b><span>нет связи с Диском</span>';
   return '<b>↻ Обновить</b><span>Диск'+(when?' · '+when:'')+'</span>'}
-function renderBadge(){var e=document.getElementById('syncb');if(!e)return;if(e.tagName==='BUTTON'){var l=syncBtnHtml();e.innerHTML=l;e.hidden=!l}else e.textContent=syncLabel()}
+function renderBadge(){var bt=document.getElementById('syncbtn');if(bt){var l=syncBtnHtml();bt.innerHTML=l;if(bt.parentNode)bt.parentNode.hidden=!l}var e=document.getElementById('syncb');if(e&&!e.hidden)e.textContent=syncLabel()}
 function cfgOf(){var c={};Object.keys(S).forEach(function(k){if(k!=='entries')c[k]=S[k]});return c}
 function partsOf(){
   var p={cfg:JSON.stringify(cfgOf())},by={};

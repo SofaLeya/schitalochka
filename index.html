@@ -1002,7 +1002,7 @@ function kEyes(mood,xs,y,r,pup,lc,ring,sock,bc){
   if(mood==='sad'||mood==='worried')py=r*0.3;
   if(mood==='think'){px=r*0.3;py=-r*0.35}
   xs.forEach(function(x,i){var dir=i?-1:1;
-    s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+ry+'" fill="#fff"/><circle cx="'+(x+dir*r*0.18+px)+'" cy="'+(y+py+r*0.12)+'" r="'+(r*0.55)+'" fill="'+pup+'"/><circle cx="'+(x+dir*r*0.18+px+r*0.22)+'" cy="'+(y+py-r*0.14)+'" r="'+(r*0.2)+'" fill="#fff"/>'});
+    s+='<circle cx="'+(x+dir*r*0.12+px)+'" cy="'+(y+py)+'" r="'+(r*0.6)+'" fill="'+pup+'"/>'});
   var by=y-SH-2;
   xs.forEach(function(x,i){var o=i?-1:1,bs='stroke="'+bc+'" stroke-width="3.2" stroke-linecap="round" fill="none"';
     if(mood==='sad'||mood==='worried')s+='<path d="M'+(x-o*r)+' '+by+' L'+(x+o*r*0.8)+' '+(by-5)+'" '+bs+'/>';
@@ -1031,8 +1031,8 @@ function skFlower(x,y,r,pc,cc){var s='<g stroke="'+INK+'" stroke-width="1.5" str
   for(var i=0;i<5;i++){var a=-Math.PI/2+i*2*Math.PI/5;s+='<circle cx="'+(x+Math.cos(a)*r*0.62).toFixed(1)+'" cy="'+(y+Math.sin(a)*r*0.62).toFixed(1)+'" r="'+(r*0.5).toFixed(1)+'" fill="'+pc+'"/>'}
   return s+'<circle cx="'+x+'" cy="'+y+'" r="'+(r*0.36).toFixed(1)+'" fill="'+cc+'"/></g>'}
 function skelChar(g,mood){
-  var C=g?{bone:'#fbf9ff',cav:'#4b2a7c',pup:'#7a3cff',lc:'#e6dcff',bc:'#4b2a7c',ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3'}
-    :{bone:'#fbf8f3',cav:'#a3142b',pup:'#e5133a',lc:'#ffd24a',bc:'#a3142b',ring:'#d9a62b',sock:'#120a0d',mline:INK,mfill:'#8f1024',tc:'#f5c542',nose:'#a3142b',cheek:'#d4263f',stud:'#f5c542'},
+  var C=g?{bone:'#fbf9ff',cav:'#4b2a7c',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3'}
+    :{bone:'#fbf8f3',cav:'#a3142b',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:'#8f1024',tc:'#f5c542',nose:'#a3142b',cheek:'#d4263f',stud:'#f5c542'},
     bn=C.bone,s='<g transform="translate(0 -16)">';
   /* тонкая обводка: белая 4px снаружи, тёмная 2.5px */
   function SKt(shapes){var b='',f='';shapes.forEach(function(x){b+='<'+x[0]+' '+x[1]+' fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>';f+='<'+x[0]+' '+x[1]+' fill="'+x[2]+'" stroke="'+INK+'" stroke-width="2.5" stroke-linejoin="round"/>'});return b+f}

@@ -166,7 +166,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .monster .mt{display:flex;flex-direction:column;gap:4px;min-width:0}
 .monster .mt b{font-size:15px}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
-@media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
+@media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -551,8 +551,7 @@ function applyPayout(day,ym){
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
 var APP_VER='2026-11-05r';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['Когда монстрик спит, он сворачивается клубком и посапывает. Скелетики спят в гробиках.',
- 'Цвета приложения можно выбрать отдельно от монстрика: нажми «сменить» у монстрика.',
+var NEWS=['Цвета приложения можно выбрать отдельно от монстрика: нажми «сменить» у монстрика.',
  'Новые монстрики: Клубничка и Вишенка. У монстриков появились ручки, они меняют позу по настроению.'];
 var NEWS_OLD=['Выбор монстриков стал короче, главный теперь Мохнатик.',
  'Монстрики ожили: моргают, подёргивают ушками и хвостиками. Появились Скелетон и Скелетесса.',
@@ -1167,7 +1166,6 @@ function skelChar(g,mood,act){
     sad:[[40,81,20,1],CALM],                 // вытирает слезу
     hungry:[CALM,[48,84,38,1]]};             // зевает, прикрыв рот
   var SHRUG=[20,99,-48,-1];
-  var FOLD=[56,120,44,1];if(act==='sleep')POSE.hungry=[FOLD,FOLD];
   if(act==='pay')POSE.joy=[UP,UP];
   if(act==='shrug')POSE.sad=[SHRUG,SHRUG];
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
@@ -1201,59 +1199,6 @@ function vineArms(mood,SL,SR){
 function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-155],joy:[160,-160],think:[0,-55],worried:[45,-45],sad:[0,0],hungry:[0,0]}[mood]||[0,0],a=T[side==='l'?0:1];return a?(Math.abs(a)>=100?'translate('+(side==='l'?-6:6)+' -6) ':'')+'rotate('+a+' '+sx+' '+sy+') ':''}
 /* пушистый контур: зубчики-шерстинки по эллипсу */
 function fuzz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
-/* поза сна клубком для кошачьих (Котик, Крыска, Мышка, Мохнатик): свёрнутое тело, голова на лапках, хвост вдоль тела */
-function curlChar(kind){
-  var P={cat:{c:'#ffa45c',d:'#e8783a',tw:11,tc:'#ffa45c'},rat:{c:'#8b94a2',d:'#6f7885',tw:5,tc:'#f2a7b5'},mouse:{c:'#f5dcb6',d:'#e3c298',tw:5,tc:'#f0b4be'},fluff:{c:'#8f6bff',d:'#6f4be0',tw:10,tc:'#6f4be0'}}[kind],c=P.c,d=P.d,s='',pk='#ff9fb6';
-  var tl='M121 98 C124 119 98 127 76 123 C64 121 56 119 52 116';
-  var tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
-  var body=kind==='fluff'?['path','d="'+fuzz(78,100,50,30,22,4)+'"',c]:['ellipse','cx="78" cy="100" rx="50" ry="30"',c];
-  var head=kind==='fluff'?['path','d="'+fuzz(46,90,27,25,14,4)+'"',c]:['circle','cx="46" cy="90" r="27"',c];
-  var ears=[];
-  if(kind==='cat')ears=[['path','d="M21 80 L22 50 L46 66Z"',c],['path','d="M71 80 L70 50 L46 66Z"',c]];
-  else if(kind==='rat')ears=[['path','d="M22 82 C10 78 6 64 14 54 C26 52 40 58 47 68 C42 78 32 86 22 82Z"',c],['path','d="M70 82 C82 78 86 64 78 54 C66 52 52 58 45 68 C50 78 60 86 70 82Z"',c]];
-  else if(kind==='mouse')ears=[['circle','cx="24" cy="70" r="15"',c],['circle','cx="68" cy="70" r="15"',c]];
-  else ears=[['path','d="M30 70 Q20 56 27 44 Q38 56 42 68Z"','#fff1c9'],['path','d="M62 70 Q72 56 65 44 Q54 56 50 68Z"','#fff1c9']];
-  var paws=[['ellipse','cx="38" cy="116" rx="12" ry="7.5"',c],['ellipse','cx="58" cy="117" rx="12" ry="7.5"',c]];
-  s+=SK([body])+tw(P.tw+4.5,INK)+tw(P.tw,P.tc)+SK(ears.concat([head],paws));
-  /* внутренности ушей и узор */
-  if(kind==='cat')s+='<path d="M26 74 L27 58 L39 67Z M66 74 L65 58 L53 67Z" fill="#ff9fb6"/><path d="M88 74 q6 10 0 20 M102 77 q6 10 2 22 M115 84 q4 8 0 16" stroke="'+d+'" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M46 63 L46 71 M38 64 L40 71 M54 64 L52 71" stroke="'+d+'" stroke-width="3.5" stroke-linecap="round"/>';
-  if(kind==='rat')s+='<path d="M23 76 C16 72 14 63 19 58 C27 58 36 62 40 68 C36 73 29 78 23 76Z M69 76 C76 72 78 63 73 58 C65 58 56 62 52 68 C56 73 63 78 69 76Z" fill="#f6b6c4"/><ellipse cx="46" cy="101" rx="13" ry="9.5" fill="#dde1e7"/>';
-  if(kind==='mouse')s+='<circle cx="24" cy="70" r="9" fill="'+pk+'"/><circle cx="68" cy="70" r="9" fill="'+pk+'"/><ellipse cx="46" cy="102" rx="12" ry="8.5" fill="#fff6e8"/>';
-  if(kind==='fluff')s+='<path d="M36 90 Q46 99 56 90" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
-  /* лицо: закрытые глазки, носик, ротик, щёчки */
-  if(kind!=='fluff')s+='<path d="M32 89 Q37.5 95 43 89 M49 89 Q54.5 95 60 89" stroke="'+INK+'" stroke-width="3.2" fill="none" stroke-linecap="round"/>';
-  s+='<ellipse cx="30" cy="99" rx="5.5" ry="4" fill="'+(kind==='fluff'?'#ff8fd0':'#ff9fb6')+'" opacity=".7"/><ellipse cx="62" cy="99" rx="5.5" ry="4" fill="'+(kind==='fluff'?'#ff8fd0':'#ff9fb6')+'" opacity=".7"/>';
-  if(kind==='cat')s+='<path d="M42 97 L50 97 L46 102Z" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/>';
-  if(kind==='rat'||kind==='mouse')s+='<ellipse cx="46" cy="97" rx="4.4" ry="3.2" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.8"/>';
-  s+='<ellipse cx="46" cy="'+(kind==='fluff'?'101':'107')+'" rx="3" ry="3.6" fill="'+INK+'"/>';
-  if(kind!=='fluff')s+='<path d="M33 100 L18 97 M33 103 L18 106 M59 100 L74 97 M59 103 L74 106" stroke="'+INK+'" stroke-width="1.8" stroke-linecap="round"/>';
-  /* лапки спят: расслабленные пальчики */
-  s+='<path d="M34 114 v5 M40 113 v6 M54 115 v5 M60 114 v6" stroke="'+INK+'" stroke-width="2" stroke-linecap="round" opacity=".75"/>';
-  return s}
-/* Слизень во сне растекается лужицей */
-function meltChar(){
-  var c='#34d3a0',pd='M4 124 C2 112 20 108 34 112 C40 96 54 84 72 84 C90 84 102 98 106 110 C120 106 138 110 136 124 C136 133 124 135 112 133 L28 133 C14 135 4 133 4 124Z';
-  var s=SK([['path','d="'+pd+'"',c]]);
-  var st='M72 86 Q76 68 94 74 Q104 80 102 92';
-  s+='<path d="'+st+'" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="'+st+'" stroke="'+INK+'" stroke-width="8" fill="none" stroke-linecap="round"/><path d="'+st+'" stroke="#1fae82" stroke-width="3.5" fill="none" stroke-linecap="round"/>'+
-    '<circle cx="102" cy="94" r="7" fill="#fff" stroke="#fff" stroke-width="6"/><circle cx="102" cy="94" r="7" fill="#ffd166" stroke="'+INK+'" stroke-width="3"/>';
-  s+='<path d="M42 112 C46 100 56 92 66 90" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><circle cx="116" cy="124" r="3.5" fill="#fff" opacity=".35"/><circle cx="24" cy="125" r="3" fill="#fff" opacity=".3"/><circle cx="92" cy="128" r="2.5" fill="#fff" opacity=".3"/>';
-  s+='<ellipse cx="56" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><ellipse cx="88" cy="113" rx="6" ry="4" fill="#1f9e78" opacity=".6"/><path d="M63 104 Q72 112 81 104" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="119" rx="3.4" ry="4" fill="'+INK+'"/>';
-  return s}
-/* Крыска и Мышка спят шариком: круглая спинка, мордочка спрятана вниз, торчит только носик */
-function ballChar(kind){
-  var rat=kind==='rat',c=rat?'#8b94a2':'#f5dcb6',pk=rat?'#f6b6c4':'#ff9fb6',mz=rat?'#dde1e7':'#fff6e8',tc=rat?'#f2a7b5':'#f0b4be';
-  function sp(d,s,tx,ty){return d.replace(/(-?[\d.]+) (-?[\d.]+)/g,function(_,x,y){return (x*s+tx).toFixed(1)+' '+(y*s+ty).toFixed(1)})}
-  var tl='M112 108 C128 112 130 128 116 130 C108 131 100 130 98 127';
-  var tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
-  SKMID=tw(10,'#fff')+tw(6.5,INK)+tw(3,tc);
-  var EL='M20 62 C10 46 16 28 28 22 C42 26 56 36 60 48 C52 62 30 70 20 62Z';
-  var ears=rat?[['path','d="'+sp(EL,.4,60,83.6)+'"',c],['path','d="'+sp(EL.replace(/(-?[\d.]+) (-?[\d.]+)/g,function(_,x,y){return (140-x)+' '+y}),.4,56,83.6)+'"',c]]:[['circle','cx="73" cy="101" r="10"',c],['circle','cx="99" cy="101" r="10"',c]];
-  var s=SK([['ellipse','cx="66" cy="88" rx="52" ry="40"',c]].concat(ears,[['circle','cx="86" cy="114" r="19"',c],['ellipse','cx="74" cy="128" rx="7.5" ry="4.8"',pk],['ellipse','cx="99" cy="128" rx="7.5" ry="4.8"',pk]]));
-  s+='<path d="M24 82 C28 62 42 52 58 49" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/><path d="M40 70 q3 7 0 14 M52 62 q3 7 0 14 M66 58 q2 8 -1 15" stroke="'+(rat?'#6f7885':'#e3c298')+'" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>';
-  s+=rat?'<path d="M69 105 C66 101 66 97 70 95 C74 98 76 102 75 106Z M103 105 C106 101 106 97 102 95 C98 98 96 102 97 106Z" fill="#f6b6c4"/>':'<circle cx="73" cy="101" r="6" fill="'+pk+'"/><circle cx="99" cy="101" r="6" fill="'+pk+'"/>';
-  s+='<ellipse cx="86" cy="121" rx="10" ry="7" fill="'+mz+'"/><path d="M76 112 Q80 116 84 112 M88 112 Q92 116 96 112" stroke="'+INK+'" stroke-width="2.8" fill="none" stroke-linecap="round"/><ellipse cx="86" cy="118" rx="4" ry="3" fill="#ff6f91" stroke="'+INK+'" stroke-width="1.6"/><ellipse cx="73" cy="119" rx="4" ry="3" fill="#ff9fb6" opacity=".7"/><ellipse cx="99" cy="119" rx="4" ry="3" fill="#ff9fb6" opacity=".7"/><path d="M76 121 L66 119 M76 123 L66 125 M96 121 L106 119 M96 123 L106 125" stroke="'+INK+'" stroke-width="1.6" stroke-linecap="round"/>';
-  return s}
 function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
@@ -1350,31 +1295,9 @@ function stkChar(kind,mood,act){
 function monster(mood,size,kind,lvl,act){
   kind=kind||petKind();
   if(!STKCROWN[kind])kind='puff';
-  var isSk=(kind==='skel'||kind==='skelf'),s=stkChar(kind,mood,(mood==='hungry'&&isSk)?'sleep':act),crown=STKCROWN[kind];
+  var s=stkChar(kind,mood,act),crown=STKCROWN[kind];
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
-  if(mood==='hungry'){ /* спит */
-    s=s.replace('<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>','');
-    if(isSk){ /* скелетик лежит в гробике, поставленном вертикально, ручки сложены на рёбрах */
-      var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
-      s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
-       '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
-    else if(kind==='slime'){
-      s='<ellipse cx="70" cy="134" rx="62" ry="4" fill="#000" opacity=".16"/><g transform="translate(70 0) scale(.9 1) translate(-70 0)"><g class="lyb" style="transform-origin:70px 133px">'+meltChar()+'</g></g>'+
-       '<g transform="translate(82 121)"><g class="snb"><circle r="6.5" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
-    else if(kind==='rat'||kind==='mouse'){
-      s='<ellipse cx="68" cy="133" rx="60" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+ballChar(kind)+'</g>'+
-       '<g transform="translate(98 121)"><g class="snb"><circle r="6.5" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
-    else if(kind==='cat'||kind==='fluff'){
-      s='<ellipse cx="72" cy="133" rx="58" ry="5" fill="#000" opacity=".16"/><g class="lyb" style="transform-origin:70px 131px">'+curlChar(kind)+'</g>'+
-       '<g transform="translate(72 103)"><g class="snb"><circle r="7" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-3.5 -3 Q-2 -5 2 -5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}
-    else{ /* остальные: компактный клубок */
-      var TC={cat:'#ffa45c',rat:'#f2a7b5',mouse:'#f0b4be',fluff:'#8f6bff'},tailS='';
-      if(TC[kind]){s=s.replace(/<g class="tail"[^>]*>[\s\S]*?<\/g>/,'');
-        var tl='M112 88 C126 112 108 131 78 128 C66 127 56 124 52 117',tw=function(w,col){return '<path d="'+tl+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'};
-        tailS=tw(19,'#fff')+tw(13.5,INK)+tw(7.5,TC[kind])}
-      s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+tailS+
-       '<g transform="translate(103 92)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}}
   if(mood==='think'){var qa='x="103" y="40" font-size="42" font-weight="900" font-family="sans-serif" stroke-linejoin="round"';s+='<text '+qa+' style="fill:#fff;stroke:#fff;stroke-width:11px">?</text><text '+qa+' style="fill:#ffd166;stroke:'+INK+';stroke-width:5px;paint-order:stroke">?</text>'}
   if(mood==='worried')s+='<path d="M118 44 q-5 8 0 11 q5-3 0-11z" fill="#7cc7ff"/>';
   if(mood==='joy')s+='<path d="M20 30 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5-6 -6-2.5 6-2.5z M118 22 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M124 70 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5-3.5 -3.5-1.5 3.5-1.5z" fill="#ffd166"/>';
@@ -1383,7 +1306,7 @@ function monster(mood,size,kind,lvl,act){
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3.6"/>'}).join('')+[[94,41,3.2],[89,47,2]].map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3"/>'}).join('');
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(c[2]-1.8)+'" fill="#fff"/>'}).join('');
     s+='<g class="zzz">'+cc+'<text x="115" y="30" font-size="15" font-weight="900" text-anchor="middle" font-family="sans-serif" style="fill:'+INK+'">Zzz</text></g>'}
-  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" class="'+(mood==='hungry'?'lying':'')+'" style="display:block;max-width:100%">'+s+'</svg>';
+  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" style="display:block;max-width:100%">'+s+'</svg>';
 }
 function pet(L,mood,size){return monster(mood,size,null,L)}
 function petSheet(){

@@ -549,7 +549,7 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05j';
+var APP_VER='2026-11-05k';
 var NEWS=['Двое новых монстриков: Клубничка и Вишенка (две вишенки на веточке), у каждой своя цветовая тема.',
  'Монстрики ожили: моргают, подёргивают ушками и хвостиками. И появились двое новых: Скелетон и Скелетесса.',
  'Кнопка «↻ Обновить» под названием синхронизирует с Яндекс Диском одним нажатием. Если Диск подключён, можно ещё потянуть экран вниз.',
@@ -1221,8 +1221,8 @@ function stkChar(kind,mood,act){
   }else if(kind==='rat'){var c='#8b94a2',p='#f6b6c4',m='#dde1e7';
     var tl='M102 114 C126 120 134 98 122 90 C113 85 107 96 115 99';
     s+=tailG('<path d="'+tl+'" stroke="#fff" stroke-width="14" fill="none" stroke-linecap="round"/><path d="'+tl+'" stroke="'+INK+'" stroke-width="9" fill="none" stroke-linecap="round"/><path d="'+tl+'" stroke="#f2a7b5" stroke-width="4.5" fill="none" stroke-linecap="round"/>',102,114,mood);
-    s+=SK([['circle','cx="31" cy="46" r="15"',c,EAR('l',40,56,1.2)],['circle','cx="109" cy="46" r="15"',c,EAR('r',100,56,3.1)],['ellipse','cx="54" cy="126" rx="10" ry="5"','#f2a7b5'],['ellipse','cx="86" cy="126" rx="10" ry="5"','#f2a7b5'],['path','d="M70 26 C98 26 114 50 113 80 C112 102 100 116 86 122 C80 125 75 128 70 128 C65 128 60 125 54 122 C40 116 28 102 27 80 C26 50 42 26 70 26Z"',c]]);
-    s+='<g '+EAR('l',40,56,1.2)+'><circle cx="31" cy="46" r="8" fill="'+p+'"/></g><g '+EAR('r',100,56,3.1)+'><circle cx="109" cy="46" r="8" fill="'+p+'"/></g><path d="M60 30 L66 16 L72 28 L78 16 L82 31" stroke="'+INK+'" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 58 C46 46 54 40 62 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/><ellipse cx="70" cy="104" rx="21" ry="17" fill="'+m+'"/>';
+    s+=SK([['path','d="M14 66 C12 44 20 28 28 22 C40 28 54 38 58 46Z"',c,EAR('l',40,56,1.2)],['path','d="M126 66 C128 44 120 28 112 22 C100 28 86 38 82 46Z"',c,EAR('r',100,56,3.1)],['ellipse','cx="54" cy="126" rx="10" ry="5"','#f2a7b5'],['ellipse','cx="86" cy="126" rx="10" ry="5"','#f2a7b5'],['path','d="M70 26 C98 26 114 50 113 80 C112 102 100 116 86 122 C80 125 75 128 70 128 C65 128 60 125 54 122 C40 116 28 102 27 80 C26 50 42 26 70 26Z"',c]]);
+    s+='<g '+EAR('l',40,56,1.2)+'><path d="M24 58 C23 46 27 36 31 32 C38 36 44 40 46 46Z" fill="'+p+'"/></g><g '+EAR('r',100,56,3.1)+'><path d="M116 58 C117 46 113 36 109 32 C102 36 96 40 94 46Z" fill="'+p+'"/></g><path d="M60 30 L66 16 L72 28 L78 16 L82 31" stroke="'+INK+'" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 58 C46 46 54 40 62 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/><ellipse cx="70" cy="104" rx="21" ry="17" fill="'+m+'"/>';
     s+=mCheeks([38,102],84,'#f6a5b8')+sEyes(mood,[52,88],62,10,c)+whisk(92)+'<ellipse cx="70" cy="95" rx="7" ry="5" fill="#ff8fab" stroke="'+INK+'" stroke-width="2"/>'+mMouth(mood,70,104,10,'down');
   }else if(kind==='fluff'){var c='#8f6bff',d='#6f4be0',l='#b9a2ff';
     function fz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}

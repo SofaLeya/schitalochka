@@ -568,10 +568,17 @@ function apkCheck(){
   fetch('https://api.github.com/repos/sofaleya/schitalochka/releases/tags/apk').then(function(r){return r.ok?r.json():null}).then(function(j){
     var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
     if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}
+function apkBkOk(){try{if(APKN.bk)return true;if(S.lastBackup===T)return true;if(ydOn()&&YD.st!=='err'&&YD.st!=='wait'&&!ydDirty())return true}catch(e){}return false}
 function apkNote(){
   try{if(!apkIs())return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip2')||0;
     if(!lt||lt<=apkCur()||skip>=lt)return '';
-    return '<div class="note info"><b>Есть новая версия приложения</b><span class="fine">Скачай файл и открой его: он встанет поверх старого, данные сохранятся.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span><div class="btns" style="margin-top:8px"><a class="btn sm" href="https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk" style="text-decoration:none;text-align:center">Скачать</a><button class="btn sm ghost" data-a="apkLater">Позже</button></div></div>'}catch(e){return ''}}
+    var ok=apkBkOk(),dl='https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk',
+    bk=ok?'<span class="fine">1. Копия данных есть ✓</span>':'<span class="fine">1. Сначала сохрани копию данных, на всякий случай.</span>',
+    b1=ok?'':(ydOn()&&YD.st!=='err'?'<button class="btn sm" data-a="apkBk">Сохранить в Яндекс Диск</button>':'<button class="btn sm" data-a="apkBk">Сохранить копию файлом</button>'),
+    b2=ok?'<a class="btn sm" data-a="apkDl" href="'+dl+'" style="text-decoration:none;text-align:center">2. Скачать новую версию</a>':'<button class="btn sm ghost" disabled style="opacity:.5">2. Скачать новую версию</button>',
+    b3=ok?'':'<button class="btn sm ghost" data-a="apkHave">Копия уже есть</button>',
+    hint=APKN.dl?'<span class="fine">Открой скачанный файл и нажми «Установить». Старое приложение удалять не нужно: новое встанет поверх, данные сохранятся.</span>':'<span class="fine">Старое удалять не нужно: новое встанет поверх.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span>';
+    return '<div class="note info"><b>Есть новая версия приложения</b>'+bk+'<div class="btns" style="margin-top:8px">'+b1+b3+'</div><div class="btns" style="margin-top:8px">'+b2+'<button class="btn sm ghost" data-a="apkLater">Позже</button></div>'+hint+'</div>'}catch(e){return ''}}
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
   return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
 /* ---------- резервная копия ---------- */
@@ -2655,6 +2662,9 @@ document.addEventListener('click',function(ev){
   else if(a==='tplEdit'){var te=tpls().filter(function(x){return x.id===id})[0];if(te){sh={tp:true,tid:te.id,t:JSON.parse(JSON.stringify(te))};tplSheet()}}
   else if(a==='tplFrom'&&sh&&sh.d){var src=readEntry(),dd=parse(src.date||petDay());sh={tp:true,tid:null,t:{note:src.note||'',amt:num(src.amt)||'',cat:src.cat||'other',rep:'w',dow:dd.getDay(),dom:dd.getDate(),half:!!src.split}};tplSheet()}
   else if(a==='tplDel'&&sh&&sh.tp){S.tpls=tpls().filter(function(x){return x.id!==sh.tid});save();closeSheet();render();toast('Удалено')}
+  else if(a==='apkBk'){if(ydOn()&&YD.st!=='err'){toast('Сохраняю в Диск...');Promise.resolve(ydSync()).then(function(){setTimeout(render,300)},function(){render()})}else{var r0=doDownload();if(r0==='dl'||r0==='err'){APKN.bk=(r0==='dl');if(r0==='err')toast('Не получилось сохранить файл',true)}else{var t0=setInterval(function(){if(S.lastBackup===T){clearInterval(t0);render()}},600);setTimeout(function(){clearInterval(t0)},60000)}render()}}
+  else if(a==='apkHave'){APKN.bk=true;render()}
+  else if(a==='apkDl'){APKN.dl=true;setTimeout(render,400)}
   else if(a==='apkLater'){try{localStorage.setItem('sch-apkskip2',String(APKN.latest||+localStorage.getItem('sch-apklast')||0))}catch(e){}render()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}

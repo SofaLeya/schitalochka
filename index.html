@@ -330,6 +330,17 @@ function syncCats(){
   if(!Array.isArray(S.ccats))S.ccats=[];
   S.ccats.forEach(function(c){var o={id:c.id,name:c.name,color:c.color,custom:true};CATS.push(o);CMAP[c.id]=o});
 }
+function catPool(){return sh&&sh.d&&sh.d.type==='e'?CATS:ICATS.filter(function(c){return c.id!=='refund'})}
+function catFilter(q){ // поиск категории по первым буквам (по началу любого слова в названии)
+  var sel=document.getElementById('f_cat');if(!sel||!sh||!sh.d)return;
+  var isE=sh.d.type==='e',pool=catPool(),n=norm(q),tail=isE?NEWCAT:'';
+  if(!n){sel.innerHTML=opts(pool,sh.d.cat)+tail;return}
+  var hit=pool.filter(function(c){return norm(c.name).split(/[^а-яa-z0-9]+/).some(function(w){return w.indexOf(n)===0})});
+  if(!hit.length){sel.innerHTML='<option value="" selected disabled>Ничего не найдено</option>'+tail;sh.d.cat='';return}
+  var first=sortCats(hit)[0];
+  sel.innerHTML=opts(hit,first.id)+tail;sel.value=first.id;
+  sh.d.cat=first.id;sh.d.manual=true;sh.d.auto=false;var h=document.getElementById('f_hint');if(h)h.hidden=true;
+}
 function newCat(name){name=String(name||'').trim().slice(0,40);if(!name)return null;
   if(!Array.isArray(S.ccats))S.ccats=[];
   var ex=CATS.filter(function(c){return norm(c.name)===norm(name)})[0];if(ex)return ex.id;
@@ -2088,7 +2099,8 @@ window.addEventListener('popstate',function(){
 });
 function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
 function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
-function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+list.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
+function sortCats(list){return list.slice().sort(function(a,b){var ao=a.name==='Прочее'?1:0,bo=b.name==='Прочее'?1:0;if(ao!==bo)return ao-bo;return a.name.localeCompare(b.name,'ru')})}
+function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+sortCats(list).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
 function accOpts(sel){return S.accounts.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')}
 function srcOpts(sel){return S.accounts.filter(function(a){return a.type==='main'||a.type==='save'||a.type==='other'}).map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+(a.type==='main'?'':' · '+money(accBal(a)))+'</option>'}).join('')}
@@ -2144,7 +2156,7 @@ function entrySheet(){
      (S.accounts.length<2?'<p class="fine">Для этого нужна хотя бы одна копилка. Заведи её на главном экране.</p>':'');
   }else{
     body='<div class="f"><label for="f_note">'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'</label><input id="f_note" value="'+esc(d.note||'')+'" placeholder="'+(isE?'Например: Пятёрочка, такси домой':(d.cat==='refund'?'Например: половина за продукты, возврат за заказ':'Например: аванс, подработка, подарок'))+'"></div>'+
-     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>':'<div class="f"><label for="f_cat">Категория</label><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+(isE?NEWCAT:'')+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
+     (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>':'<div class="f"><label for="f_cat">Категория</label><input id="f_catq" type="search" autocomplete="off" enterkeyhint="done" placeholder="Найти: начни вводить название"><select id="f_cat">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+(isE?NEWCAT:'')+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не поняла по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
      (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">— не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'')+
      (isE&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'})?'<div class="f"><label for="f_acc">'+(S.simple?'Со счёта':'Чем оплатила')+'</label><select id="f_acc">'+srcOpts(d.acc)+'</select><span class="fine" id="f_fh"'+(d.fund?'':' hidden')+'>'+(d.fund?'Нашла копилку по заметке. Можно поменять.':'')+'</span></div>':'');
   }
@@ -2360,6 +2372,14 @@ document.addEventListener('click',function(ev){
     var ym=T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
     var f=isR?'rid':'iid';
     if(doneFor(f,id,ym))S.entries=S.entries.filter(function(e){return !(e[f]===id&&e.date.slice(0,7)===ym)});
+    else if((function(){ // уже есть такая же запись за месяц без привязки: предложить привязать, а не дублировать
+      var pd=planned(ym,item.day),want=isR?'e':'i';
+      var cands=S.entries.filter(function(e){return !e.demo&&!e.rid&&!e.iid&&!e.rule&&e.type===want&&e.amt===item.amt&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')});
+      if(!cands.length)return false;
+      cands.sort(function(a,b){return Math.abs(diffDays(a.date,pd))-Math.abs(diffDays(b.date,pd))});
+      var c=cands[0];
+      if(!window.confirm('Уже есть запись «'+(c.note||(CMAP[c.cat]||CMAP.other).name)+'» на '+money(c.amt)+' за '+c.date.split('-').reverse().slice(0,2).join('.')+'. Это оплата платежа «'+item.name+'»?\n\nОК - привязать её, новая запись не создастся.\nОтмена - записать новую.'))return false;
+      c[f]=id;save();render();toast('Привязала запись к платежу «'+item.name+'»');return true})()){}
     else{var en={id:uid(),type:isR?'e':'i',amt:item.amt,cat:isR?item.cat:'salary',date:T,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en.acc=item.acc;en[f]=id;S.entries.push(en);toast(isR?'Записано: '+item.name+' '+money(item.amt)+(en.acc?' из «'+accById(en.acc).name+'»':''):'Записано: '+item.name)}
     save();render();
   }
@@ -2563,13 +2583,15 @@ function autoFund(note){
   if(hit){d.acc=hit;d.fund=true}else if(d.fund){d.acc=defAcc();d.fund=false}
   if(sel)sel.value=d.acc;if(hint){hint.hidden=!d.fund;hint.textContent='Нашла копилку по заметке. Можно поменять.'}
 }
+document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target&&ev.target.id==='f_catq'){ev.preventDefault();ev.target.blur()}});
 document.addEventListener('input',function(ev){
   if(ev.target.id==='h_q'){var was=histFiltered();hq=ev.target.value.trim();if(was!==histFiltered()){var pos=ev.target.selectionStart;render();var el=document.getElementById('h_q');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}else{var hl=document.getElementById('hlist');if(hl)hl.innerHTML=histList()}return}
   if(/^pc_/.test(ev.target.id)){planCalcOut();return}
+  if(ev.target.id==='f_catq'){catFilter(ev.target.value);return}
   if(ev.target.id==='f_note')autoFund(ev.target.value);
   if(ev.target.id!=='f_note'||!sh||!sh.d||sh.d.manual||sh.d.type==='t')return;
   var d=sh.d,g=guess(ev.target.value,d.type),sel=document.getElementById('f_cat'),hint=document.getElementById('f_hint');
-  if(g){sel.value=g;d.cat=g;d.auto=true;d.unk=false;if(hint){hint.textContent='Подобрана по заметке. Можно поменять.';hint.hidden=false}autoCls(g)}
+  if(g){var cq0=document.getElementById('f_catq');if(cq0&&cq0.value){cq0.value='';catFilter('')}sel.value=g;d.cat=g;d.auto=true;d.unk=false;if(hint){hint.textContent='Подобрана по заметке. Можно поменять.';hint.hidden=false}autoCls(g)}
   else{d.auto=false;var has=ev.target.value.trim().length>=3;d.unk=has;if(hint){hint.textContent='Не поняла по заметке. Выберите категорию, в следующий раз запомню.';hint.hidden=!has}if(has&&!d.manual){sel.value='';d.cat=''}}
 });
 document.addEventListener('change',function(ev){

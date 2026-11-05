@@ -1302,10 +1302,10 @@ function monster(mood,size,kind,lvl,act){
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
   if(mood==='hungry'){ /* спит */
     s=s.replace('<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>','');
-    if(isSk){ /* скелетик лежит в гробике, ручки сложены на рёбрах (вид сверху) */
+    if(isSk){ /* скелетик лежит в гробике, поставленном вертикально, ручки сложены на рёбрах */
       var cf='M4 84 L17 58 L100 54 L136 76 L136 98 L100 120 L17 116Z';
-      s='<ellipse cx="70" cy="132" rx="62" ry="4" fill="#000" opacity=".16"/><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
-       '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g>'}
+      s='<ellipse cx="62" cy="135" rx="34" ry="4" fill="#000" opacity=".16"/><g transform="translate(62 78) rotate(90) scale(.86) translate(-70 -87)"><path d="'+cf+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="'+cf+'" fill="#6e4126" stroke="'+INK+'" stroke-width="3.5" stroke-linejoin="round"/><path d="M12 85 L22 63 L98 60 L128 78 L128 96 L98 114 L22 110Z" fill="#2a1710"/>'+
+       '<g transform="translate(66 88) scale(.78) rotate(-90) translate(-70 -88)"><g class="lyb" style="transform-origin:70px 88px">'+s+'</g></g></g>'}
     else{ /* свернулся клубком: тело округлое, голова прижата, нос спрятан; хвосты не дорисовываем */
       s='<ellipse cx="70" cy="132" rx="50" ry="5" fill="#000" opacity=".16"/><g transform="translate(76 131) rotate(-20) scale(.84 .8) translate(-70 -131)"><g class="lyb" style="transform-origin:70px 131px">'+s+'</g></g>'+
        '<g transform="translate(103 92)"><g class="snb"><circle r="8" fill="#cfeaff" fill-opacity=".85" stroke="'+INK+'" stroke-width="2.4"/><path d="M-4 -3 Q-2 -6 2 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g></g>'}}

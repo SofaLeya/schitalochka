@@ -186,6 +186,17 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .help details details[open]>summary::after{content:'\2212';margin-top:0;transform:none}
 .help .hb ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .ico.q{font-weight:800;font-size:18px;color:var(--accent)}
+@keyframes blink{0%,92%,98%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.bl{transform-box:fill-box;transform-origin:50% 50%;animation:blink 5s infinite}
+@keyframes skwave{from{transform:rotate(-10deg)}to{transform:rotate(12deg)}}
+.skwave{transform-origin:0 0;animation:skwave .8s ease-in-out infinite alternate}
+@keyframes skhead{0%,100%{transform:rotate(-1.3deg)}50%{transform:rotate(1.5deg)}}
+.skhead{transform-origin:70px 90px;animation:skhead 5s ease-in-out infinite}
+@keyframes skchat{0%,100%{transform:translateY(0)}50%{transform:translateY(1.8px)}}
+.skchat{animation:skchat .2s linear infinite}
+@keyframes skyawn{0%,100%{transform:scaleY(.7)}50%{transform:scaleY(1.25)}}
+.skyawn{transform-origin:70px 79px;animation:skyawn 3.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn{animation:none!important}}
 .syncrow{display:flex;margin:-4px 0 0}
 .syncrow[hidden]{display:none}
 .syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
@@ -990,7 +1001,8 @@ var STKCROWN={yolk:[42,28],puff:[34,22],slime:[38,40],ghost:[36,26],cube:[30,40]
 function SK(shapes){var b='',f='';shapes.forEach(function(x){var t=x[0],a=x[1],c=x[2];
   b+='<'+t+' '+a+' fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>';
   f+='<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>'});return b+f}
-function sEyes(mood,xs,y,r,col){var pre='';if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});return pre+mEyes(mood,xs,y,r,col)}
+function blinkG(inner){return '<g class="bl" style="animation-duration:'+(4+Math.random()*3).toFixed(1)+'s;animation-delay:-'+(Math.random()*5).toFixed(1)+'s">'+inner+'</g>'}
+function sEyes(mood,xs,y,r,col){var pre='';if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});var e=pre+mEyes(mood,xs,y,r,col);return mood==='hungry'||mood==='joy'?e:blinkG(e)}
 function whisk(y){return '<path d="M56 '+y+' L32 '+(y-5)+' M56 '+(y+3)+' L32 '+(y+8)+' M84 '+y+' L108 '+(y-5)+' M84 '+(y+3)+' L108 '+(y+8)+'" stroke="'+INK+'" stroke-width="2.2" stroke-linecap="round"/>'}
 function duckBeak(mood){
   var o='#ff9a3c';
@@ -1001,16 +1013,17 @@ function duckBeak(mood){
   return '<path d="M52 82 Q70 74 88 82 Q70 92 52 82Z" fill="'+o+'" stroke="'+INK+'" stroke-width="3" stroke-linejoin="round"/><path d="M60 84 Q70 87 80 84" stroke="'+INK+'" stroke-width="2" fill="none"/>';
 }
 /* ---------- скелетики: в кадре только верхняя половина (голова, рёбра, руки) ---------- */
-function kEyes(mood,xs,y,r,pup,lc,ring,sock,bc){
+function kEyes(mood,xs,y,r,pup,lc,ring,sock,bc,sh){
   var s='',ry=r*1.15,SH=ry+4.2;
+  if(sh)xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+(y+1)+'" rx="'+(r+5)+'" ry="'+(SH+1.5)+'" fill="'+sh+'" opacity=".38"/>'});
   xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+4.2)+'" ry="'+SH+'" fill="'+sock+'"'+(ring?' stroke="'+ring+'" stroke-width="2.5"':'')+'/>'});
   if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
   if(mood==='joy'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+(y+r*0.3)+' Q'+x+' '+(y-r*1.1)+' '+(x+r)+' '+(y+r*0.3)+'" stroke="'+lc+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>'});return s}
   var px=0,py=0;
   if(mood==='sad'||mood==='worried')py=r*0.3;
   if(mood==='think'){px=r*0.3;py=-r*0.35}
-  xs.forEach(function(x,i){var dir=i?-1:1;
-    s+='<circle cx="'+(x+dir*r*0.12+px)+'" cy="'+(y+py)+'" r="'+(r*0.6)+'" fill="'+pup+'"/>'});
+  var pz='';xs.forEach(function(x,i){var dir=i?-1:1;
+    pz+='<circle cx="'+(x+dir*r*0.12+px)+'" cy="'+(y+py)+'" r="'+(r*0.6)+'" fill="'+pup+'"/>'});s+=blinkG(pz);
   var by=y-SH-2;
   xs.forEach(function(x,i){var o=i?-1:1,bs='stroke="'+bc+'" stroke-width="3.2" stroke-linecap="round" fill="none"';
     if(mood==='sad'||mood==='worried')s+='<path d="M'+(x-o*r)+' '+by+' L'+(x+o*r*0.8)+' '+(by-5)+'" '+bs+'/>';
@@ -1022,14 +1035,15 @@ function kMouth(mood,cx,cy,w,lc,fill,tc){
   function ticks(y0,y1){var t='';for(var k=0;k<=5;k++){var u=k/5,x=cx-w*0.6+1.2*w*u,y=y0+2*u*(1-u)*(y1-y0);t+='M'+x.toFixed(1)+' '+(y-3.5).toFixed(1)+' L'+x.toFixed(1)+' '+(y+3.5).toFixed(1)+' '}return t}
   var ln='stroke="'+lc+'" stroke-linecap="round" fill="none"';
   if(mood==='happy'||mood==='joy'){
-    s+='<path d="M'+(cx-w)+' '+cy+' Q'+cx+' '+(cy+w*1.15)+' '+(cx+w)+' '+cy+' Z" fill="'+fill+'" stroke="'+lc+'" stroke-width="2" stroke-linejoin="round"/>';
+    var dp=mood==='joy'?1.7:1.15;
+    s+='<path d="M'+(cx-w)+' '+cy+' Q'+cx+' '+(cy+w*dp)+' '+(cx+w)+' '+cy+' Z" fill="'+fill+'" stroke="'+lc+'" stroke-width="2" stroke-linejoin="round"/>';
     for(var k=0;k<4;k++)s+='<rect x="'+(cx-w*0.58+k*w*0.3).toFixed(1)+'" y="'+(cy+0.6)+'" width="'+(w*0.26).toFixed(1)+'" height="4.5" rx="1.2" fill="'+tc+'"/>';
     return s}
   if(mood==='calm')return '<path d="M'+(cx-w*0.6)+' '+(cy+w*0.1)+' Q'+cx+' '+(cy+w*0.8)+' '+(cx+w*0.6)+' '+(cy+w*0.1)+'" '+ln+' stroke-width="3"/><path d="'+ticks(cy+w*0.1,cy+w*0.8)+'" '+ln+' stroke-width="2"/>';
   if(mood==='sad')return '<path d="M'+(cx-w*0.6)+' '+(cy+w*0.55)+' Q'+cx+' '+(cy-w*0.25)+' '+(cx+w*0.6)+' '+(cy+w*0.55)+'" '+ln+' stroke-width="3"/><path d="'+ticks(cy+w*0.55,cy-w*0.25)+'" '+ln+' stroke-width="2"/>';
   if(mood==='think')return '<path d="M'+(cx-w*0.5)+' '+(cy+w*0.45)+' q'+(w*0.25)+' -'+(w*0.25)+' '+(w*0.5)+' 0 t'+(w*0.5)+' 0" '+ln+' stroke-width="3"/>';
-  if(mood==='worried')return '<path d="M'+(cx-w*0.45)+' '+(cy+w*0.55)+' q'+(w*0.22)+' -'+(w*0.2)+' '+(w*0.45)+' 0 t'+(w*0.45)+' 0" '+ln+' stroke-width="3"/>';
-  return '<ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.42)+'" ry="'+(w*0.52)+'" fill="'+fill+'" stroke="'+lc+'" stroke-width="2"/>'}
+  if(mood==='worried')return '<g class="skchat"><path d="M'+(cx-w*0.6)+' '+(cy+w*0.4)+' Q'+cx+' '+(cy+w*0.05)+' '+(cx+w*0.6)+' '+(cy+w*0.4)+'" '+ln+' stroke-width="3"/><path d="'+ticks(cy+w*0.4,cy+w*0.05)+'" '+ln+' stroke-width="2"/></g>';
+  return '<g class="skyawn"><ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.46)+'" ry="'+(w*0.6)+'" fill="'+fill+'" stroke="'+lc+'" stroke-width="2"/></g>'}
 function skRose(x,y,r,c){
   var d=function(n){return (n*r).toFixed(1)},X=function(n){return (x+n*r).toFixed(1)},Y=function(n){return (y+n*r).toFixed(1)};
   return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'" stroke="'+INK+'" stroke-width="1.5"/>'+
@@ -1038,9 +1052,9 @@ function skRose(x,y,r,c){
 function skFlower(x,y,r,pc,cc){var s='<g stroke="'+INK+'" stroke-width="1.5" stroke-linejoin="round">';
   for(var i=0;i<5;i++){var a=-Math.PI/2+i*2*Math.PI/5;s+='<circle cx="'+(x+Math.cos(a)*r*0.62).toFixed(1)+'" cy="'+(y+Math.sin(a)*r*0.62).toFixed(1)+'" r="'+(r*0.5).toFixed(1)+'" fill="'+pc+'"/>'}
   return s+'<circle cx="'+x+'" cy="'+y+'" r="'+(r*0.36).toFixed(1)+'" fill="'+cc+'"/></g>'}
-function skelChar(g,mood){
-  var C=g?{bone:'#fbf9ff',cav:'#4b2a7c',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3'}
-    :{bone:'#fbf8f3',cav:'#a3142b',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:'#8f1024',tc:'#f5c542',nose:'#a3142b',cheek:'#d4263f',stud:'#f5c542'},
+function skelChar(g,mood,act){
+  var C=g?{bone:'#fbf9ff',cav:'#4b2a7c',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:INK,tc:'#ffffff',nose:INK,cheek:'#b57cff',stud:'#d3d8e3',sh:'#b57cff'}
+    :{bone:'#fbf8f3',cav:'#a3142b',pup:'#ffffff',lc:'#ffffff',bc:INK,ring:'',sock:INK,mline:INK,mfill:'#8f1024',tc:'#f5c542',nose:'#a3142b',cheek:'#d4263f',stud:'#f5c542',sh:''},
     bn=C.bone,s='<g transform="translate(0 -16)">';
   /* тонкая обводка: белая 4px снаружи, тёмная 2.5px */
   function SKt(shapes){var b='',f='';shapes.forEach(function(x){b+='<'+x[0]+' '+x[1]+' fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>';f+='<'+x[0]+' '+x[1]+' fill="'+x[2]+'" stroke="'+INK+'" stroke-width="2.5" stroke-linejoin="round"/>'});return b+f}
@@ -1052,20 +1066,22 @@ function skelChar(g,mood){
   [111,126,141].forEach(function(y){
     s+=st('M70 '+y+' C58 '+(y-7)+' 46 '+(y-4)+' 41 '+(y+9),5.5,0)+st('M70 '+y+' C82 '+(y-7)+' 94 '+(y-4)+' 99 '+(y+9),5.5,0)});
   [111,126,141].forEach(function(y){s+='<circle cx="70" cy="'+y+'" r="5" fill="'+bn+'" stroke="'+INK+'" stroke-width="2"/>'});
-  s+='</g><g transform="translate(70 14) scale(.86) translate(-70 -14)">';
+  s+='</g><g transform="translate(70 14) scale(.86) translate(-70 -14)"><g class="skhead">';
   /* череп */
-  s+=SKt([['path','d="M70 16 C96 16 108 34 107 54 C106 66 99 72 95 76 L95 84 C95 88 91 90 87 90 L53 90 C49 90 45 88 45 84 L45 76 C41 72 34 66 33 54 C32 34 44 16 70 16Z"',bn]]);
+  var SKB='M70 16 C98 16 110 34 109 54 C108 66 102 72 99 76 L99 85 C99 89 95 91 90 91 L50 91 C45 91 41 89 41 85 L41 76 C38 72 32 66 31 54 C30 34 42 16 70 16Z',
+    SKG='M70 16 C94 16 105 33 104 53 C103 65 96 72 91 77 L88 87 C86 91 82 92 78 92 L62 92 C58 92 54 91 52 87 L49 77 C44 72 37 65 36 53 C35 33 46 16 70 16Z';
+  s+=SKt([['path','d="'+(g?SKG:SKB)+'"',bn]]);
   s+='<path d="M41 44 C43 32 51 24 61 20" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity="'+(g?.5:.3)+'"/>';
   if(g){
     s+='<path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="'+INK+'" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="#6b4a2f" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
     [[44,33,-35],[60,22,-10],[80,22,10],[96,33,35]].forEach(function(l){s+='<ellipse cx="'+l[0]+'" cy="'+l[1]+'" rx="6" ry="3" transform="rotate('+l[2]+' '+l[0]+' '+l[1]+')" fill="#6a5a34" stroke="'+INK+'" stroke-width="1.2"/>'});
     s+=skRose(40,39,9.5,'#6a1424')+skRose(100,39,9.5,'#7d1a2b')+skRose(51,24,12,'#7d1a2b')+skRose(89,24,12,'#6a1424')+skRose(70,17,13,'#93222f');
-  }else s+='<path d="M72 16 L68 25 L75 29 L70 36" stroke="#c8102e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
-  s+=kEyes(mood,[53,87],54,9,C.pup,C.lc,C.ring,C.sock,C.bc);
+  }else s+='<path d="M72 16 L68 25 L75 29 L70 36" stroke="#c8102e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 37 q-2.6 4.6 0 7.4 q2.6 -2.8 0 -7.4z" fill="#c8102e" stroke="'+INK+'" stroke-width="1"/>';
+  s+=kEyes(mood,[53,87],54,9,C.pup,C.lc,C.ring,C.sock,C.bc,C.sh);
   if(g)s+='<path d="M41 49 L35 45 M40 54 L34 53 M99 49 L105 45 M100 54 L106 53" stroke="'+INK+'" stroke-width="2.5" stroke-linecap="round"/>';
   s+='<path d="M70 66 C66 66 63 72 65 75 C67 76 69 74 70 73 C71 74 73 76 75 75 C77 72 74 66 70 66Z" fill="'+C.nose+'"/>';
   s+=kMouth(mood,70,79,13,C.mline,C.mfill,C.tc);
-  s+='</g>';
+  s+='</g></g>';
   /* руки поверх всего: жесты зависят от настроения; позы заданы для левой руки, правая зеркалится */
   var SHL=[31,89],L1=16,L2=15,KH=0.9;
   function arm(w,mirror){ // w=[x,y,угол кисти,сторона изгиба] -> точки плеча, локтя, запястья
@@ -1082,6 +1098,9 @@ function skelChar(g,mood){
     worried:[[44,96,22,1],[44,96,22,1]],     // обе у лица
     sad:[[40,81,20,1],CALM],                 // вытирает слезу
     hungry:[CALM,[48,84,38,1]]};             // зевает, прикрыв рот
+  var SHRUG=[20,99,-48,-1];
+  if(act==='pay')POSE.joy=[UP,UP];
+  if(act==='shrug')POSE.sad=[SHRUG,SHRUG];
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
   /* кисть: пясть веером, у каждого пальца фаланги; крупно и по косточкам */
   var KN=[[-6.2,-8.2,-14,[4.2,3,2.3]],[-2.1,-10.2,-4,[5,3.5,2.6]],[2.1,-10.2,4,[5,3.5,2.6]],[6.2,-8.2,14,[4.2,3,2.3]]];
@@ -1097,9 +1116,11 @@ function skelChar(g,mood){
     var A=arm(w,i===1);
     ar+=st('M'+A.s[0].toFixed(1)+' '+A.s[1]+' L'+A.e[0].toFixed(1)+' '+A.e[1].toFixed(1)+' L'+A.w[0].toFixed(1)+' '+A.w[1].toFixed(1),5.5,1);
     jt+=SKt([['circle','cx="'+A.s[0]+'" cy="'+A.s[1]+'" r="4.4"',bn]]);
-    hd+=hand(A.w[0],A.w[1],A.a)});
+    var wv=(mood==='happy'&&i===1)||(mood==='joy'&&act!=='pay');
+    hd+=wv?'<g transform="translate('+A.w[0].toFixed(1)+' '+A.w[1].toFixed(1)+')"><g class="skwave">'+hand(0,0,A.a)+'</g></g>':hand(A.w[0],A.w[1],A.a)});
+  if(act==='pay'&&mood==='joy')[[17,40],[123,40]].forEach(function(c){hd+='<g><circle cx="'+c[0]+'" cy="'+c[1]+'" r="8.5" fill="#fff"/><circle cx="'+c[0]+'" cy="'+c[1]+'" r="7" fill="#f5c542" stroke="'+INK+'" stroke-width="1.8"/><text x="'+c[0]+'" y="'+(c[1]+3.6)+'" font-size="10" font-weight="800" text-anchor="middle" fill="'+INK+'" font-family="sans-serif">₽</text></g>'});
   return s+ar+jt+hd}
-function stkChar(kind,mood){
+function stkChar(kind,mood,act){
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0';
     s+=SK([['path','d="M14 106 C4 88 20 76 34 80 C34 64 52 58 62 66 C78 54 104 58 110 76 C128 76 138 96 126 108 C124 124 102 130 88 124 C72 134 48 132 38 124 C22 128 8 120 14 106Z"',w],['circle','cx="70" cy="74" r="40"',c]]);
@@ -1160,7 +1181,7 @@ function stkChar(kind,mood){
     s+='<path d="M35 52 L38 28 L55 42Z M105 52 L102 28 L85 42Z" fill="#ff9fb6"/><path d="M62 38 L64 52 M70 36 L70 52 M78 38 L76 52 M22 80 L34 82 M22 92 L34 90 M118 80 L106 82 M118 92 L106 90" stroke="'+d+'" stroke-width="4" stroke-linecap="round"/><ellipse cx="70" cy="96" rx="24" ry="15" fill="'+w+'"/>';
     s+=mCheeks([36,104],92,'#ff8f8f')+sEyes(mood,[52,88],72,11,c)+whisk(92)+'<path d="M64 87 L76 87 L70 94Z" fill="#ff6f91" stroke="'+INK+'" stroke-width="2" stroke-linejoin="round"/>'+mMouth(mood,70,97,11,'down');
   }else if(kind==='skel'||kind==='skelf'){
-    s+=skelChar(kind==='skelf',mood);
+    s+=skelChar(kind==='skelf',mood,act);
   }else{var sp='#7a4e33',f='#f3d3a8';
     s+=SK([['path','d="M16 94 L8 72 L22 66 L16 46 L33 46 L31 27 L48 34 L52 15 L64 28 L72 10 L80 28 L92 15 L94 34 L111 27 L108 46 L124 46 L118 66 L132 72 L124 94Z"',sp],['ellipse','cx="54" cy="127" rx="11" ry="5"',sp],['ellipse','cx="86" cy="127" rx="11" ry="5"',sp],['path','d="M70 48 C98 48 116 66 116 92 C116 115 96 126 70 126 C44 126 24 115 24 92 C24 66 42 48 70 48Z"',f]]);
     s+='<path d="M44 36 L50 24 M62 30 L66 18 M84 30 L88 20 M98 38 L104 28" stroke="#a87355" stroke-width="3" stroke-linecap="round"/><ellipse cx="70" cy="114" rx="22" ry="9" fill="#fff0dc"/>';
@@ -1169,10 +1190,10 @@ function stkChar(kind,mood){
   return s;
 }
 
-function monster(mood,size,kind,lvl){
+function monster(mood,size,kind,lvl,act){
   kind=kind||petKind();
   if(!STKCROWN[kind])kind='puff';
-  var s=stkChar(kind,mood),crown=STKCROWN[kind];
+  var s=stkChar(kind,mood,act),crown=STKCROWN[kind];
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
   if(lvl>=8)s+='<g transform="translate('+crown[0]+' '+crown[1]+') rotate(-18)"><path d="M-14 6 L-10 -10 L-4 -1 L0 -14 L4 -1 L10 -10 L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/></g>';
   if(mood==='think')s+='<text x="108" y="34" font-size="28" font-weight="800" fill="var(--accent)" font-family="sans-serif">?</text>';
@@ -1288,7 +1309,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0)+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b><div class="bub">'+esc(msg)+'</div>'+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));

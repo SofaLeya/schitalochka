@@ -191,6 +191,7 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .syncbtn b{font-size:13.5px;font-weight:800;color:var(--accent)}
 .syncbtn span{font-size:12.5px;font-weight:600}
+.syncbtn em{font-style:normal;font-weight:800;font-size:14px;color:var(--in)}
 .syncbtn[hidden]{display:none}
 .syncbtn:active{background:var(--surface2)}
 .mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -2781,7 +2782,7 @@ function syncBtnHtml(){ // подпись кнопки в шапке: что д�
   var m=ydGet(),at=m.at?new Date(m.at):null,when=at?(iso(at)===iso(new Date())?p2(at.getHours())+':'+p2(at.getMinutes()):dlabel(iso(at))):'';
   if(YD.st==='wait'||(YD.st!=='err'&&ydDirty(m)))return '<b>Синхронизирую…</b><span>с Яндекс Диском</span>';
   if(YD.st==='err')return '<b>↻ Повторить</b><span>нет связи с Диском</span>';
-  return '<b>↻ Обновить</b><span>Диск'+(when?' · '+when:'')+'</span>'}
+  return '<b>↻ Обновить</b><span>Диск <em>✓</em>'+(when?' · '+when:'')+'</span>'}
 function renderBadge(){var bt=document.getElementById('syncbtn');if(bt){var l=syncBtnHtml();bt.innerHTML=l;if(bt.parentNode)bt.parentNode.hidden=!l}var e=document.getElementById('syncb');if(e&&!e.hidden)e.textContent=syncLabel()}
 function cfgOf(){var c={};Object.keys(S).forEach(function(k){if(k!=='entries')c[k]=S[k]});return c}
 function partsOf(){

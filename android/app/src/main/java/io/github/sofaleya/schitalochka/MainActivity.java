@@ -93,7 +93,9 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
-                if (HOST.equals(u.getHost())) return false;
+                // вход через Яндекс проходим внутри приложения: иначе ответ Яндекса вернётся
+                // в другое приложение/Chrome, и токен сохранится не здесь
+                if (HOST.equals(u.getHost()) || isYandex(u.getHost())) return false;
                 openExternal(u);
                 return true;
             }
@@ -143,6 +145,10 @@ public class MainActivity extends Activity {
         } else {
             web.loadUrl(START_URL);
         }
+    }
+
+    private static boolean isYandex(String h) {
+        return h != null && h.matches("(.+\\.)?(yandex\\.(ru|com|by|kz|uz|net)|ya\\.ru)");
     }
 
     // если в accept есть расширения (.json), не ограничиваем по MIME — иначе файл может не выбраться

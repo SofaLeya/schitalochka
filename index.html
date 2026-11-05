@@ -186,6 +186,9 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .help details details[open]>summary::after{content:'\2212';margin-top:0;transform:none}
 .help .hb ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .ico.q{font-weight:800;font-size:18px;color:var(--accent)}
+.syncbtn{margin-left:auto;height:40px;padding:0 12px;border-radius:12px;background:var(--surface);color:var(--muted);font-size:13px;font-weight:700;display:inline-flex;align-items:center;white-space:nowrap}
+.syncbtn[hidden]{display:none}
+.syncbtn:active{background:var(--surface2)}
 .mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .mopt{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface);border:2px solid transparent;border-radius:16px;padding:10px 6px;text-align:center}
 .mopt.on{border-color:var(--accent);background:var(--surface2)}
@@ -2213,7 +2216,7 @@ function render(){
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1><span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span><button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+modeSwitch()+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<button type="button" class="syncbtn" id="syncb" data-a="ydTap" aria-label="Синхронизировать с Яндекс Диском">'+syncBtnText()+'</button>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -2540,6 +2543,7 @@ document.addEventListener('click',function(ev){
   else if(a==='snapBack'){var sx=snaps()[+v];if(sx&&window.confirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.')){snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Вернула данные на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}}}
   else if(a==='ydIn'){ydLogin()}
   else if(a==='ydNow'){ydSync()}
+  else if(a==='ydTap'){ydTap()}
   else if(a==='ydOut'){ydOut()}
   else if(a==='goPlanTab'){closeSheet();if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';window.scrollTo(0,0);render()}
   else if(a==='fold'){uiFold(v,!uiFold(v));render()}
@@ -2768,7 +2772,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.g
 /* ---------- общее хранилище (только в веб-версии, где есть db) ---------- */
 var DB=null,COL=null,UID=null,known={},pushT=null,pushing=false,initDone=false,pendingR=false,syncState='off';
 function syncLabel(){if(!DB&&ydOn())return ydLabel();return syncState==='ok'?'синхронизация вкл.':syncState==='wait'?'синхронизация…':syncState==='err'?'нет синхронизации':syncState==='ro'?'только чтение':''}
-function renderBadge(){var e=document.getElementById('syncb');if(e)e.textContent=syncLabel()}
+function syncBtnText(){var l=syncLabel();return l?'↻ '+l:''}
+function renderBadge(){var e=document.getElementById('syncb');if(!e)return;if(e.tagName==='BUTTON'){var l=syncBtnText();e.textContent=l;e.hidden=!l}else e.textContent=syncLabel()}
 function cfgOf(){var c={};Object.keys(S).forEach(function(k){if(k!=='entries')c[k]=S[k]});return c}
 function partsOf(){
   var p={cfg:JSON.stringify(cfgOf())},by={};
@@ -2926,6 +2931,10 @@ async function ydSync(){
   YD.busy=false;ydBadge();
   if(YD.again){YD.again=false;setTimeout(ydSync,300)}
 }
+function ydTap(){ // одна кнопка в шапке: забрать новое из Диска и отправить своё
+  if(!ydOn())return;if(YD.busy){toast('Уже синхронизирую…');return}
+  toast('Синхронизирую…');
+  Promise.resolve(ydSync()).then(function(){if(YD.st==='ok')toast('Готово, всё синхронизировано с Диском');else toast('Не получилось: '+(YD.msg||'нет связи с Яндексом'),true)})}
 function ydChanged(){if(!ydOn())return;ydSet({chg:Date.now()});clearTimeout(YD.t);YD.t=setTimeout(ydSync,1000)}
 function ydLabel(){if(!ydOn())return '';if(YD.st!=='err'&&YD.st!=='wait'&&ydDirty())return 'синхронизация…';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':''}
 function ydPanel(){var m=ydGet(),h='';

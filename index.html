@@ -568,16 +568,20 @@ var NEWS=['Монстрики ожили: моргают, подёргивают
  'Если стоит Android-приложение: в настройках есть вечернее напоминание записать траты (нужна свежая версия apk).'];
 /* плашка «есть новая версия apk»: только внутри Android-приложения */
 var APKN={latest:0};
-function apkCur(){try{return typeof AndroidApp.versionCode==='function'?+AndroidApp.versionCode()||0:0}catch(e){return 0}}
+/* старый apk (из PWABuilder) открывает сайт в Chrome без моста AndroidApp; его выдаёт referrer android-app://ПАКЕТ */
+function apkIs(){try{if(typeof AndroidApp!=='undefined')return true;
+  if((document.referrer||'').indexOf('android-app://io.github.sofaleya.schitalochka')===0)sessionStorage.setItem('sch-twa','1');
+  return sessionStorage.getItem('sch-twa')==='1'}catch(e){return false}}
+function apkCur(){if(typeof AndroidApp==='undefined')return 0;try{return typeof AndroidApp.versionCode==='function'?+AndroidApp.versionCode()||0:0}catch(e){return 0}}
 function apkCheck(){
-  try{if(typeof AndroidApp==='undefined')return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<7*24*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
+  try{if(!apkIs())return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<7*24*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
   fetch('https://api.github.com/repos/sofaleya/schitalochka/releases/tags/apk').then(function(r){return r.ok?r.json():null}).then(function(j){
     var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
     if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}
 function apkNote(){
-  try{if(typeof AndroidApp==='undefined')return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip')||0;
+  try{if(!apkIs())return '';var lt=APKN.latest||+localStorage.getItem('sch-apklast')||0,skip=+localStorage.getItem('sch-apkskip')||0;
     if(!lt||lt<=apkCur()||skip>=lt)return '';
-    return '<div class="note info"><b>Есть новая версия приложения</b><span class="fine">Скачай файл и открой его: он встанет поверх старого, данные сохранятся.'+(typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span><div class="btns" style="margin-top:8px"><a class="btn sm" href="https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk" style="text-decoration:none;text-align:center">Скачать</a><button class="btn sm ghost" data-a="apkLater">Позже</button></div></div>'}catch(e){return ''}}
+    return '<div class="note info"><b>Есть новая версия приложения</b><span class="fine">Скачай файл и открой его: он встанет поверх старого, данные сохранятся.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span><div class="btns" style="margin-top:8px"><a class="btn sm" href="https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk" style="text-decoration:none;text-align:center">Скачать</a><button class="btn sm ghost" data-a="apkLater">Позже</button></div></div>'}catch(e){return ''}}
 function newsNote(){if(!S.onb||S.seenVer===APP_VER||S.demo)return '';
   return '<div class="note info"><b>Обновилось</b><ul style="margin:4px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px">'+NEWS.map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="newsOk">Понятно</button></div></div>'}
 /* ---------- резервная копия ---------- */

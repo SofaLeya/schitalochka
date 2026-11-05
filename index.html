@@ -348,6 +348,7 @@ function newCat(name,inc){name=String(name||'').trim().slice(0,40);if(!name)retu
   var c={id:'c_'+uid(),name:name,color:inc?'var(--in)':'hsl('+((S.ccats.length*47+15)%360)+' 70% 45%)'};if(inc)c.inc=true;S.ccats.push(c);save();syncCats();return c.id}
 var NEWCAT='<option value="__new">＋ Своя категория…</option>';
 syncCats();if(S.simple===undefined)S.simple=true;if(!Array.isArray(S.rules))S.rules=[];if(!Array.isArray(S.skips))S.skips=[];
+healLinks();
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 
 /* ---------- model ---------- */
@@ -398,21 +399,43 @@ function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока 
 function isPlanFile(o){return o&&o.app==='schitalochka-plan'}
 function okBackup(o){return isPlanFile(o)||(o&&Array.isArray(o.entries))}
 /* импорт плана платежей и раскладки (файл schitalochka-plan): заменяет доходы, платежи и правила, создаёт недостающие копилки */
+function healLinks(){ // записи, отмеченные до перезагрузки плана, потеряли связь с платежом: возвращаем её по названию
+  var fix=0;
+  function orphan(list,id){return id&&!list.some(function(r){return r.id===id})}
+  function dup(f,id,ym){return S.entries.some(function(x){return x[f]===id&&x.date.slice(0,7)===ym})}
+  S.entries.forEach(function(e){
+    if(e.demo||!e.date)return;var ym=e.date.slice(0,7),n=norm(e.note),c;
+    if(e.type==='e'&&orphan(S.recur||[],e.rid)){
+      c=(S.recur||[]).filter(function(r){return norm(r.name)===n});
+      if(c.length===1&&!dup('rid',c[0].id,ym)){e.rid=c[0].id;fix++}}
+    else if(e.type==='i'&&orphan(S.incomes||[],e.iid)){
+      c=(S.incomes||[]).filter(function(r){return norm(r.name)===n});
+      if(c.length===1&&!dup('iid',c[0].id,ym)){e.iid=c[0].id;fix++}}
+    else if(e.type==='t'&&orphan(S.rules||[],e.rule)){
+      c=(S.rules||[]).filter(function(r){return norm(r.name+' · по плану')===n});
+      if(c.length===1&&!dup('rule',c[0].id,ym)){e.rule=c[0].id;fix++}}
+  });
+  if(fix)saveLocal();return fix}
+function keepId(old,used,name,day){ // тот же платёж/доход/правило после повторной загрузки плана оставляет прежний id, чтобы не терять отметки
+  var n=norm(name),free=old.filter(function(x){return !used[x.id]&&norm(x.name)===n});
+  var m=free.filter(function(x){return +x.day===+day})[0]||free[0];
+  if(m){used[m.id]=1;return m.id}return uid()}
 function applyPlan(o){snapTake('pre',true);
+  var oldInc=(S.incomes||[]).slice(),oldRec=(S.recur||[]).slice(),oldRul=(S.rules||[]).slice(),uI={},uR={},uU={};
   function acc(name){if(!name)return '';var n=norm(name),a=S.accounts.filter(function(x){return x.type!=='main'&&norm(x.name)===n})[0];
     if(!a){a={id:uid(),name:String(name).slice(0,40),type:'save',start:0};S.accounts.push(a)}return a.id}
   (o.accounts||[]).forEach(function(x){acc(x.name)});
   if(o.goals)Object.keys(o.goals).forEach(function(k){var a=accById(acc(k));if(a)a.goal=+o.goals[k]||0});
-  if(Array.isArray(o.incomes))S.incomes=o.incomes.map(function(r){return {id:uid(),name:String(r.name),amt:+r.amt,day:+r.day}});
-  if(Array.isArray(o.recur))S.recur=o.recur.map(function(r){var x={id:uid(),name:String(r.name),amt:+r.amt,day:+r.day,cat:r.cat||'other'};var a=acc(r.acc);if(a)x.acc=a;if(+r.every>1){x.every=+r.every;x.from=r.from||T.slice(0,7)}return x});
-  if(Array.isArray(o.rules))S.rules=o.rules.map(function(r){return {id:uid(),name:String(r.name),amt:+r.amt,day:+r.day,acc:acc(r.acc)}});
+  if(Array.isArray(o.incomes))S.incomes=o.incomes.map(function(r){return {id:keepId(oldInc,uI,r.name,r.day),name:String(r.name),amt:+r.amt,day:+r.day}});
+  if(Array.isArray(o.recur))S.recur=o.recur.map(function(r){var x={id:keepId(oldRec,uR,r.name,r.day),name:String(r.name),amt:+r.amt,day:+r.day,cat:r.cat||'other'};var a=acc(r.acc);if(a)x.acc=a;if(+r.every>1){x.every=+r.every;x.from=r.from||T.slice(0,7)}return x});
+  if(Array.isArray(o.rules))S.rules=o.rules.map(function(r){return {id:keepId(oldRul,uU,r.name,r.day),name:String(r.name),amt:+r.amt,day:+r.day,acc:acc(r.acc)}});
   if(Array.isArray(o.savings)){S.rules=S.rules.filter(function(r){var a=accById(r.acc);return a&&a.type==='debt'});
-    o.savings.forEach(function(x){var id=acc(x.name),a=accById(id);if(x.goal>0)a.goal=+x.goal;if(x.amt>0)S.rules.push({id:uid(),name:String(x.name),amt:+x.amt,day:+x.day||1,acc:id})})}
+    o.savings.forEach(function(x){var id=acc(x.name),a=accById(id);if(x.goal>0)a.goal=+x.goal;if(x.amt>0)S.rules.push({id:keepId(oldRul,uU,x.name,+x.day||1),name:String(x.name),amt:+x.amt,day:+x.day||1,acc:id})})}
   if(Array.isArray(o.debts)){S.rules=S.rules.filter(function(r){var a=accById(r.acc);return !(a&&a.type==='debt')});
     o.debts.forEach(function(x){var n=norm(x.name),a=S.accounts.filter(function(y){return y.type==='debt'&&norm(y.name)===n})[0];
       if(!a){a={id:uid(),name:String(x.name).slice(0,40),type:'debt',start:-Math.abs(+x.debt||0)};S.accounts.push(a)}
-      if(x.amt>0)S.rules.push({id:uid(),name:'Долг: '+x.name,amt:+x.amt,day:+x.day||1,acc:a.id})})}
-  S.planFrom=o.planFrom||T;if(o.mode==='full')S.simple=false;S.demo=false;
+      if(x.amt>0)S.rules.push({id:keepId(oldRul,uU,'Долг: '+x.name,+x.day||1),name:'Долг: '+x.name,amt:+x.amt,day:+x.day||1,acc:a.id})})}
+  S.planFrom=o.planFrom||T;if(o.mode==='full')S.simple=false;S.demo=false;healLinks();
   save();closeSheet();if(!S.simple){tab='plan'}render();
   toast('План загружен: доходов '+S.incomes.length+', платежей '+S.recur.length+', правил раскладки '+S.rules.length+(o.debts?', долгов '+o.debts.length:''));
 }
@@ -2375,7 +2398,8 @@ document.addEventListener('click',function(ev){
     if(doneFor(f,id,ym))S.entries=S.entries.filter(function(e){return !(e[f]===id&&e.date.slice(0,7)===ym)});
     else if((function(){ // уже есть такая же запись за месяц без привязки: предложить привязать, а не дублировать
       var pd=planned(ym,item.day),want=isR?'e':'i';
-      var cands=S.entries.filter(function(e){return !e.demo&&!e.rid&&!e.iid&&!e.rule&&e.type===want&&e.amt===item.amt&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')});
+      var lost=function(e){return isR?(!e.rid||!S.recur.some(function(r){return r.id===e.rid})):(!e.iid||!S.incomes.some(function(r){return r.id===e.iid}))};
+      var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&e.amt===item.amt&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)});
       if(!cands.length)return false;
       cands.sort(function(a,b){return Math.abs(diffDays(a.date,pd))-Math.abs(diffDays(b.date,pd))});
       var c=cands[0];

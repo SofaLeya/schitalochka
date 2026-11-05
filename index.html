@@ -1022,6 +1022,11 @@ function kMouth(mood,cx,cy,w,lc,fill,tc){
   if(mood==='think')return '<path d="M'+(cx-w*0.5)+' '+(cy+w*0.45)+' q'+(w*0.25)+' -'+(w*0.25)+' '+(w*0.5)+' 0 t'+(w*0.5)+' 0" '+ln+' stroke-width="3"/>';
   if(mood==='worried')return '<path d="M'+(cx-w*0.45)+' '+(cy+w*0.55)+' q'+(w*0.22)+' -'+(w*0.2)+' '+(w*0.45)+' 0 t'+(w*0.45)+' 0" '+ln+' stroke-width="3"/>';
   return '<ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.42)+'" ry="'+(w*0.52)+'" fill="'+fill+'" stroke="'+lc+'" stroke-width="2"/>'}
+function skRose(x,y,r,c){
+  var d=function(n){return (n*r).toFixed(1)},X=function(n){return (x+n*r).toFixed(1)},Y=function(n){return (y+n*r).toFixed(1)};
+  return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'" stroke="'+INK+'" stroke-width="1.5"/>'+
+    '<path d="M'+X(-.62)+' '+Y(.1)+' Q'+X(-.6)+' '+Y(-.62)+' '+X(0)+' '+Y(-.6)+' Q'+X(.68)+' '+Y(-.52)+' '+X(.58)+' '+Y(.12)+' Q'+X(.46)+' '+Y(.7)+' '+X(-.05)+' '+Y(.56)+' Q'+X(-.4)+' '+Y(.42)+' '+X(-.34)+' '+Y(.02)+' Q'+X(-.26)+' '+Y(-.3)+' '+X(.06)+' '+Y(-.22)+' Q'+X(.28)+' '+Y(-.12)+' '+X(.16)+' '+Y(.12)+'" stroke="#3b0a14" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+    '<path d="M'+X(-.85)+' '+Y(-.1)+' Q'+X(-.8)+' '+Y(-.6)+' '+X(-.35)+' '+Y(-.82)+'" stroke="#b5405a" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".55"/>'}
 function skFlower(x,y,r,pc,cc){var s='<g stroke="'+INK+'" stroke-width="1.5" stroke-linejoin="round">';
   for(var i=0;i<5;i++){var a=-Math.PI/2+i*2*Math.PI/5;s+='<circle cx="'+(x+Math.cos(a)*r*0.62).toFixed(1)+'" cy="'+(y+Math.sin(a)*r*0.62).toFixed(1)+'" r="'+(r*0.5).toFixed(1)+'" fill="'+pc+'"/>'}
   return s+'<circle cx="'+x+'" cy="'+y+'" r="'+(r*0.36).toFixed(1)+'" fill="'+cc+'"/></g>'}
@@ -1033,24 +1038,20 @@ function skelChar(g,mood){
   function SKt(shapes){var b='',f='';shapes.forEach(function(x){b+='<'+x[0]+' '+x[1]+' fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>';f+='<'+x[0]+' '+x[1]+' fill="'+x[2]+'" stroke="'+INK+'" stroke-width="2.5" stroke-linejoin="round"/>'});return b+f}
   function st(d,W,white){var ln=' fill="none" stroke-linecap="round" stroke-linejoin="round"';
     return (white?'<path d="'+d+'" stroke="#fff" stroke-width="'+(W+8)+'"'+ln+'/>':'')+'<path d="'+d+'" stroke="'+INK+'" stroke-width="'+(W+3.5)+'"'+ln+'/><path d="'+d+'" stroke="'+bn+'" stroke-width="'+W+'"'+ln+'/>'}
-  function stud(x,y,r){return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+C.stud+'" stroke="'+INK+'" stroke-width="1.2"/>'}
   /* грудная клетка: тёмная пустота, рёбра, позвоночник */
   s+=SKt([['circle','cx="70" cy="96" r="8"',bn]]);
   s+=st('M70 104 Q50 97 32 108',5.5,0)+st('M70 104 Q90 97 108 108',5.5,0);
   [109,121,133,145].forEach(function(y){
     s+=st('M70 '+y+' C58 '+(y-7)+' 46 '+(y-4)+' 41 '+(y+9),5.5,0)+st('M70 '+y+' C82 '+(y-7)+' 94 '+(y-4)+' 99 '+(y+9),5.5,0)});
   [109,121,133,145].forEach(function(y){s+='<circle cx="70" cy="'+y+'" r="5" fill="'+bn+'" stroke="'+INK+'" stroke-width="2"/>'});
-  /* цепочка с подвеской */
-  s+='<path d="M50 102 Q70 128 90 102" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M50 102 Q70 128 90 102" stroke="'+C.stud+'" stroke-width="1.8" fill="none" stroke-linecap="round"/>';
-  s+=g?'<path d="M70 109 L77 117 L70 128 L63 117Z" fill="#b66bff" stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/><path d="M70 111 L73 117 L70 120 L67 117Z" fill="#e6d2ff" opacity=".7"/>':'<circle cx="70" cy="118" r="6.5" fill="'+C.stud+'" stroke="'+INK+'" stroke-width="1.8"/><circle cx="70" cy="118" r="2.6" fill="#c8102e"/>';
   s+='</g><g transform="translate(70 14) scale(.86) translate(-70 -14)">';
   /* череп */
   s+=SKt([['path','d="M70 16 C96 16 108 34 107 54 C106 66 99 72 95 76 L95 84 C95 88 91 90 87 90 L53 90 C49 90 45 88 45 84 L45 76 C41 72 34 66 33 54 C32 34 44 16 70 16Z"',bn]]);
   s+='<path d="M41 44 C43 32 51 24 61 20" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity="'+(g?.5:.3)+'"/>';
   if(g){
-    s+='<path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="'+INK+'" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="#c4c9d6" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
-    [[44,33,-35],[60,22,-10],[80,22,10],[96,33,35]].forEach(function(l){s+='<ellipse cx="'+l[0]+'" cy="'+l[1]+'" rx="6" ry="3" transform="rotate('+l[2]+' '+l[0]+' '+l[1]+')" fill="#5d3a99" stroke="'+INK+'" stroke-width="1.2"/>'});
-    s+=skFlower(40,40,7,'#7a3fd8','#c9ced9')+skFlower(100,40,7,'#7a3fd8','#c9ced9')+skFlower(50,25,9,'#b57cff','#c9ced9')+skFlower(90,25,9,'#8f4fe8','#c9ced9')+skFlower(70,19,10,'#efeaff','#8a3dff');
+    s+='<path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="'+INK+'" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M37 44 C37 26 52 20 70 20 C88 20 103 26 103 44" stroke="#6b4a2f" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+    [[44,33,-35],[60,22,-10],[80,22,10],[96,33,35]].forEach(function(l){s+='<ellipse cx="'+l[0]+'" cy="'+l[1]+'" rx="6" ry="3" transform="rotate('+l[2]+' '+l[0]+' '+l[1]+')" fill="#6a5a34" stroke="'+INK+'" stroke-width="1.2"/>'});
+    s+=skRose(40,40,7,'#6a1424')+skRose(100,40,7,'#7d1a2b')+skRose(50,25,9,'#7d1a2b')+skRose(90,25,9,'#6a1424')+skRose(70,19,10,'#93222f');
   }else s+='<path d="M72 16 L68 25 L75 29 L70 36" stroke="#c8102e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
   s+=mCheeks([45,95],72,C.cheek);
   s+=kEyes(mood,[53,87],54,9,C.pup,C.lc,C.ring,C.sock,C.bc);
@@ -1071,7 +1072,7 @@ function skelChar(g,mood){
   var pz=POSE[mood]||POSE.calm,ar='',jt='',hd='';
   pz.forEach(function(a){
     ar+=st('M'+a[0][0]+' '+a[0][1]+' L'+a[1][0]+' '+a[1][1]+' L'+a[2][0]+' '+a[2][1],6.5,1);
-    jt+=SKt([['circle','cx="'+a[0][0]+'" cy="'+a[0][1]+'" r="4.4"',bn]])+stud(a[0][0],a[0][1],1.7);
+    jt+=SKt([['circle','cx="'+a[0][0]+'" cy="'+a[0][1]+'" r="4.4"',bn]]);
     var h=a[3],fd=[[-36,10.5],[-12,14],[12,14],[36,10.5]].map(function(f){var r=(h[2]+f[0])*Math.PI/180;return 'M'+h[0]+' '+h[1]+' L'+(h[0]+Math.sin(r)*f[1]).toFixed(1)+' '+(h[1]-Math.cos(r)*f[1]).toFixed(1)}),q=' fill="none" stroke-linecap="round"';
     hd+=SKt([['circle','cx="'+h[0]+'" cy="'+h[1]+'" r="6.4"',bn]])+fd.map(function(d){return '<path d="'+d+'" stroke="#fff" stroke-width="10.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+INK+'" stroke-width="6.6"'+q+'/>'}).join('')+fd.map(function(d){return '<path d="'+d+'" stroke="'+bn+'" stroke-width="3.6"'+q+'/>'}).join('')});
   return s+ar+jt+hd}

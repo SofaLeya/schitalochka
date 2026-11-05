@@ -549,12 +549,12 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-05n';
+var APP_VER='2026-11-05o';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['Новые монстрики: Клубничка и Вишенка.',
- 'У монстриков появились ручки, они меняют позу по настроению.',
- 'Выбор монстриков стал короче, главный теперь Мохнатик.'];
-var NEWS_OLD=['Монстрики ожили: моргают, подёргивают ушками и хвостиками. Появились Скелетон и Скелетесса.',
+var NEWS=['Цвета приложения можно выбрать отдельно от монстрика: нажми «сменить» у монстрика.',
+ 'Новые монстрики: Клубничка и Вишенка. У монстриков появились ручки, они меняют позу по настроению.'];
+var NEWS_OLD=['Выбор монстриков стал короче, главный теперь Мохнатик.',
+ 'Монстрики ожили: моргают, подёргивают ушками и хвостиками. Появились Скелетон и Скелетесса.',
  'Кнопка «↻ Обновить» синхронизирует с Яндекс Диском одним нажатием.',
  'Рядом с цифрами на главном экране появилась «i»: нажми, и расскажу, что это за цифра.',
  'Android-приложение: в настройках есть вечернее напоминание записать траты (нужна свежая версия apk).'];
@@ -997,8 +997,11 @@ function petThemeCss(graf){
   css+=':root.cheer[data-pet="straw"] .hero,:root.cheer[data-pet="straw"] .tabs .plus{background:linear-gradient(135deg,#e8283f 0%,#a01a2e 55%,#5e0c1b 100%)}:root.cheer[data-pet="straw"] .tabs .plus{color:#fff}:root.cheer[data-pet="straw"] .btn:not(.ghost):not(.danger){background:linear-gradient(135deg,#e8283f,#8f1226);color:#fff}';
   css+=':root.cheer[data-pet="cher"] .hero,:root.cheer[data-pet="cher"] .tabs .plus{background:linear-gradient(135deg,#c0143a 0%,#7a0d2b 55%,#3f0618 100%)}:root.cheer[data-pet="cher"] .tabs .plus{color:#fff}:root.cheer[data-pet="cher"] .btn:not(.ghost):not(.danger){background:linear-gradient(135deg,#c0143a,#6a0b24);color:#fff}';
   return css}
+function petTheme(){var k=S&&S.pet&&S.pet.theme;return k&&PTHEME[k]?k:petKind()}
+function previewPetTheme(){try{var k=sh&&sh.d&&(sh.d.theme||sh.d.kind);if(k&&PTHEME[k]){document.documentElement.setAttribute('data-pet',k);var c=(getComputedStyle(document.documentElement).getPropertyValue('--hero1')||'').trim(),m=document.querySelector('meta[name=theme-color]');if(m&&c)m.setAttribute('content',c)}}catch(e){}}
+function themeDot(k){var p=PTHEME[k]||{h:260,s:60};return (p.ov&&p.ov.hero1)||hsl(p.h,p.s*.8,50)}
 function applyPetTheme(){
-  try{var r=document.documentElement,k=petKind(),pk=PTHEME[k]?k:'';
+  try{var r=document.documentElement,k=petTheme(),pk=PTHEME[k]?k:'';
     if(!document.getElementById('petcss')){var g=(getComputedStyle(r).getPropertyValue('--graf')||'').trim(),st=document.createElement('style');st.id='petcss';st.textContent=petThemeCss(g);document.head.appendChild(st)}
     if(pk)r.setAttribute('data-pet',pk);else r.removeAttribute('data-pet');
     var c=(getComputedStyle(r).getPropertyValue('--hero1')||'').trim(),m=document.querySelector('meta[name=theme-color]');if(m&&c)m.setAttribute('content',c)}catch(e){}}
@@ -1299,6 +1302,10 @@ function petSheet(){
   var d=sh.d,si=0;if(!sh.k0)sh.k0=d.kind;var VM=monsVisible(sh.k0);VM.forEach(function(m,i){if(m.id===d.kind)si=i});
   var end=Math.min(si-si%2+1,VM.length-1);
   var form='<form id="fm" class="f" style="gap:12px;grid-column:1/-1;background:var(--surface2);border-radius:16px;padding:12px" autocomplete="off"><div class="f"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>'+
+   '<div class="f"><label>Цвета приложения</label><div style="display:flex;flex-wrap:wrap;gap:6px">'+
+   '<button type="button" data-a="petTheme" data-v="" class="btn sm '+(d.theme?'ghost':'')+'" style="flex:none;padding:6px 10px;font-size:13px">'+(d.theme?'':'✓ ')+'Как у монстрика</button>'+
+   VM.filter(function(m){return PTHEME[m.id]}).map(function(m){var on=d.theme===m.id;return '<button type="button" data-a="petTheme" data-v="'+m.id+'" class="btn sm '+(on?'':'ghost')+'" style="flex:none;padding:6px 10px;font-size:13px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+themeDot(m.id)+';margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.5)"></span>'+m.name+'</button>'}).join('')+
+   '</div></div>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div></form>';
   openSheet('<h3>Твой монстрик</h3><div class="mgrid">'+VM.map(function(m,i){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b><span class="fine">'+m.about+'</span></button>'+(i===end?form:'')}).join('')+'</div>');
 }
@@ -2355,7 +2362,7 @@ window.addEventListener('popstate',function(){
   if(NAV.tab){NAV.tab=false;tab='home';window.scrollTo(0,0);render();return}
 });
 function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
-function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;if(pendingR){pendingR=false;render()}}
+function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;try{applyPetTheme()}catch(e){}if(pendingR){pendingR=false;render()}}
 function sortCats(list){return list.slice().sort(function(a,b){var ao=a.name==='Прочее'?1:0,bo=b.name==='Прочее'?1:0;if(ao!==bo)return ao-bo;return a.name.localeCompare(b.name,'ru')})}
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+sortCats(list).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
@@ -2735,8 +2742,9 @@ document.addEventListener('click',function(ev){
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
   else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
   else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
-  else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),name:(S.pet&&S.pet.name)||''}};petSheet()}
-  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet();try{var pf=document.getElementById('fm');if(pf)pf.scrollIntoView({block:'nearest'})}catch(e){}}
+  else if(a==='petPick'){sh={pt:true,d:{kind:petKind(),theme:(S.pet&&S.pet.theme&&PTHEME[S.pet.theme])?S.pet.theme:'',name:(S.pet&&S.pet.name)||''}};petSheet()}
+  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet();previewPetTheme();try{var pf=document.getElementById('fm');if(pf)pf.scrollIntoView({block:'nearest'})}catch(e){}}
+  else if(a==='petTheme'&&sh&&sh.pt){var pn2=document.getElementById('p_name');if(pn2)sh.d.name=pn2.value;sh.d.theme=v||'';petSheet();previewPetTheme();try{var pf2=document.getElementById('fm');if(pf2)pf2.scrollIntoView({block:'nearest'})}catch(e){}}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
   else if(a==='ccAddI'){var n3=window.prompt('Название новой категории дохода');if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}}
   else if(a==='ccAdd'){var n1=window.prompt('Название новой категории');if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}}
@@ -2808,7 +2816,7 @@ document.addEventListener('submit',function(ev){
   if(sh.cl){var cl={};document.querySelectorAll('[data-cl]').forEach(function(e){var v=num(e.value);if(v>0)cl[e.dataset.cl]=Math.round(v)});Object.keys(catLimits()).forEach(function(k){if(!document.querySelector('[data-cl="'+k+'"]'))cl[k]=catLimits()[k]});S.catLim=cl;save();closeSheet();render();toast('Лимиты сохранены');return}
   if(sh.tp){var tt=tplRead();if(!tt.note&&!tt.cat)return showErr('Впиши название.');if(sh.tid){S.tpls=tpls().map(function(x){return x.id===sh.tid?Object.assign(tt,{id:sh.tid}):x})}else{tt.id=uid();tpls().push(tt)}save();closeSheet();render();toast('Сохранено: '+(tt.note||'трата')+', '+tplWhen(tt));return}
   if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});S.planOut=(sh.pcOut||[]).slice();save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;S.planOut=(sh.pcOut||[]).slice();delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
-  if(sh.pt){S.pet={kind:sh.d.kind,name:document.getElementById('p_name').value.trim().slice(0,20)};save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
+  if(sh.pt){S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20)};save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
   if(document.getElementById('c_from')){
     var fr=document.getElementById('c_from').value;if(!fr)return showErr('Укажите дату.');
     var map={};document.querySelectorAll('select[data-n]').forEach(function(e){map[e.dataset.n]=e.value});

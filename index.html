@@ -1085,8 +1085,7 @@ function skelChar(g,mood){
   (function(){var p=[-7,-5.5];[5,3.6].forEach(function(l){var r=-52*Math.PI/180,q=[p[0]+Math.sin(r)*l,p[1]-Math.cos(r)*l];HB.push([p,q]);p=q;HJ.push(p)})})();
   function hand(x,y,ang){
     var seg=function(wd,col){return HB.map(function(b){return '<path d="M'+b[0][0]+' '+b[0][1]+' L'+b[1][0]+' '+b[1][1]+'" stroke="'+col+'" stroke-width="'+wd+'" fill="none" stroke-linecap="round"/>'}).join('')};
-    return '<g transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+ang+') scale('+KH+')">'+seg(8.4,'#fff')+seg(4.1,INK)+seg(2.3,bn)+
-      HJ.map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="1.45" fill="'+bn+'" stroke="'+INK+'" stroke-width="1"/>'}).join('')+'</g>'}
+    return '<g transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+ang+') scale('+KH+')">'+seg(8.4,'#fff')+seg(4.1,INK)+seg(2.3,bn)+'</g>'}
   pz.forEach(function(w,i){
     var A=arm(w,i===1);
     ar+=st('M'+A.s[0].toFixed(1)+' '+A.s[1]+' L'+A.e[0].toFixed(1)+' '+A.e[1].toFixed(1)+' L'+A.w[0].toFixed(1)+' '+A.w[1].toFixed(1),5.5,1);

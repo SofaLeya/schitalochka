@@ -100,6 +100,7 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .tabs .plus svg{width:26px;height:26px}
 .ov{position:fixed;inset:0;background:rgba(10,6,20,.55);z-index:10;display:flex;align-items:flex-end;justify-content:center}
 .ov[hidden],[hidden]{display:none!important}
+.sheet>h3:first-child{position:relative;cursor:grab;touch-action:none;padding-block:8px;margin-block:-8px;-webkit-user-select:none;user-select:none}.sheet>h3:first-child::before{content:'';position:absolute;left:50%;top:-6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--muted,#888);opacity:.55}
 .sheet{background:var(--bg);width:100%;max-width:480px;max-height:92%;overflow-y:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 .sheet h3{font-size:18px;font-weight:800}
 .f{display:flex;flex-direction:column;gap:6px}
@@ -2388,6 +2389,29 @@ window.addEventListener('popstate',function(){
 });
 function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
 function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;try{applyPetTheme()}catch(e){}if(pendingR){pendingR=false;render()}}
+/* окна закрываются смахиванием вниз за название; страница под ними остаётся на том же месте */
+(function(){var g=null,OV=function(){return document.getElementById('ov')};
+function done(){var o=OV();if(o){o.style.background='';o.style.transition=''}}
+document.addEventListener('touchstart',function(e){
+  if(e.touches.length!==1||!e.target.closest)return;
+  var h=e.target.closest('#ov .sheet > h3:first-child');if(!h)return;
+  g={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now(),dy:0,drag:false,el:h.parentNode,py:window.scrollY||0}},{passive:true});
+document.addEventListener('touchmove',function(e){
+  if(!g)return;var dy=e.touches[0].clientY-g.y,dx=e.touches[0].clientX-g.x;
+  if(!g.drag){if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8||dy<-8){g=null;return}if(dy>6)g.drag=true;else return}
+  g.dy=Math.max(0,dy);g.el.style.transition='none';g.el.style.transform='translateY('+g.dy+'px)';
+  var o=OV();if(o)o.style.background='rgba(10,6,20,'+(0.55*(1-Math.min(1,g.dy/420))).toFixed(3)+')';
+  if(e.cancelable)e.preventDefault()},{passive:false});
+function endDrag(){
+  if(!g)return;var q=g;g=null;if(!q.drag)return;
+  var v=q.dy/Math.max(1,Date.now()-q.t),el=q.el;
+  if(q.dy>100||(q.dy>40&&v>0.5)){
+    el.style.transition='transform .18s ease-out';el.style.transform='translateY(100%)';
+    setTimeout(function(){done();try{closeSheet()}catch(err){}
+      requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-q.py)>2)window.scrollTo(0,q.py)})},170)}
+  else{el.style.transition='transform .18s ease-out';el.style.transform='';done();setTimeout(function(){el.style.transition=''},200)}}
+document.addEventListener('touchend',endDrag);document.addEventListener('touchcancel',endDrag);
+})();
 function sortCats(list){return list.slice().sort(function(a,b){var ao=a.name==='Прочее'?1:0,bo=b.name==='Прочее'?1:0;if(ao!==bo)return ao-bo;return a.name.localeCompare(b.name,'ru')})}
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выберите категорию…</option>')+sortCats(list).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 

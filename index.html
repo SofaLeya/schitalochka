@@ -207,10 +207,14 @@ svg text{fill:var(--muted);font-family:var(--font)}
 @keyframes swl{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
 .sw{animation:swl 2.2s ease-in-out infinite alternate}
 @keyframes br{0%,100%{transform:scale(1,1)}50%{transform:scale(1.022,1.045)}}
+.pkc,.pko{animation-iteration-count:infinite}
+@keyframes pkc{0%,88%,97%,100%{opacity:1}90%,95%{opacity:0}}
+@keyframes pko{0%,88%,97%,100%{opacity:0}90%,95%{opacity:1}}
+.pkc{animation-name:pkc}.pko{opacity:0;animation-name:pko}
 .br{transform-origin:70px 122px;animation:br 3.8s ease-in-out infinite}.earr{animation:earr 7.3s infinite}
 @keyframes tailw{from{transform:rotate(-7deg)}to{transform:rotate(9deg)}}
 .tail{animation:tailw 1.2s ease-in-out infinite alternate}
-@media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn,.earl,.earr,.tail,.ft,.arl,.arr,.sw,.br{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn,.earl,.earr,.tail,.ft,.arl,.arr,.sw,.br,.pkc,.pko{animation:none!important}.pko{opacity:0!important}}
 .syncrow{display:flex;margin:-4px 0 0}
 .syncrow[hidden]{display:none}
 .syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
@@ -1029,7 +1033,10 @@ function EAR(side,ox,oy,d){return 'class="ear'+side+'" style="transform-origin:'
 function tailG(inner,ox,oy,mood){var du={joy:.45,happy:.7,calm:1.6,think:2,worried:.25,sad:3.2,hungry:3.2}[mood]||1.2;
   return '<g class="tail" style="transform-origin:'+ox+'px '+oy+'px;animation-duration:'+du+'s">'+inner+'</g>'}
 function blinkG(inner){return '<g class="bl" style="animation-duration:'+(4+Math.random()*3).toFixed(1)+'s;animation-delay:-'+(Math.random()*5).toFixed(1)+'s">'+inner+'</g>'}
-function sEyes(mood,xs,y,r,col){var pre='';if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});var e=pre+mEyes(mood,xs,y,r,col);return mood==='hungry'||mood==='joy'?e:blinkG(e)}
+function peekG(closed,open){var st='style="animation-duration:'+(5.5+Math.random()*3).toFixed(1)+'s;animation-delay:-'+(Math.random()*5).toFixed(1)+'s"';
+  return '<g class="pkc" '+st+'>'+closed+'</g><g class="pko" '+st+'>'+open+'</g>'}
+function sEyes(mood,xs,y,r,col){var pre='';if(mood!=='hungry'&&mood!=='joy')xs.forEach(function(x){pre+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});if(mood==='hungry'||mood==='joy'){var op='';xs.forEach(function(x){op+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+2.5)+'" ry="'+(r*1.15+2.5)+'" fill="'+INK+'"/>'});return peekG(mEyes(mood,xs,y,r,col),op+mEyes('calm',xs,y,r,col))}
+  var e=pre+mEyes(mood,xs,y,r,col);return blinkG(e)}
 function whisk(y){return '<path d="M56 '+y+' L32 '+(y-5)+' M56 '+(y+3)+' L32 '+(y+8)+' M84 '+y+' L108 '+(y-5)+' M84 '+(y+3)+' L108 '+(y+8)+'" stroke="'+INK+'" stroke-width="2.2" stroke-linecap="round"/>'}
 function duckBeak(mood){
   var o='#ff9a3c';
@@ -1044,8 +1051,10 @@ function kEyes(mood,xs,y,r,pup,lc,ring,sock,bc,sh){
   var s='',ry=r*1.15,SH=ry+4.2;
   if(sh)xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+(y+1)+'" rx="'+(r+5)+'" ry="'+(SH+1.5)+'" fill="'+sh+'" opacity=".38"/>'});
   xs.forEach(function(x){s+='<ellipse cx="'+x+'" cy="'+y+'" rx="'+(r+4.2)+'" ry="'+SH+'" fill="'+sock+'"'+(ring?' stroke="'+ring+'" stroke-width="2.5"':'')+'/>'});
-  if(mood==='hungry'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>'});return s}
-  if(mood==='joy'){xs.forEach(function(x){s+='<path d="M'+(x-r)+' '+(y+r*0.3)+' Q'+x+' '+(y-r*1.1)+' '+(x+r)+' '+(y+r*0.3)+'" stroke="'+lc+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>'});return s}
+  if(mood==='hungry'||mood==='joy'){var cl='',op='';xs.forEach(function(x,i){var dir=i?-1:1;
+    cl+=mood==='hungry'?'<path d="M'+(x-r)+' '+y+' Q'+x+' '+(y+r*0.9)+' '+(x+r)+' '+y+'" stroke="'+lc+'" stroke-width="4" fill="none" stroke-linecap="round"/>':'<path d="M'+(x-r)+' '+(y+r*0.3)+' Q'+x+' '+(y-r*1.1)+' '+(x+r)+' '+(y+r*0.3)+'" stroke="'+lc+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>';
+    op+='<circle cx="'+(x+dir*r*0.12)+'" cy="'+y+'" r="'+(r*0.6)+'" fill="'+pup+'"/>'});
+    return s+peekG(cl,op)}
   var px=0,py=0;
   if(mood==='sad'||mood==='worried')py=r*0.3;
   if(mood==='think'){px=r*0.3;py=-r*0.35}

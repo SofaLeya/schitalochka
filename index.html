@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>считалОчка</title>
-<meta name="theme-color" content="#6a45e8">
+<meta name="theme-color" content="#14111c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="считалОчка">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,19 +16,9 @@
 <style>
 /* Layout: one narrow column, wallet on top, tab bar at the bottom, entry form as a bottom sheet. */
 :root{
-  --bg:#f2f0f7; --surface:#ffffff; --surface2:#e9e6f2; --ink:#1d1830; --muted:#6a6385; --line:#dcd7ea;
-  --accent:#6a45e8; --accent-ink:#ffffff; --in:#0d7f58; --out:#cf3f3a; --warn:#a96a0c; --warn-bg:#fbf0d9; --bad-bg:#fbe3e1; --good-bg:#dff3e9; --gold:#d99a1a;
-  --font:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#14111c; --surface:#1e1a29; --surface2:#292335; --ink:#f1ecf9; --muted:#a99bc2; --line:#34293f;
-    --accent:#a98bff; --accent-ink:#17102b; --in:#6fdca6; --out:#ff8080; --warn:#f0c674; --warn-bg:#3a2f18; --bad-bg:#3b1f24; --good-bg:#1b3328; --gold:#f0c674; color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
   --bg:#14111c; --surface:#1e1a29; --surface2:#292335; --ink:#f1ecf9; --muted:#a99bc2; --line:#34293f;
   --accent:#a98bff; --accent-ink:#17102b; --in:#6fdca6; --out:#ff8080; --warn:#f0c674; --warn-bg:#3a2f18; --bad-bg:#3b1f24; --good-bg:#1b3328; --gold:#f0c674; color-scheme:dark;
+  --font:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
 *{box-sizing:border-box}
 body{overscroll-behavior-y:contain;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;padding-inline:16px;padding-block:0 96px;font-variant-numeric:tabular-nums}
@@ -983,7 +973,7 @@ function petVars(p,dark,graf){
   return o+(dark?'color-scheme:dark;':'')}
 function petThemeCss(graf){
   var css='.cheer[data-pet] body,:root.cheer[data-pet] body{background-image:var(--graf),var(--grad);background-size:360px 520px,100% 100%}';
-  Object.keys(PTHEME).forEach(function(k){var p=PTHEME[k],d=petVars(p,true,graf),l=p.force?d:petVars(p,false,graf),sel=':root.cheer[data-pet="'+k+'"]';
+  Object.keys(PTHEME).forEach(function(k){var p=PTHEME[k],d=petVars(p,true,graf),l=d,sel=':root.cheer[data-pet="'+k+'"]';
     css+=sel+'{'+l+'}@media (prefers-color-scheme: dark){'+sel+':not([data-theme="light"]){'+d+'}}:root[data-theme="dark"].cheer[data-pet="'+k+'"]{'+d+'}';
     if(p.force)css+=':root[data-theme="light"].cheer[data-pet="'+k+'"]{'+d+'}'});
   css+=':root.cheer[data-pet="rat"] .hero,:root.cheer[data-pet="rat"] .tabs .plus{background:linear-gradient(135deg,#8b929c 0%,#eef1f5 38%,#aab1ba 62%,#e4e8ed 100%)}:root.cheer[data-pet="rat"] .tabs .plus{color:#14161a}:root.cheer[data-pet="rat"] .btn:not(.ghost):not(.danger){background:linear-gradient(135deg,#c9ced6,#f3f5f8 50%,#b4bbc4)}';

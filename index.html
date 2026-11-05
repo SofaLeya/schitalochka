@@ -220,7 +220,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 @keyframes tailw{from{transform:rotate(-7deg)}to{transform:rotate(9deg)}}
 .tail{animation:tailw 1.2s ease-in-out infinite alternate}
 @media (prefers-reduced-motion:reduce){.bl,.skwave,.skhead,.skchat,.skyawn,.earl,.earr,.tail,.ft,.arl,.arr,.sw,.br,.pkc,.pko{animation:none!important}.pko{opacity:0!important}}
-.syncrow{display:flex;margin:-4px 0 0}
+.syncrow{display:flex;align-items:center;margin:-4px 0 0}
 .syncrow[hidden]{display:none}
 .syncbtn{height:34px;padding:0 14px;border-radius:12px;background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .syncbtn b{font-size:13.5px;font-weight:800;color:var(--accent)}
@@ -2301,7 +2301,7 @@ function render(){
   if(S.simple&&(tab==='plan'||tab==='game'))tab='home';
   if(tab==='game')tab='home';
   var v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan();
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':'')+modeSwitch()+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -2645,6 +2645,7 @@ document.addEventListener('click',function(ev){
     if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
   else if(a==='snapBack'){var sx=snaps()[+v];if(sx&&window.confirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.')){snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Вернула данные на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}}}
   else if(a==='ydIn'){ydLogin()}
+  else if(a==='ydHide'){try{localStorage.setItem('sch-ydhide','1')}catch(e){}render();toast('Подключить можно позже в настройках')}
   else if(a==='ydNow'){ydSync()}
   else if(a==='ydTap'){ydTap()}
   else if(a==='remToggle'){if(!remApk())return;var ro=remGet();if(!ro.on&&!AndroidApp.notificationsAllowed()){AndroidApp.askNotifications();toast('Разреши уведомления и нажми «Включить» ещё раз',true);return}
@@ -2879,6 +2880,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.g
 
 /* ---------- общее хранилище (только в веб-версии, где есть db) ---------- */
 var DB=null,COL=null,UID=null,known={},pushT=null,pushing=false,initDone=false,pendingR=false,syncState='off';
+function ydHidden(){try{return localStorage.getItem('sch-ydhide')==='1'}catch(e){return false}}
 function syncLabel(){if(!DB&&ydOn())return ydLabel();return syncState==='ok'?'синхронизация вкл.':syncState==='wait'?'синхронизация…':syncState==='err'?'нет синхронизации':syncState==='ro'?'только чтение':''}
 function syncBtnHtml(){ // подпись кнопки в шапке: что делает и когда в последний раз получилось
   if(!ydOn())return '';

@@ -373,9 +373,21 @@ function seed(){
    recur:[{id:'r1',name:'Квартира',amt:5000,day:3,cat:'rent',demo:true},{id:'r2',name:'Тариф телефона',amt:400,day:25,cat:'conn',demo:true}],
    incomes:[{id:'i1',name:'Аванс',amt:8000,day:25,demo:true},{id:'i2',name:'Зарплата',amt:8000,day:10,demo:true}]};
 }
+/* у тех, кто открыл приложение, но ещё ничего не вносил: старые большие суммы в примерах заменяются на новые маленькие */
+function refreshDemo(o){
+  try{var m=o.accounts&&o.accounts[0];
+    if(o.demo&&m&&m.demoStart&&+m.start===30000){
+      var f=seed();
+      o.entries=(o.entries||[]).filter(function(e){return !e.demo}).concat(f.entries);
+      o.recur=(o.recur||[]).filter(function(e){return !e.demo}).concat(f.recur);
+      o.incomes=(o.incomes||[]).filter(function(e){return !e.demo}).concat(f.incomes);
+      m.start=f.accounts[0].start;o.start=f.start;
+      if(!o.accounts.some(function(a){return a.demo}))o.accounts.push(f.accounts[1])}
+  }catch(e){}
+  return o}
 var lastRaw=null; // что последним прочитали/записали в хранилище — чтобы другое окно не затёрло данные
 function load(){
-  try{var raw=localStorage.getItem(KEY);lastRaw=raw;if(raw){var o=JSON.parse(raw);if(o&&o.entries)return migrate(o)}}catch(e){canSave=false}
+  try{var raw=localStorage.getItem(KEY);lastRaw=raw;if(raw){var o=JSON.parse(raw);if(o&&o.entries)return refreshDemo(migrate(o))}}catch(e){canSave=false}
   return seed();
 }
 function saveLocal(){try{

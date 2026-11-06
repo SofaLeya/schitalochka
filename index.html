@@ -1041,13 +1041,15 @@ function petThemeCss(graf){
   css+=':root.cheer[data-pet="cher"] .hero,:root.cheer[data-pet="cher"] .tabs .plus{background:linear-gradient(135deg,#c0143a 0%,#7a0d2b 55%,#3f0618 100%)}:root.cheer[data-pet="cher"] .tabs .plus{color:#fff}:root.cheer[data-pet="cher"] .btn:not(.ghost):not(.danger){background:linear-gradient(135deg,#c0143a,#6a0b24);color:#fff}';
   return css}
 function petTheme(){var k=S&&S.pet&&S.pet.theme;return k&&PTHEME[k]?k:petKind()}
-function previewPetTheme(){try{var k=sh&&sh.d&&(sh.d.theme||sh.d.kind);if(k&&PTHEME[k]){document.documentElement.setAttribute('data-pet',k);var c=(getComputedStyle(document.documentElement).getPropertyValue('--hero1')||'').trim(),m=document.querySelector('meta[name=theme-color]');if(m&&c)m.setAttribute('content',c)}}catch(e){}}
+// цвет системных полосок (статус-бар сверху, навигация снизу) = фон выбранной темы, в apk красит обёртка
+function paintBars(){try{var c=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#14111c',m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c);if(window.AndroidApp&&AndroidApp.setBars)AndroidApp.setBars(c)}catch(e){}}
+function previewPetTheme(){try{var k=sh&&sh.d&&(sh.d.theme||sh.d.kind);if(k&&PTHEME[k]){document.documentElement.setAttribute('data-pet',k);paintBars()}}catch(e){}}
 function themeDot(k){var p=PTHEME[k]||{h:260,s:60};return (p.ov&&p.ov.hero1)||hsl(p.h,p.s*.8,50)}
 function applyPetTheme(){
   try{var r=document.documentElement,k=petTheme(),pk=PTHEME[k]?k:'';
     if(!document.getElementById('petcss')){var g=(getComputedStyle(r).getPropertyValue('--graf')||'').trim(),st=document.createElement('style');st.id='petcss';st.textContent=petThemeCss(g);document.head.appendChild(st)}
     if(pk)r.setAttribute('data-pet',pk);else r.removeAttribute('data-pet');
-    var c=(getComputedStyle(r).getPropertyValue('--hero1')||'').trim(),m=document.querySelector('meta[name=theme-color]');if(m&&c)m.setAttribute('content',c)}catch(e){}}
+    paintBars()}catch(e){}}
 function petName(){var n=S&&S.pet&&S.pet.name;return n&&String(n).trim()?String(n).trim():'Копейка'}
 var INK='#2b1a3f';
 function mEyes(mood,xs,y,r,col){

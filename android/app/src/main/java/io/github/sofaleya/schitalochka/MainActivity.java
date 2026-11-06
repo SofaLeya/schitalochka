@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.parseColor("#6A45E8"));
+        root.setBackgroundColor(Color.parseColor("#14111C"));
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -261,6 +261,20 @@ public class MainActivity extends Activity {
         public boolean notificationsAllowed() {
             if (Build.VERSION.SDK_INT < 33) return true;
             return checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+
+        // цвет статус-бара и навигации под тему приложения (приходит со страницы, например #140a2c)
+        @JavascriptInterface
+        public void setBars(String hex) {
+            try {
+                final int c = Color.parseColor(hex.trim());
+                runOnUiThread(() -> {
+                    getWindow().setStatusBarColor(c);
+                    getWindow().setNavigationBarColor(c);
+                    ((View) web.getParent()).setBackgroundColor(c);
+                });
+            } catch (Exception ignored) {
+            }
         }
 
         @JavascriptInterface

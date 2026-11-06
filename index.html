@@ -360,16 +360,18 @@ var T=iso(new Date());
 
 /* ---------- state ---------- */
 var S=null,canSave=true;
+function dropDemoAccs(){S.accounts=(S.accounts||[]).filter(function(a){return !a.demo})}
 function seed(){
   var t=new Date(),e=[];
   function add(off,type,amt,cat,note,cls){e.push({id:uid()+e.length,type:type,amt:amt,cat:cat,date:iso(addDays(t,-off)),note:note,cls:cls||'',demo:true})}
-  add(0,'e',420,'prod','Пятёрочка','need');add(1,'e',890,'cafe','Обед с коллегами','mind');add(1,'e',1290,'cloth','Футболка со скидкой','imp');
-  add(2,'e',230,'trans','Метро','need');add(3,'e',1850,'prod','Закупка на неделю','need');add(4,'e',650,'fun','Кино','mind');
-  add(5,'e',2100,'beauty','Уход за лицом','mind');add(6,'e',380,'cafe','Кофе и круассан','imp');add(7,'e',540,'pharm','Витамины','need');
-  add(8,'e',1500,'gift','Подарок на день рождения','mind');add(9,'e',310,'taxi','Такси домой','imp');
-  return {v:1,start:30000,demo:true,entries:e,accounts:[{id:'a1',name:'Основная карта',type:'main',start:30000,demoStart:true}],
-   recur:[{id:'r1',name:'Квартира',amt:15000,day:3,cat:'rent',demo:true},{id:'r2',name:'Тариф телефона',amt:400,day:25,cat:'conn',demo:true}],
-   incomes:[{id:'i1',name:'Аванс',amt:30000,day:25,demo:true},{id:'i2',name:'Зарплата',amt:30000,day:10,demo:true}]};
+  add(0,'e',90,'prod','Пятёрочка','need');add(1,'e',250,'cafe','Обед с коллегами','mind');add(1,'e',300,'cloth','Футболка со скидкой','imp');
+  add(2,'e',50,'trans','Метро','need');add(3,'e',400,'prod','Закупка на неделю','need');add(4,'e',150,'fun','Кино','mind');
+  add(5,'e',350,'beauty','Уход за лицом','mind');add(6,'e',120,'cafe','Кофе и круассан','imp');add(7,'e',180,'pharm','Витамины','need');
+  add(8,'e',300,'gift','Подарок на день рождения','mind');add(9,'e',100,'taxi','Такси домой','imp');
+  /* примеры с небольшими суммами: на карте остаётся 5 000 ₽ свободных денег, в копилке 1 000 ₽ */
+  return {v:1,start:7290,demo:true,entries:e,accounts:[{id:'a1',name:'Основная карта',type:'main',start:7290,demoStart:true},{id:'a2',name:'Отпуск',type:'save',start:1000,demo:true}],
+   recur:[{id:'r1',name:'Квартира',amt:5000,day:3,cat:'rent',demo:true},{id:'r2',name:'Тариф телефона',amt:400,day:25,cat:'conn',demo:true}],
+   incomes:[{id:'i1',name:'Аванс',amt:8000,day:25,demo:true},{id:'i2',name:'Зарплата',amt:8000,day:10,demo:true}]};
 }
 var lastRaw=null; // что последним прочитали/записали в хранилище — чтобы другое окно не затёрло данные
 function load(){
@@ -496,7 +498,7 @@ function applyPlan(o){snapTake('pre',true);
     o.debts.forEach(function(x){var n=norm(x.name),a=S.accounts.filter(function(y){return y.type==='debt'&&norm(y.name)===n})[0];
       if(!a){a={id:uid(),name:String(x.name).slice(0,40),type:'debt',start:-Math.abs(+x.debt||0)};S.accounts.push(a)}
       if(x.amt>0)S.rules.push({id:keepId(oldRul,uU,'Долг: '+x.name,+x.day||1),name:'Долг: '+x.name,amt:+x.amt,day:+x.day||1,acc:a.id})})}
-  S.planFrom=o.planFrom||T;if(o.mode==='full')S.simple=false;S.demo=false;healLinks();
+  S.planFrom=o.planFrom||T;if(o.mode==='full')S.simple=false;S.demo=false;dropDemoAccs();healLinks();
   save();closeSheet();if(!S.simple){tab='plan'}render();
   toast('План загружен: доходов '+S.incomes.length+', платежей '+S.recur.length+', правил раскладки '+S.rules.length+(o.debts?', долгов '+o.debts.length:''));
 }
@@ -2158,7 +2160,7 @@ function xlTemplate(){xlLoad(function(err){if(err){toast('Не загрузил�
   XLSX.writeFile(wb,'shablon-plana.xlsx')})}
 function bkAdd(){
   var add=sh.rows.filter(function(r){return r.checked}),n=0;
-  if(S.demo){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}});S.demo=false}
+  if(S.demo){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}});dropDemoAccs();S.demo=false}
   var have={};S.entries.forEach(function(e){have[e.id]=1});
   add.forEach(function(r){var id='bk_'+r.key;if(have[id])return;
     var en={id:id,type:r.type,amt:r.amt,cat:r.cat,date:r.date,note:r.note,cls:r.type==='e'?(NEEDC[r.cat]?'need':'mind'):'',acc:defAcc(),hist:true,bank:r.bank};if(r.hold)en.hold=true;S.entries.push(en);n++;
@@ -2302,7 +2304,7 @@ function onbRead(){var d=sh.d,g=function(i){var e=document.getElementById(i);ret
   if(sh.step===3&&g('ob_name')!==null)d.name=g('ob_name')}
 function onbFinish(){var d=sh.d;
   S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});
-  var m=S.accounts.filter(function(a){return a.type==='main'})[0];if(m){delete m.demoStart;var bv=num(d.bal);m.start=bv>0?bv:0}S.start=0;S.demo=false;
+  var m=S.accounts.filter(function(a){return a.type==='main'})[0];if(m){delete m.demoStart;var bv=num(d.bal);m.start=bv>0?bv:0}dropDemoAccs();S.start=0;S.demo=false;
   if(d.pc&&d.pc.inc>0){S.planCalc=d.pc;delete S.dayLimit}S.planAsked=1;
   S.pet={kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)};S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Записывай первую трату кнопкой «+»');
 }
@@ -2923,7 +2925,7 @@ document.addEventListener('click',function(ev){
   else if(a==='newTransfer'){sh={id:null,d:newDraft('t')};tDefaults(sh.d);entrySheet()}
   else if(a==='newDeposit'||a==='newWithdraw'){var fd=S.accounts.filter(function(x){return x.type==='save'||x.type==='other'})[0];if(!fd){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
     var dd=newDraft('t');if(a==='newDeposit'){dd.from=defAcc();dd.to=fd.id}else{dd.from=fd.id;dd.to=defAcc()}sh={id:null,d:dd};entrySheet()}
-  else if(a==='clearDemo'){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;S.demo=false;save();render()}
+  else if(a==='clearDemo'){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;save();render()}
   else if(a==='copyBackup'){
     var ta=document.getElementById('s_out'),m9=document.getElementById('s_msg0');
     var ok=function(t){markBackup();m9.textContent='Скопировано'+(t.indexOf('SCH1:')===0?' (сжатая копия, '+Math.ceil(t.length/1000)+' тыс. знаков)':'')+'. Вставьте в «Избранное» в Телеграме.'+(t.length>4000?' Телеграм разобьёт её на '+Math.ceil(t.length/4000)+' сообщения — при восстановлении скопируйте их все вместе.':'');m9.hidden=false};
@@ -2945,7 +2947,7 @@ document.addEventListener('click',function(ev){
       if(isFullBackup(ar)||isPlanFile(ar)){applyBackup(ar);return}
       if(ar&&!Array.isArray(ar)&&ar.entries)ar=ar.entries;if(!Array.isArray(ar))throw 0;var have={};S.entries.forEach(function(e){have[e.id]=e});var cn=0,up=0;
       ar.forEach(function(r){if(r&&r.id&&have[r.id]&&have[r.id].hist&&r.amt>0){var h=have[r.id];if(h.cat!==r.cat||h.note!==String(r.note||'')||h.amt!==+r.amt||h.date!==r.date){h.cat=r.cat||'other';h.note=String(r.note||'');h.amt=+r.amt;h.date=r.date;up++}return}if(!r||!r.id||have[r.id]||!(r.amt>0)||!/^\d{4}-\d\d-\d\d$/.test(r.date||''))return;if(r.type!=='e'&&r.type!=='i')return;S.entries.push({id:String(r.id),type:r.type,amt:+r.amt,cat:r.cat||'other',date:r.date,note:String(r.note||''),cls:r.type==='e'?'need':'',acc:defAcc(),hist:true});cn++});
-      if(S.demo){S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}})}S.entries=S.entries.filter(function(e){return !e.demo});S.demo=false;save();am.textContent='✓ Добавлено записей: '+cn+(up?', обновлено: '+up:'');am.hidden=false;closeSheet();render();toast(cn||up?('Готово: добавлено '+cn+(up?', обновлено '+up:'')):'Новых записей нет, всё уже добавлено')
+      if(S.demo){S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}});dropDemoAccs()}S.entries=S.entries.filter(function(e){return !e.demo});S.demo=false;save();am.textContent='✓ Добавлено записей: '+cn+(up?', обновлено: '+up:'');am.hidden=false;closeSheet();render();toast(cn||up?('Готово: добавлено '+cn+(up?', обновлено '+up:'')):'Новых записей нет, всё уже добавлено')
     }).catch(function(e){am.textContent='Не получилось прочитать. Вставьте текст целиком.';am.hidden=false;toast('Не получилось прочитать файл',true)})
   }
   else if(a==='wipe'){snapTake('pre',true);var ydWas=false;try{if(ydOn()){ydWas=true;var yd0=ydGet().dev;localStorage.removeItem(YD.key);ydSet({dev:yd0});YD.st='off'}}catch(e){}S={v:1,start:0,demo:false,entries:[],recur:[],incomes:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:0}],rules:[],skips:[],onb:1,seenVer:APP_VER};save();closeSheet();render();toast('Всё очищено'+(ydWas?'. Яндекс Диск отключён, копия там осталась':''))}

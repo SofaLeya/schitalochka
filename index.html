@@ -27,7 +27,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-block:16px}
 h1,h2,h3,p{margin:0}
-.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:20;margin-inline:-16px;padding:8px 16px;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .top h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
 .ico{width:40px;height:40px;border-radius:12px;background:var(--surface);display:grid;place-items:center;color:var(--muted)}
 .ico svg{width:20px;height:20px}
@@ -108,6 +108,24 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .pkb .pkp{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 2px;font-size:14px;color:var(--muted)}
 .pkb .pkp button{width:auto;padding:10px 14px;border:0;font-weight:700;color:var(--accent)}
 .pkb .pkp button:disabled{opacity:.3}
+.pkb.dp{padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));max-height:none;overflow:visible}
+.dp .dph{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+.dp .dph button{width:44px;height:44px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);font-size:20px;justify-content:center;padding:0}
+.dp .dph .dpt{flex:1;width:auto;background:none;font-size:17px;font-weight:700;text-transform:capitalize;justify-content:center;gap:6px}
+.dp .dpw,.dp .dpg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dp .dpw span{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
+.dp .dpg button,.dp .dpm button{width:auto;display:grid;place-items:center;padding:0;height:42px;border:0;border-radius:12px;font-size:16px;font-weight:600;background:none;color:var(--ink)}
+.dp .dpg button.mute{color:var(--muted);opacity:.45}
+.dp .dpg button.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.dp .dpg button.on,.dp .dpm button.on{background:var(--accent);color:var(--accent-ink);font-weight:800;box-shadow:none;opacity:1}
+.dp .dpg button:disabled{opacity:.2}
+.dp .dpm{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dp .dpm button{height:48px;text-transform:capitalize}
+.dp .dpf{display:flex;gap:8px;margin-top:10px}
+.dp .dpf button{flex:1;width:auto;justify-content:center;padding:12px 8px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);font-size:15px;font-weight:700}
+.dp .dpf button.pri{background:var(--accent);color:var(--accent-ink)}
+.stick{position:sticky;top:0;z-index:20;display:flex;flex-direction:column;gap:10px;margin-inline:-16px;padding:8px 16px 10px;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.stick .top{position:static;margin:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 .pkb .pkg{padding:10px 18px 4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .ov[hidden],[hidden]{display:none!important}
 .sheet>h3:first-child{position:relative;cursor:grab;touch-action:none;padding-block:8px;margin-block:-8px;-webkit-user-select:none;user-select:none}.sheet>h3:first-child::before{content:'';position:absolute;left:50%;top:-6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--muted,#888);opacity:.55}
@@ -2332,8 +2350,8 @@ function viewAn(){
   var LM=catLimits();Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<button type="button" data-a="catHist" data-v="'+k+'" style="display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer"><div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t">'+esc(c.name)+'</div><span class="fine">'+(lm?'из '+money(lm):(catSum?Math.round(cat[k]/catSum*100)+'%':''))+'</span><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(cat[cl[0]]?cat[k]/cat[cl[0]]*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></button>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
 
-  return '<div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+reviewCard()+
-   '<div class="card"><div class="tiprow"><h2>Выгрузка</h2>'+tipBtn('ex')+'</div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'<div class="btns"><button class="btn" data-a="export">Текст для ИИ</button><button class="btn ghost" data-a="csvOpen">Таблица (CSV)</button></div></div>'+
+  return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div>'+reviewCard()+
+   '<div class="card" style="padding:10px 12px;gap:8px"><div class="row"><h2 class="grow" style="display:flex;align-items:center;gap:8px">Выгрузка '+tipBtn('ex')+'</h2><button class="btn sm" style="flex:none" data-a="export">Для ИИ</button><button class="btn ghost sm" style="flex:none" data-a="csvOpen">CSV</button></div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'</div>'+
    lifeCard(me,n)+
    '<div class="card"><h2>Траты на жизнь по дням</h2><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg></div>'+
    '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats','Траты на жизнь со свободных денег, после вычета возвратов. Платежи и траты из копилок вынесены в отдельное меню ниже и в проценты не входят.')+catHtml+'</div>'+outCard(me);
@@ -2555,7 +2573,7 @@ function entrySheet(){
    '<form id="fm" class="f" style="gap:14px" autocomplete="off">'+
    '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'"></div>'+
    qk+body+
-   (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+'<div class="f"><label for="f_date">Дата</label><input id="f_date" type="date" value="'+d.date+'"></div>'+
+   (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+'<div class="f"><label for="f_date">Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'"></div>'+
    (isT?'':'<div class="f"><label for="f_mode">Как учесть</label><select id="f_mode">'+MODES.map(function(m){return '<option value="'+m[0]+'"'+(entryMode(d)===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select><span class="fine" id="f_modeh">'+MODEH[entryMode(d)]+'</span></div>')+
    (isE?'<label class="chk"><input type="checkbox" id="f_split"'+(d.split?' checked':'')+'> Делю с кем-то — жду, что вернут часть</label><div class="f" id="f_splitbox"'+(d.split?'':' hidden')+'><label for="f_splitamt">Сколько должны вернуть, ₽</label><input id="f_splitamt" inputmode="decimal" value="'+esc(d.splitAmt||'')+'" placeholder="половина"><span class="fine">Появится на главной в «Ждёшь возвратов». Когда деньги придут, отметишь одним нажатием.</span></div>':'')+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
@@ -2604,7 +2622,7 @@ function exportText(scope){
 }
 function csvSheet(){
   var ym=vym.split('-'),f=vym+'-01',t=vym+'-'+p2(dim(+ym[0],+ym[1]-1));
-  openSheet('<h3>Таблица для Excel</h3><p class="fine">Файл CSV откроется в Excel, Google Таблицах и «Числах». В нём все записи за выбранный период: дата, тип, категория, сумма, заметка, счёт.</p><div class="two"><div class="f"><label for="cv_f">С</label><input id="cv_f" type="date" value="'+f+'"></div><div class="f"><label for="cv_t">По</label><input id="cv_t" type="date" value="'+t+'"></div></div>'+
+  openSheet('<h3>Таблица для Excel</h3><p class="fine">Файл CSV откроется в Excel, Google Таблицах и «Числах». В нём все записи за выбранный период: дата, тип, категория, сумма, заметка, счёт.</p><div class="two"><div class="f"><label for="cv_f">С</label><input id="cv_f" type="date" data-req="1" value="'+f+'"></div><div class="f"><label for="cv_t">По</label><input id="cv_t" type="date" data-req="1" value="'+t+'"></div></div>'+
    '<div class="btns"><button type="button" class="btn ghost sm" data-a="csvRange" data-v="m">Этот месяц</button><button type="button" class="btn ghost sm" data-a="csvRange" data-v="3">3 месяца</button><button type="button" class="btn ghost sm" data-a="csvRange" data-v="y">Год</button><button type="button" class="btn ghost sm" data-a="csvRange" data-v="all">Всё время</button></div>'+
    '<p class="fine" id="cv_msg" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="csvGo">Скачать</button></div>');
 }
@@ -2977,6 +2995,44 @@ function pkOpen(sel){
   document.body.appendChild(o);
   if(!size){var cur=b.querySelector('button.on');if(cur)try{cur.scrollIntoView({block:'center'})}catch(e){}}
 }
+/* тёмный календарь вместо системного (системный на Android светлый и неудобный) */
+function dpOpen(inp){
+  pkClose();
+  var cur=/^\d{4}-\d\d-\d\d$/.test(inp.value)?inp.value:'',base=cur||T,
+      vy=+base.slice(0,4),vm=+base.slice(5,7)-1,mode='d',mn=inp.min||'',mx=inp.max||'';
+  var o=document.createElement('div');o.id='pk';o.className='pk';
+  var b=document.createElement('div');b.className='pkb dp';b.setAttribute('role','dialog');
+  function set(v){pkClose();inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))}
+  function draw(){
+    var h='<div class="dph"><button type="button" data-k="p" aria-label="Назад">‹</button><button type="button" class="dpt" data-k="t">'+(mode==='d'?MONTHS[vm]+' '+vy:vy)+(mode==='d'?' ▾':'')+'</button><button type="button" data-k="n" aria-label="Вперёд">›</button></div>';
+    if(mode==='d'){
+      var first=new Date(vy,vm,1),off=(first.getDay()+6)%7,dim=new Date(vy,vm+1,0).getDate(),prev=new Date(vy,vm,0).getDate();
+      h+='<div class="dpw">'+['пн','вт','ср','чт','пт','сб','вс'].map(function(x){return '<span>'+x+'</span>'}).join('')+'</div><div class="dpg">';
+      for(var i=0;i<42;i++){
+        var d=i-off+1,dt,mute='';
+        if(d<1){dt=new Date(vy,vm-1,prev+d);mute=' mute'}else if(d>dim){dt=new Date(vy,vm+1,d-dim);mute=' mute'}else dt=new Date(vy,vm,d);
+        var s=iso(dt),dis=(mn&&s<mn)||(mx&&s>mx);
+        h+='<button type="button" data-d="'+s+'" class="'+(s===cur?'on':'')+(s===T?' today':'')+mute+'"'+(dis?' disabled':'')+'>'+dt.getDate()+'</button>'}
+      h+='</div>'}
+    else{h+='<div class="dpm">'+MONTHS.map(function(m,i){return '<button type="button" data-m="'+i+'" class="'+(i===vm&&vy===+base.slice(0,4)?'on':'')+'">'+m.slice(0,3)+'</button>'}).join('')+'</div>'}
+    h+='<div class="dpf"><button type="button" data-k="today">Сегодня</button>'+(inp.dataset.req?'':'<button type="button" data-k="clear">Очистить</button>')+'<button type="button" data-k="x">Закрыть</button></div>';
+    b.innerHTML=h}
+  b.addEventListener('click',function(ev){
+    ev.stopPropagation();var t=ev.target.closest('button');if(!t||t.disabled)return;
+    if(t.dataset.d){set(t.dataset.d);return}
+    if(t.dataset.m){vm=+t.dataset.m;mode='d';draw();return}
+    var k=t.dataset.k;
+    if(k==='p'){if(mode==='d'){vm--;if(vm<0){vm=11;vy--}}else vy--;draw()}
+    else if(k==='n'){if(mode==='d'){vm++;if(vm>11){vm=0;vy++}}else vy++;draw()}
+    else if(k==='t'){mode=mode==='d'?'m':'d';draw()}
+    else if(k==='today')set(T);
+    else if(k==='clear')set('');
+    else if(k==='x')pkClose()});
+  draw();o.appendChild(b);o.addEventListener('click',function(ev){if(ev.target===o)pkClose()});
+  document.body.appendChild(o);
+}
+document.addEventListener('mousedown',function(ev){var t=ev.target;if(t&&t.tagName==='INPUT'&&t.type==='date'&&!t.disabled&&!t.readOnly)ev.preventDefault()});
+document.addEventListener('click',function(ev){var t=ev.target;if(t&&t.tagName==='INPUT'&&t.type==='date'&&!t.disabled&&!t.readOnly){ev.preventDefault();try{t.blur()}catch(e){}dpOpen(t)}},true);
 document.addEventListener('mousedown',function(ev){var t=ev.target;if(t&&t.tagName==='SELECT'&&!t.disabled&&!t.multiple)ev.preventDefault()});
 document.addEventListener('click',function(ev){var t=ev.target;if(t&&t.tagName==='SELECT'&&!t.disabled&&!t.multiple){ev.preventDefault();pkOpen(t)}});
 document.addEventListener('keydown',function(ev){var t=ev.target;if(ev.key==='Escape'&&document.getElementById('pk')){pkClose();ev.stopPropagation();return}if(t&&t.tagName==='SELECT'&&!t.disabled&&(ev.key===' '||ev.key==='Enter'||ev.key==='ArrowDown')){ev.preventDefault();pkOpen(t)}},true);

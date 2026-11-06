@@ -609,7 +609,7 @@ function apkIs(){try{if(typeof AndroidApp!=='undefined')return true;
   return sessionStorage.getItem('sch-twa')==='1'}catch(e){return false}}
 function apkCur(){if(typeof AndroidApp==='undefined')return 0;try{return typeof AndroidApp.versionCode==='function'?+AndroidApp.versionCode()||0:0}catch(e){return 0}}
 function apkCheck(){
-  try{if(!apkIs())return;var ts=+localStorage.getItem('sch-apkchk')||0;if(Date.now()-ts<7*24*3600*1000&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
+  try{if(!apkIs())return;var ts=+localStorage.getItem('sch-apkchk')||0,nw=new Date(),mk=new Date(nw.getFullYear(),nw.getMonth(),nw.getDate(),10,0,0).getTime();if(nw.getTime()<mk)mk-=86400000;if(ts>=mk&&!APKN.force)return;localStorage.setItem('sch-apkchk',String(Date.now()))}catch(e){return}
   fetch('https://api.github.com/repos/sofaleya/schitalochka/releases/tags/apk').then(function(r){return r.ok?r.json():null}).then(function(j){
     var m=j&&String(j.body||'').match(/№(\d+)/);if(!m)return;APKN.latest=+m[1];try{localStorage.setItem('sch-apklast',String(APKN.latest))}catch(e){}
     if(APKN.latest>apkCur()&&typeof render==='function'&&!(document.getElementById('ov')&&!document.getElementById('ov').hidden))render()}).catch(function(){})}

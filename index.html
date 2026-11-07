@@ -1444,6 +1444,7 @@ function monsterCard(me,net,dnum){
     msg=pk(['Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Отложим их в накопления?','Дожила до зарплаты с деньгами: осталось '+pa+'. Вот это умница! Отложим в накопления?','Ура, зарплата, и ещё '+pa+' остались с прошлой! Давай отправим их в накопления?']);
     var noSv=!payTarget();
     if(noSv)msg='Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Заведём копилку и отложим их?';
+    if(!noSv)msg+=' Можно и часть - сумму выберешь сама.';
     nsBtn='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="payPut">'+(noSv?'Завести копилку':'Отложить '+pa)+'</button><button class="btn sm ghost" data-a="payLater">Пропустить</button></div>'}
   else if(!ns&&tn<=0&&hr>=15&&S.entries.some(function(x){return !x.demo})){
     if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а ты сегодня ни рубля не потратила - так держать!','Ни одной траты за день, и вечер уже близко. Горжусь!','День пока без трат - мне нравится. Дотянем до вечера?'])}
@@ -2587,7 +2588,7 @@ function entrySheet(){
   openSheet('<h3>'+(sh.id?'Запись':'Новая запись')+'</h3>'+
    '<div class="seg">'+segs+'</div>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off">'+
-   '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'"></div>'+
+   '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'">'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+'<div class="f"><label for="f_date">Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'"></div>'+
    (isT?'':'<div class="f"><label for="f_mode">Как учесть</label><select id="f_mode">'+MODES.map(function(m){return '<option value="'+m[0]+'"'+(entryMode(d)===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select><span class="fine" id="f_modeh">'+MODEH[entryMode(d)]+'</span></div>')+
@@ -2911,7 +2912,7 @@ document.addEventListener('click',function(ev){
   else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
   else if(a==='payPut'){var ppx=payPraise();if(!ppx)return;var ptg=payTarget();
     if(!ptg){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
-    var pdd=newDraft('t');pdd.from=defAcc();pdd.to=ptg.id;pdd.amt=ppx.left;sh={id:null,d:pdd};entrySheet()}
+    var pdd=newDraft('t');pdd.from=defAcc();pdd.to=ptg.id;pdd.amt=ppx.left;pdd.payLeft=ppx.left;sh={id:null,d:pdd};entrySheet()}
   else if(a==='payLater'){S.payNote={d:T,st:'skip'};save();render()}
   else if(a==='payDaysSave'){var pdv=String(document.getElementById('pd_in').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);
     S.payDays=pdv;save();render();settingsSheet();toast(pdv.length?'Дни зарплаты: '+pdv.join(', '):'Дни зарплаты убраны')}

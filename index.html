@@ -121,11 +121,18 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .dp .dpg button:disabled{opacity:.2}
 .dp .dpm{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .dp .dpm button{height:48px;text-transform:capitalize}
-.tp .tph{font-size:34px;font-weight:800;text-align:center;padding:4px 0 10px;letter-spacing:1px}
-.tp .tpl{font-size:12px;font-weight:700;color:var(--muted);margin:6px 2px 4px}
-.tp .tpg{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.tp .tpg button{width:auto;display:grid;place-items:center;padding:0;height:42px;border:0;border-radius:12px;font-size:16px;font-weight:600;background:none;color:var(--ink)}
-.tp .tpg button.on{background:var(--accent);color:var(--accent-ink);font-weight:800}
+.tp .tph{display:flex;justify-content:center;align-items:center;gap:2px;font-size:44px;font-weight:800;padding:2px 0 6px}
+.tp .tph button{width:auto;height:auto;padding:2px 12px;border:0;border-radius:14px;background:none;color:var(--muted);font-size:44px;font-weight:800;letter-spacing:1px;display:block}
+.tp .tph button.on{background:var(--surface2);color:var(--ink)}
+.tp .tph span{color:var(--muted)}
+.tp .tpc{display:block;width:min(100%,300px);margin:4px auto 0;touch-action:none;user-select:none;-webkit-user-select:none}
+.tp .tpbg{fill:var(--surface2)}
+.tp .tpl{stroke:var(--accent);stroke-width:2}
+.tp .tpd{fill:var(--accent)}
+.tp .tps{fill:var(--accent)}
+.tp .tpt{fill:var(--ink);font-size:15px;font-weight:600;pointer-events:none}
+.tp .tpt.in{font-size:12px;opacity:.7}
+.tp .tpt.on{fill:var(--accent-ink);font-weight:800;opacity:1}
 .dp .dpf{display:flex;gap:8px;margin-top:10px}
 .dp .dpf button{flex:1;width:auto;justify-content:center;padding:12px 8px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);font-size:15px;font-weight:700}
 .dp .dpf button.pri{background:var(--accent);color:var(--accent-ink)}
@@ -3059,24 +3066,50 @@ document.addEventListener('click',function(ev){var t=ev.target;if(t&&t.tagName==
 /* тёмный выбор времени вместо системного (системный на Android светлый) */
 function tpOpen(inp){
   pkClose();
-  var m0=/^(\d\d):(\d\d)$/.exec(inp.value||''),hh=m0?+m0[1]:22,mm=m0?+m0[2]:0;
+  var m0=/^(\d\d):(\d\d)$/.exec(inp.value||''),hh=m0?+m0[1]:22,mm=m0?+m0[2]:0,mode='h',drag=false;
   var o=document.createElement('div');o.id='pk';o.className='pk';
   var b=document.createElement('div');b.className='pkb dp tp';b.setAttribute('role','dialog');
   function p2(n){return (n<10?'0':'')+n}
+  function pos(r,deg){var a=deg*Math.PI/180;return [130+r*Math.sin(a),130-r*Math.cos(a)]}
+  function dial(){
+    var deg=mode==='h'?(hh%12)*30:mm*6,rr=mode==='h'?((hh>=1&&hh<=12)?100:66):100,hp=pos(rr,deg),h='';
+    h+='<line x1="130" y1="130" x2="'+hp[0]+'" y2="'+hp[1]+'" class="tpl"/><circle cx="130" cy="130" r="4" class="tpd"/><circle cx="'+hp[0]+'" cy="'+hp[1]+'" r="19" class="tps"/>';
+    function tx(r,d,t,on,cls){var q=pos(r,d);return '<text x="'+q[0]+'" y="'+q[1]+'" text-anchor="middle" dominant-baseline="central" class="tpt'+(cls||'')+(on?' on':'')+'">'+t+'</text>'}
+    if(mode==='h'){
+      for(var i=1;i<=12;i++){
+        h+=tx(100,i*30,i,hh===i);
+        var iv=i===12?0:12+i;h+=tx(66,i*30,p2(iv),hh===iv,' in')}
+    }else{
+      for(var k=0;k<12;k++){var v=k*5;h+=tx(100,v*6,p2(v),mm===v)}
+    }
+    return h}
+  function refresh(){
+    var hb=b.querySelector('[data-k=h]'),mb=b.querySelector('[data-k=m]');
+    hb.textContent=p2(hh);mb.textContent=p2(mm);
+    hb.className=mode==='h'?'on':'';mb.className=mode==='m'?'on':'';
+    b.querySelector('g').innerHTML=dial()}
   function draw(){
-    var h='<div class="tph">'+p2(hh)+':'+p2(mm)+'</div><div class="tpl">Часы</div><div class="tpg">';
-    for(var i=0;i<24;i++)h+='<button type="button" data-h="'+i+'" class="'+(i===hh?'on':'')+'">'+p2(i)+'</button>';
-    h+='</div><div class="tpl">Минуты</div><div class="tpg">';
-    var ms=[];for(var j=0;j<60;j+=5)ms.push(j);if(ms.indexOf(mm)<0){ms.push(mm);ms.sort(function(a,c){return a-c})}
-    ms.forEach(function(v){h+='<button type="button" data-m="'+v+'" class="'+(v===mm?'on':'')+'">'+p2(v)+'</button>'});
-    h+='</div><div class="dpf"><button type="button" data-k="x">Отмена</button><button type="button" class="pri" data-k="ok">Готово</button></div>';
-    b.innerHTML=h}
+    b.innerHTML='<div class="tph"><button type="button" data-k="h"></button><span>:</span><button type="button" data-k="m"></button></div>'+
+      '<svg class="tpc" viewBox="0 0 260 260"><circle cx="130" cy="130" r="126" class="tpbg"/><g></g></svg>'+
+      '<div class="dpf"><button type="button" data-k="x">Отмена</button><button type="button" class="pri" data-k="ok">Готово</button></div>';
+    refresh()}
+  function handle(ev){
+    var svg=b.querySelector('svg'),r=svg.getBoundingClientRect(),
+        x=(ev.clientX-r.left)/r.width*260-130,y=(ev.clientY-r.top)/r.height*260-130,
+        deg=(Math.atan2(x,-y)*180/Math.PI+360)%360,dist=Math.hypot(x,y);
+    if(mode==='h'){var ix=Math.round(deg/30)%12;hh=dist<83?(ix===0?0:12+ix):(ix===0?12:ix)}
+    else mm=Math.round(deg/6)%60;
+    refresh()}
+  b.addEventListener('pointerdown',function(ev){if(!ev.target.closest('svg'))return;drag=true;try{ev.target.closest('svg').setPointerCapture(ev.pointerId)}catch(e){}handle(ev);ev.preventDefault()});
+  b.addEventListener('pointermove',function(ev){if(drag)handle(ev)});
+  function up(){if(!drag)return;drag=false;if(mode==='h'){mode='m';refresh()}}
+  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',function(){drag=false});
   b.addEventListener('click',function(ev){
     ev.stopPropagation();var t=ev.target.closest('button');if(!t)return;
-    if(t.dataset.h!==undefined){hh=+t.dataset.h;draw();return}
-    if(t.dataset.m!==undefined){mm=+t.dataset.m;draw();return}
-    if(t.dataset.k==='ok'){pkClose();inp.value=p2(hh)+':'+p2(mm);inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))}
-    else if(t.dataset.k==='x')pkClose()});
+    var k=t.dataset.k;
+    if(k==='h'||k==='m'){mode=k;refresh()}
+    else if(k==='ok'){pkClose();inp.value=p2(hh)+':'+p2(mm);inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))}
+    else if(k==='x')pkClose()});
   draw();o.appendChild(b);o.addEventListener('click',function(ev){if(ev.target===o)pkClose()});
   document.body.appendChild(o);
 }

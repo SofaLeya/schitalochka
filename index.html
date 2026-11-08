@@ -1461,7 +1461,7 @@ function monsterCard(me,net,dnum){
   else if(!ns&&tn<=0&&hr>=15&&S.entries.some(function(x){return !x.demo})){
     if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а сегодня ни рубля не потрачено - так держать!','Ни одной траты за день, и вечер уже близко. Горжусь!','День пока без трат - мне нравится. Дотянем до вечера?'])}
     else{mood='joy';msg=pk(['Целый день без трат - отличный результат! Завтра утром можно забрать за это звёзды.','Сегодня ни рубля. Вот это выдержка! Завтра утром заберёшь звёзды.','Ни одной траты за день! Горжусь тобой. Звёзды за этот день можно будет забрать завтра.'])}
-    nsBtn='<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>'
+    nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','День идёт спокойно: трат всего на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
@@ -1477,7 +1477,7 @@ function monsterCard(me,net,dnum){
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
   }
-  else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn='<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>'}
+  else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
   else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
   else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет — красота!'}

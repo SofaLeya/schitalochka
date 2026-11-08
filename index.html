@@ -929,10 +929,10 @@ function game(){
   g.fl=60*(g.L-1)*(g.L-1);g.nx=60*g.L*g.L;
   g.title=TITLES[Math.min(g.L-1,TITLES.length-1)];
   var t=g.today;
-  g.mood=t.n===0?((S.noSpend||[]).indexOf(T)>=0?'happy':'hungry'):(t.exp>t.lim?'sad':'happy');
+  g.mood=new Date().getHours()<7?'hungry':(t.n===0?'calm':(t.exp>t.lim?'sad':'happy'));
   return g;
 }
-var PETMSG={hungry:'ждёт записей за сегодня. Запиши траты или отметь на главной день без трат.',happy:'в хорошем настроении: сегодня ты в рамках плана.',sad:'переживает: сегодня уже выше дневного лимита.'};
+var PETMSG={hungry:'спит до утра. Записи принимает и во сне.',calm:'ждёт записей за сегодня. Запиши траты или отметь на главной день без трат.',happy:'в хорошем настроении: сегодня ты в рамках плана.',sad:'переживает: сегодня уже выше дневного лимита.'};
 function gameCard(){
   var g=game(),pct=Math.round((g.xp-g.fl)/(g.nx-g.fl)*100),qd=g.quests.filter(function(q){return q.done}).length;
   return '<button class="card game" data-a="tab" data-v="game"><span class="petbox">'+pet(g.L,g.mood,72)+'</span><span class="gi"><span class="gt">Уровень '+g.L+' · '+g.title+'</span><span class="bar"><i style="width:'+pct+'%;background:var(--gold)"></i></span><span class="fine">'+g.xp+' XP · серия '+g.streak+' дн. · задания '+qd+'/3</span></span></button>';
@@ -1451,8 +1451,12 @@ function monsterCard(me,net,dnum){
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
   function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше — до '+money(perLeft)+' в день.':' До конца месяца — только нужное.'):''}
-  var pp=payPraise();
-  if(pp){mood='joy';var pa=money(pp.left);
+  var pp=hr<7?null:payPraise();
+  if(hr<7){mood='hungry';
+    msg=!td.length
+      ?pk(['Zzz... Сплю, но записи принимаю и во сне. Диктуй!','Хр-р... Если что-то покупали - записывай, я одним ухом слушаю.','Zzz... Кошелёк пока тоже спит. Если нет - загляни утром.','Тсс, я сплю. Но трату запишу, только тихо.'])
+      :pk(['Хр-р... Записал сквозь сон. Сегодня '+money(tn)+'.','Zzz... Принял запись, не просыпаясь. Сегодня '+money(tn)+'.','Мм... записано! Сегодня '+money(tn)+'. Дальше сплю.','Хр-р... Всё записал. Сегодня '+money(tn)+'. Спокойной ночи!'])}
+  else if(pp){mood='joy';var pa=money(pp.left);
     msg=pk(['Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Отложим их в накопления?','Дотянули до зарплаты с деньгами: осталось '+pa+'. Вот это результат! Отложим в накопления?','Ура, зарплата, и ещё '+pa+' остались с прошлой! Давай отправим их в накопления?']);
     var noSv=!payTarget();
     if(noSv)msg='Сегодня день зарплаты, а у тебя ещё '+pa+' в запасе! Горжусь тобой. Заведём копилку и отложим их?';
@@ -1477,7 +1481,7 @@ function monsterCard(me,net,dnum){
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
   }
-  else if(!td.length&&!ns){mood='hungry';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было — отметь.','Дремлю, пока нет записей за сегодня. Разбудишь?']);nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''}
+  else if(!td.length&&!ns){mood='think';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было - отметь.','Пока пусто. Если что-то тратили - внеси, а если нет - отметь день без трат.']);nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
   else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
   else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет — красота!'}

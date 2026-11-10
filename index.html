@@ -2239,8 +2239,11 @@ document.addEventListener('click',function(ev){
 
 /* ---------- игра: награда за результат, а не за количество записей ---------- */
 var G2TITLES=['Новичок','Монетка','Рублик','Счетовод','Экономист','Финансист','Казначей','Мастер бюджета','Хранитель запасов','Легенда'];
-function g2SavePlan(){var c=S.planCalc;if(c&&+c.save>0)return +c.save;var r=0;(S.rules||[]).forEach(function(x){r+=+x.amt||0});return r}
-function g2Saved(ym){return S.entries.filter(function(x){if(x.type!=='t'||x.demo||x.date.slice(0,7)!==ym)return false;var ta=accById(x.to);return ta&&ta.type==='save'}).reduce(function(a,x){return a+x.amt},0)}
+/* «Отложить за месяц»: копилка на платежи (аренда, КУ и т.п.) - это не откладывание, её не считаем ни в цели, ни в факте */
+function g2Pay(a){return !a||/плат|кварт|аренд|коммун|обязат|налог/i.test(a.name)}
+function g2RulesSave(){var r=0;(S.rules||[]).forEach(function(x){var a=accById(x.acc);if(a&&a.type==='save'&&!g2Pay(a))r+=+x.amt||0});return r}
+function g2SavePlan(){if(!S.simple&&(S.rules||[]).length){var rr=g2RulesSave();if(rr>0)return rr}var c=S.planCalc;if(c&&+c.save>0)return +c.save;return g2RulesSave()}
+function g2Saved(ym){return S.entries.filter(function(x){if(x.type!=='t'||x.demo||x.date.slice(0,7)!==ym)return false;var ta=accById(x.to);return ta&&ta.type==='save'&&!g2Pay(ta)}).reduce(function(a,x){return a+x.amt},0)}
 function g2(){
   var lim=dayLimit(),PD=petDay(),ns={};(S.noSpend||[]).forEach(function(d){ns[d]=1});
   var by={},first=null;
@@ -2311,7 +2314,7 @@ function g2HowSheet(){
    '<p>Звёзды даются за результат, а не за количество записей. Записи нужны только для того, чтобы приложение видело картину.</p>'+
    '<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">'+
    '<li><b>День без трат</b> — +20 ★</li><li><b>День в плане</b> (потрачено не больше плана на день) — +10 ★</li><li><b>Каждые 7 хороших дней подряд</b> — +30 ★</li>'+
-   '<li><b>Неделя в плане</b> (пн–вс, траты не больше 7 дневных планов) — +50 ★</li><li><b>Месяц в бюджете</b> — +200 ★</li>'+(g2SavePlan()>0?'<li><b>Отложено в копилки сколько запланировано</b> — +100 ★ за месяц</li>':'')+'</ul>'+
+   '<li><b>Неделя в плане</b> (пн–вс, траты не больше 7 дневных планов) — +50 ★</li><li><b>Месяц в бюджете</b> — +200 ★</li>'+(g2SavePlan()>0?'<li><b>Отложено в копилки сколько запланировано</b> за календарный месяц, по всем выплатам (копилка на платежи не считается) — +100 ★</li>':'')+'</ul>'+
    '<p><b>Без наказаний.</b> Перерасход не отнимает звёзды. Если день дорогой, но в среднем за месяц ты в рамках, серия не прерывается. Прерывает её только день сверх плана, когда и месяц уже идёт выше плана.</p>'+
    '<p><b>Дни без записей</b> не считаются ни хорошими, ни плохими: серия на них замирает. Если трат не было, отметь «Сегодня без трат», и день засчитается.</p>'+
    '<p><b>«₽ к плану»</b> — сколько сэкономлено (или потрачено сверх) в этом месяце по сравнению с планом, за завершённые дни.</p>'+

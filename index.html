@@ -185,6 +185,16 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .medal{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--bg);color:var(--muted);margin-bottom:4px}
 .ach.on .medal{background:var(--gold);color:#fff}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));max-width:380px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;z-index:20;display:flex;flex-direction:column;gap:2px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.dlg{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.dlg .box{background:var(--surface);color:var(--ink);width:100%;max-width:380px;border-radius:20px;padding:20px 18px 14px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.dlg .msg{font-size:15px;line-height:1.4;white-space:pre-line}
+.dlg input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface2);color:var(--ink);font-size:16px;outline:none}
+.dlg input:focus{border-color:var(--accent)}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px}
+.dlg .acts button{padding:11px 16px;border-radius:12px;font-weight:700}
+.dlg .acts .no{color:var(--muted)}
+.dlg .acts .yes{background:var(--accent);color:var(--accent-ink)}
+@media (prefers-reduced-motion:no-preference){.dlg .box{animation:pop .18s ease-out}}
 .toast .sub{font-weight:500;font-size:13px}
 .toast[hidden]{display:none}
 @media (prefers-reduced-motion:no-preference){.toast.show{animation:pop .25s ease-out}@keyframes pop{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}}
@@ -202,7 +212,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .cheer .tabs{background:var(--surface)}
 .cheer .tabs .plus{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff}
 .cheer .btn{font-weight:800}
-.card.monster{flex-direction:row;align-items:center;gap:12px}
+.card.monster{flex-direction:row;align-items:flex-start;gap:12px}
 .monster .mbox{flex:none;width:96px;height:96px}
 .monster .mt{display:flex;flex-direction:column;gap:4px;min-width:0}
 .monster .mt b{font-size:15px}
@@ -1553,7 +1563,7 @@ function viewHome(){
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и баланс ниже показаны для знакомства. Когда будете готовы, очистите их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var pend=pendingPayouts(),nudge=pend.length?'<div class="note info"><b>Разложить по плану</b><span>Выплат ждёт раскладки: '+pend.length+', всего '+money(pend.reduce(function(a,p){return a+p.sum},0))+' в копилки.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="tab" data-v="plan">Открыть</button></div></div>':'';
   var conn='';
-  return demo+apkNote()+newsNote()+backupNote()+conn+hero+nudge+monsterCard(me,lifeNet(me),dnum)+tplCard()+splitCard()+progCard()+accountsCard()+main+upHtml+hh;
+  return demo+apkNote()+newsNote()+backupNote()+conn+hero+monsterCard(me,lifeNet(me),dnum)+nudge+tplCard()+splitCard()+progCard()+accountsCard()+main+upHtml+hh;
 }
 
 
@@ -2772,6 +2782,22 @@ function settingsSheet(){
    (sh.confirm?'<div class="note bad" style="gap:8px"><b>Точно очистить всё?</b><span>Удалятся все записи, копилки, долги, план, платежи и регулярные траты на этом устройстве.'+(ydOn()?' Яндекс Диск отключится, а копия в нём останется.':'')+' На всякий случай приложение сохранит автокопию — её можно вернуть в «Автокопиях в браузере».</span><div class="btns"><button type="button" class="btn danger" data-a="wipe">Да, очистить всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div></div>':'<button type="button" class="btn danger" data-a="askDel">Очистить всё</button>')+
    '<button type="button" class="btn ghost" data-a="close">Закрыть</button>');
 }
+// свои тёмные окна вместо системных белых prompt/confirm
+function uiAsk(msg,o){o=o||{};return new Promise(function(res){
+  var d=document.createElement('div');d.className='dlg';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="box"><div class="msg"></div>'+(o.input?'<input type="text" maxlength="40" autocomplete="off">':'')+'<div class="acts"><button type="button" class="no"></button><button type="button" class="yes"></button></div></div>';
+  d.querySelector('.msg').textContent=msg;d.querySelector('.no').textContent=o.no||'Отмена';d.querySelector('.yes').textContent=o.yes||'ОК';
+  var inp=d.querySelector('input');if(inp){inp.value=o.def||'';if(o.ph)inp.placeholder=o.ph}
+  var done=function(v){document.removeEventListener('keydown',key,true);d.remove();res(v)};
+  var ok=function(){done(inp?(inp.value.trim()||null):true)},no=function(){done(inp?null:false)};
+  var key=function(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();no()}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();ok()}};
+  d.querySelector('.yes').onclick=ok;d.querySelector('.no').onclick=no;d.addEventListener('click',function(e){if(e.target===d)no()});
+  d.addEventListener('touchstart',function(e){e.stopPropagation()},{passive:true});
+  document.addEventListener('keydown',key,true);document.body.appendChild(d);
+  if(inp)setTimeout(function(){inp.focus();inp.select()},30);else d.querySelector('.yes').focus();
+})}
+function uiConfirm(msg,yes,no){return uiAsk(msg,{yes:yes,no:no})}
+function uiPrompt(msg,def){return uiAsk(msg,{input:true,def:def})}
 function toast(m,bad,undo){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}
   t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent='';var sp=document.createElement('span');sp.textContent=(bad?'✕ ':'✓ ')+m;t.appendChild(sp);
   if(undo){var ub=document.createElement('button');ub.type='button';ub.textContent='Отменить';ub.style.cssText='margin-left:12px;background:rgba(255,255,255,.25);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:8px 14px;min-height:36px';ub.onclick=function(){clearTimeout(t._h);t.style.display='none';undo()};t.appendChild(ub)}
@@ -2847,16 +2873,15 @@ document.addEventListener('click',function(ev){
     var ym=T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
     var f=isR?'rid':'iid';
     if(doneFor(f,id,ym))S.entries=S.entries.filter(function(e){return !(e[f]===id&&e.date.slice(0,7)===ym)});
-    else if((function(){ // уже есть такая же запись за месяц без привязки: предложить привязать, а не дублировать
-      var pd=planned(ym,item.day),want=isR?'e':'i';
+    else{var pd=planned(ym,item.day),want=isR?'e':'i';
       var lost=function(e){return isR?(!e.rid||!S.recur.some(function(r){return r.id===e.rid})):(!e.iid||!S.incomes.some(function(r){return r.id===e.iid}))};
       var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&e.amt===item.amt&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)});
-      if(!cands.length)return false;
+      var addNew=function(){var en={id:uid(),type:isR?'e':'i',amt:item.amt,cat:isR?item.cat:'salary',date:T,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en.acc=item.acc;en[f]=id;S.entries.push(en);toast(isR?'Записано: '+item.name+' '+money(item.amt)+(en.acc?' из «'+accById(en.acc).name+'»':''):'Записано: '+item.name);save();render()};
+      if(!cands.length){addNew();return}
       cands.sort(function(a,b){return Math.abs(diffDays(a.date,pd))-Math.abs(diffDays(b.date,pd))});
       var c=cands[0];
-      if(!window.confirm('Уже есть запись «'+(c.note||(CMAP[c.cat]||CMAP.other).name)+'» на '+money(c.amt)+' за '+c.date.split('-').reverse().slice(0,2).join('.')+'. Это оплата платежа «'+item.name+'»?\n\nОК - привязать её, новая запись не создастся.\nОтмена - записать новую.'))return false;
-      c[f]=id;save();render();toast('Запись привязана к платежу «'+item.name+'»');return true})()){}
-    else{var en={id:uid(),type:isR?'e':'i',amt:item.amt,cat:isR?item.cat:'salary',date:T,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en.acc=item.acc;en[f]=id;S.entries.push(en);toast(isR?'Записано: '+item.name+' '+money(item.amt)+(en.acc?' из «'+accById(en.acc).name+'»':''):'Записано: '+item.name)}
+      uiConfirm('Уже есть запись «'+(c.note||(CMAP[c.cat]||CMAP.other).name)+'» на '+money(c.amt)+' за '+c.date.split('-').reverse().slice(0,2).join('.')+'. Это оплата платежа «'+item.name+'»?','Привязать её','Записать новую').then(function(y){if(y){c[f]=id;save();render();toast('Запись привязана к платежу «'+item.name+'»')}else addNew()});
+      return}
     save();render();
   }
   else if(a==='dlBackup'){var m0=document.getElementById('s_msg0');
@@ -2880,7 +2905,7 @@ document.addEventListener('click',function(ev){
   else if(a==='splitSave'){var sz=sh&&S.entries.filter(function(e){return e.id===sh.id})[0],gv=num(document.getElementById('f_spgot').value);
     if(!(gv>0)){var er=document.getElementById('f_sperr');er.textContent='Впиши сумму больше нуля.';er.hidden=false;return}
     if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
-  else if(a==='snapBack'){var sx=snaps()[+v];if(sx&&window.confirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.')){snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Данные возвращены на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}}}
+  else if(a==='snapBack'){var sx=snaps()[+v];if(sx)uiConfirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.').then(function(y){if(!y)return;snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Данные возвращены на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}})}
   else if(a==='ydIn'){ydLogin()}
   else if(a==='ydHide'){try{localStorage.setItem('sch-ydhide','1')}catch(e){}render();toast('Подключить можно позже в настройках')}
   else if(a==='ydNow'){ydSync()}
@@ -2928,10 +2953,10 @@ document.addEventListener('click',function(ev){
   else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;petSheet();previewPetTheme();}
   else if(a==='petTheme'&&sh&&sh.pt){var pn2=document.getElementById('p_name');if(pn2)sh.d.name=pn2.value;sh.d.theme=v||'';petSheet();previewPetTheme();}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
-  else if(a==='ccAddI'){var n3=window.prompt('Название новой категории дохода');if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}}
-  else if(a==='ccAdd'){var n1=window.prompt('Название новой категории');if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}}
-  else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){var n2=window.prompt('Новое название',c1.name);if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}}}
-  else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2&&window.confirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».')){S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat=c2.inc?'other_in':'other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()}}
+  else if(a==='ccAddI'){uiPrompt('Название новой категории дохода').then(function(n3){if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}})}
+  else if(a==='ccAdd'){uiPrompt('Название новой категории').then(function(n1){if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}})}
+  else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){uiPrompt('Новое название',c1.name).then(function(n2){if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}})}}
+  else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2)uiConfirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».').then(function(y){if(!y)return;S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat=c2.inc?'other_in':'other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()})}
   else if(a==='help'){sh={hp:true};helpSheet()}
   else if(a==='copyPrompt'){var ta=document.getElementById('h_prompt');var done=function(){toast('Запрос скопирован')};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}else{ta.select();document.execCommand('copy');done()}}catch(e){toast('Не получилось, выдели текст вручную',true)}}
   else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
@@ -3236,8 +3261,8 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='h_sk'){if(hd)hd.sk=ev.target.value;hdSync();return}
   if(ev.target.id==='a_type'&&sh&&sh.ac){readAcc();accSheet();return}
   if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true}
-  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var nm0=window.prompt('Название новой категории',t0);var nid0=nm0?newCat(nm0,sh.d.type==='i'):null;if(q0)q0.value='';ev.target.innerHTML=opts(catPool(),nid0||sh.d.cat)+NEWCAT;if(nid0){ev.target.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;return}
-  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var nm=window.prompt('Название новой категории');var nid=nm?newCat(nm,sh.d.type==='i'):null;ev.target.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){ev.target.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{ev.target.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;return}
+  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var el0=ev.target;el0.value=sh.d.cat||'';uiPrompt('Название новой категории',t0).then(function(nm0){if(!sh||!sh.d)return;var nid0=nm0?newCat(nm0,sh.d.type==='i'):null;if(q0)q0.value='';el0.innerHTML=opts(catPool(),nid0||sh.d.cat)+NEWCAT;if(nid0){el0.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{el0.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true});return}
+  if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var el1=ev.target;el1.value=sh.d.cat||'';uiPrompt('Название новой категории').then(function(nm){if(!sh||!sh.d)return;var nid=nm?newCat(nm,sh.d.type==='i'):null;el1.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){el1.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{el1.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
 });
 document.addEventListener('change',function(ev){
@@ -3245,12 +3270,11 @@ document.addEventListener('change',function(ev){
     xlLoad(function(err){if(err){if(xm){xm.textContent='Не загрузился модуль таблиц. Проверь интернет.';xm.hidden=false}return}
       xlRead(xf).then(function(wb){var o=xlPlanFromWb(wb);if(!o)throw new Error('nosheets');
         var parts=[];if(o.incomes)parts.push('доходы ('+o.incomes.length+')');if(o.recur)parts.push('платежи ('+o.recur.length+')');if(o.savings)parts.push('накопления ('+o.savings.length+')');if(o.debts)parts.push('долги ('+o.debts.length+')');
-        if(!window.confirm('Заменить: '+parts.join(', ')+'? Записи и остатки копилок не изменятся.'))return;applyPlan(o)})
+        return uiConfirm('Заменить: '+parts.join(', ')+'? Записи и остатки копилок не изменятся.','Заменить').then(function(y){if(y)applyPlan(o)})})
       .catch(function(e){if(xm){xm.textContent=e&&e.message==='nosheets'?'Листы «Доходы», «Платежи», «Накопления» или «Долги» не найдены. Скачай шаблон и заполни его.':'Не получилось прочитать таблицу.';xm.hidden=false}})});return}
   if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]){var plf=new FileReader(),plm=document.getElementById('pl_msg');plf.onload=function(){readBackupText(plf.result).then(function(o){
       if(!isPlanFile(o))throw new Error('notplan');
-      if(!window.confirm('Заменить доходы ('+(o.incomes||[]).length+'), платежи ('+(o.recur||[]).length+') и правила раскладки ('+(o.rules||[]).length+')? Записи и копилки не изменятся.'))return;
-      applyPlan(o)}).catch(function(e){if(plm){plm.textContent=e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай в «Резервная копия» → «Восстановить из файла».':'Не получилось прочитать файл.';plm.hidden=false}})};plf.readAsText(ev.target.files[0]);ev.target.value='';return}
+      return uiConfirm('Заменить доходы ('+(o.incomes||[]).length+'), платежи ('+(o.recur||[]).length+') и правила раскладки ('+(o.rules||[]).length+')? Записи и копилки не изменятся.','Заменить').then(function(y){if(y)applyPlan(o)})}).catch(function(e){if(plm){plm.textContent=e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай в «Резервная копия» → «Восстановить из файла».':'Не получилось прочитать файл.';plm.hidden=false}})};plf.readAsText(ev.target.files[0]);ev.target.value='';return}
   if(ev.target.id==='s_afile'&&ev.target.files&&ev.target.files[0]){var fr2=new FileReader();fr2.onload=function(){document.getElementById('s_add').value=fr2.result;var bt=document.querySelector('[data-a=addRecs]');if(bt)bt.click()};fr2.readAsText(ev.target.files[0]);return}
   if(ev.target.id!=='s_file'||!ev.target.files||!ev.target.files[0])return;
   var fr=new FileReader(),m=document.getElementById('s_msg');
@@ -3399,7 +3423,7 @@ async function ydSync(){
       if(same){ydSet({mod:meta.modified});ydBaseSet(r.data)}
       else if(!m.mod&&!ydEmpty()){ // первое подключение, и данные есть и тут, и в Диске
         var cnt=r.data.entries.filter(function(e){return !e.demo}).length;
-        if(confirm('В Яндекс Диске уже есть данные считалОчки ('+cnt+' записей). Взять их на это устройство?\n\nОК - взять из Диска\nОтмена - оставить то, что на этом устройстве (версия из Диска сохранится в папке «Копии»)')){ydAdopt(r,meta.modified)}
+        if(await uiConfirm('В Яндекс Диске уже есть данные считалОчки ('+cnt+' записей). Какие оставить на этом устройстве?\n\nЕсли оставить эти, версия из Диска сохранится в папке «Копии».','Взять из Диска','Оставить эти')){ydAdopt(r,meta.modified)}
         else{await ydDir();await ydUpload(YD.dir+'/до-подключения-'+iso(new Date())+'.json',JSON.stringify(r));ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data)}
       }
       else if(ydEmpty())ydAdopt(r,meta.modified);
@@ -3448,7 +3472,8 @@ function ydPanel(){var m=ydGet(),h='';
   }
   return h}
 function ydBadge(){renderBadge();var b=document.getElementById('yd_box');if(b)b.innerHTML=ydPanel()}
-function ydOut(){if(!confirm('Отключить Яндекс Диск на этом устройстве? Данные останутся и тут, и в Диске.'))return;
+function ydOut(){uiConfirm('Отключить Яндекс Диск на этом устройстве? Данные останутся и тут, и в Диске.','Отключить').then(function(y){if(y)ydOut2()})}
+function ydOut2(){
   var d=ydGet().dev;try{localStorage.removeItem(YD.key)}catch(e){}ydSet({dev:d});YD.st='off';YD.msg='';ydBadge()}
 document.addEventListener('visibilitychange',function(){if(!ydOn())return;
   if(document.visibilityState==='visible')setTimeout(ydSync,800);

@@ -1447,7 +1447,7 @@ function payPraise(){
   if(S.demo||!isPayDay(T))return null;
   if(S.payNote&&S.payNote.d===T)return null;
   if(!S.entries.some(function(x){return !x.demo}))return null;
-  if(S.entries.some(function(x){var t=x.type==='t'&&accById(x.to);return x.date===T&&t&&t.type==='save'}))return null; // уже отложила сегодня
+  // раскладка по копилкам в день зарплаты предложение не скрывает: скрывает только «Отложить» из самого предложения или «Пропустить»
   var left=Math.floor(balanceBefore(T));
   if(left<1)return null;
   var lm=dayLimit(),k=lm>0?left/lm:null; // уровень похвалы: во сколько дневных планов укладывается остаток (без плана - по сумме)
@@ -3204,7 +3204,7 @@ document.addEventListener('submit',function(ev){
     if(d.type==='i'&&d.cat==='refund'){if(d.for)rec.for=d.for;else if(d.forManual)rec.for='none'}
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
-    else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec)}
+    else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec);if(d.payLeft)S.payNote={d:T,st:'put'}}
     var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);
     vym=rec.date.slice(0,7);

@@ -1488,7 +1488,7 @@ function monsterCard(me,net,dnum){
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','День идёт спокойно: трат всего на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
-    var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' На сегодня — до '+money(today)+'.':'';
+    var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' Сегодня можно до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
     if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
@@ -1497,7 +1497,7 @@ function monsterCard(me,net,dnum){
     else if(!lim){mood='happy';msg=gm+' Вчера — '+money(yd.v)+'.'}
     else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' — с запасом.'+tday}
     else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' — в плане.'+tday}
-    else if(yd.v<=lim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+', чуть больше плана - в рамках.'+tday}
+    else if(yd.v<=lim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - совсем немного сверху, не страшно.'+tday}
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', побольше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
   }
@@ -1509,7 +1509,7 @@ function monsterCard(me,net,dnum){
   else if(r>1.3){mood='sad';msg=pk(['Заметно выше плана: '+money(avg)+' в день.','Сильно выбиваемся: '+money(avg)+' в день вместо '+money(lim)+'.'])+tail()}
   else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся: '+money(avg)+' в день.'])+tail()}
   else if(r>1){mood='think';msg=pk(['Хм, в среднем '+money(avg)+' в день — чуть выше плана. Что-то разовое?','Чуть-чуть выше плана: +'+money(over)+' в день. Пока не страшно.','Почти в плане, совсем немного сверху. Присмотримся?'])}
-  else if(tn>lim&&tn<=lim*1.15){mood='calm';msg=pk(['Сегодня чуть выше плана, но в рамках. В среднем за месяц всё ок 👌','Совсем немного сверху, ничего страшного. За месяц ты в плане.'])}
+  else if(tn>lim&&tn<=lim*1.15){mood='calm';msg=pk(['Сегодня совсем немного сверху, не страшно. За месяц всё ок 👌','Совсем немного сверху, ничего страшного. За месяц ты в плане.'])}
   else if(tn>lim&&tn<=lim*1.5){mood='think';msg=pk(['Сегодня побольше вышло, но в среднем за месяц ты в плане. Завтра можно полегче.','Дороговатый день, но месяц пока в плане 👌'])}
   else if(tn>lim){mood='think';msg=pk(['Сегодня крупный день. Что-то разовое? В среднем за месяц пока в плане.','Сегодня заметно больше плана - что-то крупное? Месяц пока держится.'])}
   else if(tn<=0){mood='happy';msg='Записи есть, трат нет — отлично!'}

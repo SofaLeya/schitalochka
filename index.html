@@ -1760,29 +1760,45 @@ function reviewCard(){
     prev.forEach(function(m){var c=netByCat(life(ex0(m,cur?d:0)));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
   }
   var curCat=netByCat(life(ex0(ym))),tips=[];
-  /* 1. итог или прогноз */
-  var cmp='';
-  if(base!==null&&base>0){
-    var ref=cur?fc:spent,df=ref-base,rel=df/base;
-    cmp=Math.abs(rel)<0.05?'Примерно как обычно ('+money(base)+' в среднем за '+prev.length+' мес.).'
-      :(df>0?'На '+money(df)+' больше':'На '+money(-df)+' меньше')+' обычного ('+money(base)+' в среднем за '+prev.length+' мес.), '+(df>0?'+':'−')+pct(Math.abs(rel))+'.';
-  }else cmp='Сравнивать пока не с чем: сравнение появится, когда накопится хотя бы один прошлый месяц с записями.';
-  var lim=dayLimit(),planM=lim*n,pcmp='',ref0=cur?fc:spent;
-  if(lim>0){var dp=ref0-planM;
-    pcmp='План на месяц '+money(planM)+' ('+money(lim)+' × '+n+' дн.). '+(Math.abs(dp)<planM*0.03?(cur?'Прогноз почти ровно в плане.':'Почти ровно в плане.'):dp>0?(cur?'Прогноз выше плана на ':'Выше плана на ')+money(dp)+'.':(cur?'Прогноз ниже плана на ':'Ниже плана на ')+money(-dp)+', есть запас.')+' ';
-  }
+  /* 1. итог или прогноз: одна крупная цифра, полоска против плана, три коротких показателя; пояснения - под «i» */
+  var lim=dayLimit(),planM=lim*n,ref0=cur?fc:spent;
   var cls=lim>0?(ref0>planM*1.1?'warn':ref0<planM*0.95?'good':'info'):(base&&ref0>base*1.1?'warn':base&&ref0<base*0.95?'good':'info');
-  H+='<div class="note '+cls+'"><b>'+(cur?'Прогноз трат на жизнь: около '+money(fc):'Итог трат на жизнь: '+money(spent))+'</b><span class="fine">'+
-    (cur?'Потрачено '+money(spent)+' за '+d+' дн., осталось '+left+' дн.'+(bigSum?' Крупные разовые траты ('+money(bigSum)+') в прогнозе не повторяются.':'')+' ':'')+
-        pcmp+(lim>0&&base===null?'':cmp)+
-    (outSum>0?' Вне плана (платежи, траты из копилок и т. п.): '+money(outSum)+', в разбор не входит.':'')+'</span></div>';
+  var chip='';
+  if(lim>0){var dp=ref0-planM;chip=Math.abs(dp)<planM*0.03?'ровно в плане':dp>0?'+'+money(dp)+' к плану':'−'+money(-dp)+' к плану'}
+  else if(base){var db=ref0-base;chip=Math.abs(db)<base*0.05?'как обычно':(db>0?'+':'−')+money(Math.abs(db))+' к обычному'}
+  var chipCol=cls==='warn'?'var(--out)':cls==='good'?'var(--in)':'var(--muted)';
+  var scale=Math.max(planM||0,ref0,1)*1.05,bar='';
+  if(lim>0||cur){
+    bar='<div style="position:relative;height:10px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:6px">'+
+      (cur?'<i style="position:absolute;left:0;top:0;bottom:0;width:'+Math.min(100,fc/scale*100).toFixed(1)+'%;background:'+chipCol+';opacity:.35;border-radius:99px"></i>':'')+
+      '<i style="position:absolute;left:0;top:0;bottom:0;width:'+Math.min(100,spent/scale*100).toFixed(1)+'%;background:'+chipCol+';border-radius:99px"></i>'+
+      (lim>0?'<i style="position:absolute;top:-2px;bottom:-2px;width:2px;left:'+Math.min(99.5,planM/scale*100).toFixed(1)+'%;background:var(--warn)"></i>':'')+'</div>'+
+      '<div class="fine" style="display:flex;justify-content:space-between;font-size:12px"><span style="display:flex;gap:10px;align-items:center"><span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+'"></i>потрачено</span>'+(cur?'<span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+';opacity:.35"></i>прогноз</span>':'')+'</span>'+(lim>0?'<span style="color:var(--warn)">| план</span>':'')+'</div>';
+  }
+  function st(lbl,val,sub){return '<div style="display:flex;flex-direction:column;gap:1px;min-width:0"><span class="fine" style="font-size:12px">'+lbl+'</span><b style="font-size:15px">'+val+'</b>'+(sub?'<span class="fine" style="font-size:12px">'+sub+'</span>':'')+'</div>'}
+  var stats=[];
+  if(cur)stats.push(st('Потрачено',money(spent),d+' из '+n+' дн.'));
+  if(lim>0)stats.push(st('План',money(planM),money(lim)+' в день'));
+  if(base)stats.push(st('Обычно',money(base),'за '+prev.length+' мес.'));
+  if(!cur&&!lim&&!base)stats.push(st('Дней',String(n),''));
+  var det=[];
+  if(cur)det.push('Прогноз - сколько выйдет к концу месяца, если тратить так же, как сейчас. Крупные разовые траты'+(bigSum?' ('+money(bigSum)+')':'')+' в прогнозе не повторяются.');
+  if(lim>0)det.push('План на месяц - '+money(lim)+' в день × '+n+' дн.');
+  if(base)det.push('«Обычно» - среднее за '+prev.length+' прошлых '+plw(prev.length,'месяц','месяца','месяцев')+(cur?', а сравнение по категориям - к этому же числу':'')+'.');
+  else det.push('Сравнение с обычным появится, когда накопится хотя бы один прошлый месяц с записями.');
+  if(outSum>0)det.push('Платежи, редкие траты и траты из копилок ('+money(outSum)+') сюда не входят.');
+  det.push('Всё после вычета возвратов.');
+  H+='<div class="note '+cls+'" style="gap:6px"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="fine" style="font-size:13px">'+(cur?'Прогноз на месяц':'Итог месяца')+'</span>'+tipBtn('rvtop')+'</div>'+
+    '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:26px;line-height:1.1">'+(cur?'≈ ':'')+money(ref0)+'</b>'+(chip?'<span style="font-weight:700;font-size:14px;color:'+chipCol+'">'+chip+'</span>':'')+'</div>'+
+    bar+tipBox('rvtop',det.join(' '))+
+    '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
   /* 2. категории */
   var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});
   var ch=Object.keys(keys).map(function(kk){var c=curCat[kk]||0,b=baseCat[kk]||0;return {k:kk,c:c,b:b,df:c-b}});
   var up=ch.filter(function(x){return x.df>=1000&&(x.b===0||x.df/x.b>=0.3)}).sort(function(p,q){return q.df-p.df}).slice(0,3);
   var down=ch.filter(function(x){return x.df<=-1000&&x.b>0&&-x.df/x.b>=0.3}).sort(function(p,q){return p.df-q.df}).slice(0,2);
   if(prev.length&&(up.length||down.length)){
-    H+='<div class="fine" style="font-weight:700;margin-top:4px">Что изменилось'+(cur?' к '+d+'-му числу':'')+' по сравнению с обычным</div><div class="list">'+
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">Больше или меньше обычного</div><div class="list">'+
       up.concat(down).map(function(x){return '<div class="row"><span class="dot" style="background:'+ccol(x.k)+'"></span><div class="grow"><div class="t">'+esc(cname(x.k))+'</div><div class="s">'+money(x.c)+' · обычно '+money(x.b)+'</div></div><span class="amt '+(x.df>0?'out':'in')+'">'+(x.df>0?'+':'−')+money(Math.abs(x.df))+'</span></div>'}).join('')+'</div>';
   }
   /* 3. необычные траты */
@@ -1822,11 +1838,11 @@ function reviewCard(){
   if(sv||svb)H+='<div class="row" style="margin-top:4px"><div class="grow"><div class="t">Отложено в копилки</div><div class="s">'+(incM>0?pct(sv/incM)+' от пришедшего за месяц':'')+(incM>0&&svb?' · ':'')+(svb?'обычно '+money(svb)+' в месяц':(incM>0?'':'в этом месяце'))+'</div></div><span class="amt in">'+money(sv)+'</span></div>';
   /* 6. подсказки */
   if(cur&&lim>0&&left>0){var remP=planM-spent;
-    tips.push(remP>0?'По плану до конца месяца осталось '+money(remP)+', это '+money(remP/left)+' в день.':'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
+    tips.push(remP>0?'До конца месяца по плану: '+money(remP)+', это '+money(remP/left)+' в день.':'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
   else if(cur&&base&&left>0){var rem=base-spent;
     tips.push(rem>0?'Чтобы уложиться в свой обычный месяц ('+money(base)+'), до конца месяца тратить не больше '+money(rem/left)+' в день.':'Уже потрачено больше, чем в обычный месяц ('+money(base)+')'+(bigSum?', в том числе из-за крупных покупок на '+money(bigSum):'')+'. До конца месяца лучше оставить только обязательное.')}
   var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+nv(x)});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
-  if(tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
+  if(false&&tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
   var eat=(curCat.cafe||0),eatB=(baseCat.cafe||0),bTo=baseTo||0;
   if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
     tips.push('Кафе и доставка — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}

@@ -2590,16 +2590,21 @@ function reconSheet(){
 }
 function viewPlan(){
   var ym=T.slice(0,7);
-  /* честный план: доход − платежи − копилки − жизнь по плану − редкие траты этого месяца */
-  var lim3=dayLimit(),rareN=[];
+  /* честный план: доход − платежи со свободных − раскладка в копилки − жизнь по плану − резерв на редкое.
+     Платежи из копилки оплачиваются тем, что в ней лежит и докладывается; со свободных уходит только нехватка.
+     Жизнь - план на день × 30,4 (как в самом плане), редкие траты - 1/12 годовой суммы в месяц. */
+  var lim3=dayLimit(),rareN=[],mn3=defAcc(),rM=rareMonthly(),bal3={},cym=T.slice(0,7);
+  S.accounts.forEach(function(ac){if(ac.id===mn3||ac.type==='debt')return;
+    /* остаток на начало месяца: убираем то, что уже отложено и списано в этом месяце */
+    var b=accBal(ac);S.entries.forEach(function(x){if(x.date.slice(0,7)!==cym||x.demo)return;if(x.rule&&x.to===ac.id)b-=x.amt;if(x.rid&&x.type==='e'&&accOf(x)===ac.id)b+=x.amt});bal3[ac.id]=b});
   var rows=[0,1,2].map(function(k){
-    var m=nextYM(ym,k),a=m.split('-'),nd=dim(+a[0],+a[1]-1),inc=0,pay=0,from={},to={},sv=0,life3=lim3*nd,rr=0,mn=defAcc();
+    var m=nextYM(ym,k),a=m.split('-'),inc=0,pay=0,sv=0,gap=0,life3=lim3*30.4;
     S.incomes.forEach(function(r){inc+=incomeFor(r,m)});
-    S.recur.forEach(function(r){if(!dueIn(r,m))return;var ac=r.acc&&accById(r.acc);if(ac&&ac.id!==mn)from[ac.id]=(from[ac.id]||0)+r.amt;else pay+=r.amt});
-    (S.rules||[]).forEach(function(r){if(accById(r.acc))to[r.acc]=(to[r.acc]||0)+(+r.amt||0)});
-    var ids={};Object.keys(from).concat(Object.keys(to)).forEach(function(x){ids[x]=1});Object.keys(ids).forEach(function(x){sv+=Math.max(to[x]||0,from[x]||0)});
-    rareList().forEach(function(r){if(+r.mon===+a[1]){rr+=+r.amt||0;rareN.push(MONTHS[+a[1]-1].slice(0,3)+': '+esc(r.name)+' '+money(r.amt))}});
-    var outT=pay+sv+life3+rr,left=inc-outT;
+    (S.rules||[]).forEach(function(r){if(!accById(r.acc))return;var v=+r.amt||0;sv+=v;if(bal3[r.acc]!==undefined)bal3[r.acc]+=v});
+    S.recur.forEach(function(r){if(!dueIn(r,m))return;var ac=r.acc&&accById(r.acc);
+      if(ac&&ac.id!==mn3&&bal3[ac.id]!==undefined){bal3[ac.id]-=r.amt;if(bal3[ac.id]<0){gap+=-bal3[ac.id];bal3[ac.id]=0}}else pay+=r.amt});
+    rareList().forEach(function(r){if(+r.mon===+a[1])rareN.push(MONTHS[+a[1]-1].slice(0,3)+': '+esc(r.name)+' '+money(r.amt))});
+    var outT=pay+sv+gap+life3+rM,left=inc-outT;
     return '<span>'+MONTHS[+a[1]-1].slice(0,3)+'</span><span class="r in">+'+Math.round(inc).toLocaleString('ru-RU')+'</span><span class="r out">−'+Math.round(outT).toLocaleString('ru-RU')+'</span><span class="r"'+(left<0?' style="color:var(--out)"':'')+'><b>'+Math.round(left).toLocaleString('ru-RU')+'</b></span>';
   }).join('');
   var rTotY=rareList().reduce(function(s0,r){return s0+(+r.amt||0)},0);
@@ -2637,7 +2642,7 @@ function viewPlan(){
    fcard('inc','Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
      (S.incomes.length?sorted(S.incomes,'i').map(function(r){return planRow('i',r,ym)}).join(''):'<p class="empty">Добавь даты, когда приходят деньги: от них считается «до зарплаты».</p>'),'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button>')+
    rareCard+rulesCard()+
-   fcard('p3','План на 3 месяца',null,'сколько останется сверху','<div class="sum3"><span class="h">Месяц</span><span class="h r">Приход</span><span class="h r">Уходит</span><span class="h r">Остаётся</span>'+rows+'</div>'+(rareN.length?'<p class="fine" style="margin:0">Редкие траты: '+rareN.join(', ')+'.</p>':'')+'<div class="tiprow" style="justify-content:flex-end"><span class="fine">Как считается</span>'+tipBtn('p3')+'</div>'+tipBox('p3','В рублях. «Уходит» - платежи, раскладка по копилкам, траты на жизнь по плану на день ('+money(lim3)+' × дни месяца) и редкие траты, назначенные на этот месяц. Если доход в этом месяце уже отмечен, берётся сколько пришло на самом деле. «Остаётся» - сколько будет сверху, если жить по плану. Красное - в этом месяце денег не хватит, лучше заранее отложить.'))+
+   fcard('p3','План на 3 месяца',null,'сколько останется сверху','<div class="sum3"><span class="h">Месяц</span><span class="h r">Приход</span><span class="h r">Уходит</span><span class="h r">Остаётся</span>'+rows+'</div>'+(rareN.length?'<p class="fine" style="margin:0">Редкие траты: '+rareN.join(', ')+'. Они оплачиваются из резерва, который копится в плане.</p>':'')+'<div class="tiprow" style="justify-content:flex-end"><span class="fine">Как считается</span>'+tipBtn('p3')+'</div>'+tipBox('p3','В рублях. «Уходит» - платежи со свободных денег, раскладка по копилкам, траты на жизнь по плану ('+money(lim3)+' в день, в среднем 30,4 дня в месяце) и резерв на редкие траты ('+money(rM)+' в месяц). Платежи из копилки (например, «Платежи») оплачиваются тем, что в ней лежит и докладывается по раскладке; сюда попадёт только нехватка, если её не хватит. Если доход в этом месяце уже отмечен, берётся сколько пришло на самом деле. «Остаётся» - сколько будет сверху, если жить по плану. Красное - в этом месяце денег не хватит.'))+
    fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>');
 }
 

@@ -1125,7 +1125,7 @@ function mMouth(mood,cx,cy,w,teeth){
   if(mood==='sad')return '<path d="M'+(cx-w*0.7)+' '+(cy+w*0.55)+' Q'+cx+' '+(cy-w*0.25)+' '+(cx+w*0.7)+' '+(cy+w*0.55)+'" stroke="'+INK+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
   return '<ellipse cx="'+cx+'" cy="'+(cy+w*0.3)+'" rx="'+(w*0.42)+'" ry="'+(w*0.52)+'" fill="'+INK+'"/>';
 }
-function mCheeks(xs,y,c){return xs.map(function(x){return '<ellipse cx="'+x+'" cy="'+y+'" rx="7" ry="5" fill="'+c+'" opacity=".6"/>'}).join('')}
+function mCheeks(xs,y,c){var u=SKUP;SKUP='';return u+xs.map(function(x){return '<ellipse cx="'+x+'" cy="'+y+'" rx="7" ry="5" fill="'+c+'" opacity=".6"/>'}).join('')}
 /* ---------- стикерные монстрики: белая обводка, тёмный контур ---------- */
 var STKCROWN={yolk:[42,28],puff:[34,22],slime:[38,40],ghost:[36,26],cube:[30,40],rat:[40,24],fluff:[40,26],pocto:[40,22],mouse:[40,22],frog:[36,18],duck:[38,20],cat:[40,22],hog:[40,16],skel:[40,26],skelf:[40,24],straw:[34,20],cher:[36,34]};
 function autoLimb(t,a){var m,n;
@@ -1141,7 +1141,9 @@ function SK(shapes){var b='',f='',ft='';shapes.forEach(function(x){var t=x[0],a=
   /* поднятая ручка рисуется поверх тела, иначе её не видно за головой */
   var up=((t==='rect'||t==='path')&&/transform=/.test(a))||(t==='ellipse'&&/rotate\([^)]*\) rotate\(/.test(a));
   b+=w('<'+t+' '+a+' fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>');
-  var fl=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>');if(up)ft+=fl;else f+=fl});var mid=SKMID;SKMID='';return b+mid+f+ft}
+  var fl=w('<'+t+' '+a+' fill="'+c+'" stroke="'+INK+'" stroke-width="4" stroke-linejoin="round"/>');if(up)ft+=fl;else f+=fl});var mid=SKMID;SKMID='';SKUP+=ft;return b+mid+f}
+/* поднятые лапки откладываются и рисуются после блеска на теле (перед щёчками и глазками), чтобы блик не ложился поверх лапок */
+var SKUP='';
 /* ушки и хвосты: ear(сторона,x,y) даёт атрибуты группы; tailG(мордочка, настроение) */
 function EAR(side,ox,oy,d){return 'class="ear'+side+'" style="transform-origin:'+ox+'px '+oy+'px;animation-delay:-'+d+'s"'}
 function tailG(inner,ox,oy,mood){var du={joy:.45,happy:.7,calm:1.6,think:2,worried:.25,sad:3.2,hungry:3.2}[mood]||1.2;
@@ -1285,6 +1287,7 @@ function armR(mood,side,sx,sy){var T={calm:[0,0],happy:[0,-155],joy:[160,-160],t
 /* пушистый контур: зубчики-шерстинки по эллипсу */
 function fuzz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
 function stkChar(kind,mood,act){
+  SKUP='';
   var s=(kind==='skel'||kind==='skelf')?'':'<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>';
   if(kind==='yolk'){var c='#ffb22e',d='#f08c0c',w='#fffaf0',sh0=s;s='';
     s+=SK([['path','d="M14 106 C4 88 20 76 34 80 C34 64 52 58 62 66 C78 54 104 58 110 76 C128 76 138 96 126 108 C124 124 102 130 88 124 C72 134 48 132 38 124 C22 128 8 120 14 106Z"',w],['circle','cx="70" cy="74" r="40"',c]]);
@@ -1374,6 +1377,7 @@ function stkChar(kind,mood,act){
     s+='<path d="M44 36 L50 24 M62 30 L66 18 M84 30 L88 20 M98 38 L104 28" stroke="#a87355" stroke-width="3" stroke-linecap="round"/><ellipse cx="70" cy="114" rx="22" ry="9" fill="#fff0dc"/>';
     s+=mCheeks([40,100],96,'#ff9f9f')+sEyes(mood,[54,86],78,10,f)+'<ellipse cx="70" cy="92" rx="6.5" ry="4.5" fill="'+INK+'"/><circle cx="68" cy="90.5" r="1.5" fill="#fff"/>'+mMouth(mood,70,99,11,'down');
   }
+  if(SKUP){s+=SKUP;SKUP=''}
   return s;
 }
 

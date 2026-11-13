@@ -1848,7 +1848,12 @@ function reviewCard(){
     var mg=MONTHS_G[+ym.slice(5,7)-1],cell=function(l,v){return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="fine" style="font-size:12px">'+l+'</span><b style="font-size:16px">'+money(v)+'</b></div>'};
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
       '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1">Свободные деньги</b><b style="font-size:17px;color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b>'+tipBtn('rvbal')+'</div>'+
-      '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+(function(){var pd=payDays();if(!pd.length)(S.incomes||[]).forEach(function(r){var x=Math.round(+r.day);if(x>=1&&x<=31&&pd.indexOf(x)<0)pd.push(x)});
+        var ds=pd.map(function(x){return payDateIn(ym,x)}).filter(function(d,i,a){return d<=T&&a.indexOf(d)===i}).sort();
+        if(!pd.length)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед каждой зарплатой, укажи дни зарплаты в настройках.</span>';
+        if(!ds.length)return '';
+        return '<div style="border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px"><span class="fine" style="font-size:12px">Осталось перед зарплатой</span>'+
+          ds.map(function(d){var v=balanceBefore(d);return '<div style="display:flex;justify-content:space-between;gap:8px"><span>'+dlabel(d)+'</span><b style="color:'+(v>=0?'var(--ink)':'var(--out)')+'">'+money(v)+'</b></div>'}).join('')+'</div>'})()+
       tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Считается назад от сегодняшнего остатка по всем записям, в том числе загруженным из выписки. Если какой-то траты или поступления не хватает в записях, цифра на начало месяца сдвинется на эту сумму.')+'</div>'})();
   /* 2. категории */
   var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});

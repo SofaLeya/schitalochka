@@ -35,8 +35,8 @@ h1,h2,h3,p{margin:0}
 .card h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .hero{background:var(--accent);color:var(--accent-ink);gap:6px}
 .hero .lbl{font-size:13px;opacity:.8}
-.hero .big{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
+.hero{padding:14px 12px}.hero .big{font-size:33px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px;margin-top:6px}
 .drag{flex:none;align-self:stretch;display:flex;align-items:center;padding:0 14px 0 6px;margin-left:-6px;color:var(--muted);font-size:20px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .row.dragging{position:relative;z-index:5;background:var(--surface2);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .foldhead{display:flex;align-items:flex-start;gap:10px;width:100%;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
@@ -51,11 +51,11 @@ h1,h2,h3,p{margin:0}
 .chk input{flex:none;width:20px!important;height:20px;margin:0;padding:0;accent-color:var(--accent)}
 .amt.skip{color:#5b8def}
 .stat .fine{display:block;margin-top:4px;line-height:1.3;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stat{background:rgba(255,255,255,.14);border-radius:12px;padding:10px;min-width:0}
+.stat{background:rgba(255,255,255,.14);border-radius:12px;padding:9px 8px;min-width:0}
 .stat .lbl{display:block;font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat .pbar{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin-top:6px;overflow:hidden}.stat .pbar i{display:block;height:100%;border-radius:3px}
 .stat b{display:block;font-size:17px;font-weight:800;margin-top:3px;white-space:nowrap}
-@media (max-width:380px){.stats{gap:6px}.stat{padding:9px 8px}.stat .lbl{font-size:11.5px}.stat b{font-size:16px}.stat .fine{font-size:11px}}
+@media (max-width:380px){.stats{gap:5px}.stat{padding:8px 7px}.stat .lbl{font-size:11.5px}.stat b{font-size:16px}.stat .fine{font-size:11px}}
 .note{border-radius:14px;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:2px}
 .note b{font-size:14px}
 .note.good{background:var(--good-bg)} .note.warn{background:var(--warn-bg)} .note.bad{background:var(--bad-bg)}
@@ -1599,7 +1599,7 @@ function viewHome(){
   var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты не с основного счёта сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В день</b> - траты за месяц, поделённые на число прошедших дней. Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.<br><br><b>До зарплаты</b> - сколько можно тратить в день, чтобы денег хватило до ближайшего поступления. Обязательные платежи до этой даты уже вычтены, сегодняшний день тоже входит в расчёт.')+'<span class="big">'+money(bal)+'</span>'+
    '<div class="stats">'+statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+
    statTile('В день',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
-   statTile('До зарплаты',money(pd.val),pd.nextIn?'в день<br>до '+dlabel(pd.nextIn):'в день')+'</div>'+'</div>';
+   statTile('До зарплаты',money(pd.val),pd.nextIn?'в день<br>до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день')+'</div>'+'</div>';
   var main;
   if(fc.date){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократите необязательные траты или сверьтесь с планом платежей.</span></div>';

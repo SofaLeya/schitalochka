@@ -155,6 +155,9 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .btns.hs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px;scroll-padding:0 16px}
 .btns.hs::-webkit-scrollbar{display:none}
 .btns.hs .btn{flex:none;white-space:nowrap}
+.btn.qc{background:transparent;color:var(--ink);border:1.5px solid var(--line);display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.btn.qc .dot{width:9px;height:9px}
+.btn.qc.on{border-color:var(--accent);color:var(--accent)}
 .cbx input{padding-right:34px!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a59cc0' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
 .catl{max-height:236px;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border:1.5px solid var(--line);border-radius:12px}
 .catl button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 14px;font-size:15px;color:var(--ink);border-bottom:1px solid var(--line)}
@@ -2810,10 +2813,10 @@ function entrySheet(){
   var segs=[['e','Расход'],['i','Доход'],['r','Возврат'],['t','Перевод']].map(function(x){return '<button type="button" data-a="stype" data-v="'+x[0]+'" class="'+(curSeg===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('');
   if(isT){
     body='<div class="two"><div class="f"><label for="f_from">Откуда</label><select id="f_from">'+accOpts(d.from)+'</select></div><div class="f"><label for="f_to">Куда</label><select id="f_to">'+accOpts(d.to)+'</select></div></div>'+
-     '<div class="f"><label for="f_note">Заметка</label><input id="f_note" value="'+esc(d.note||'')+'" placeholder="Например: отложено с аванса"></div>'+
+     '<div class="f"><input id="f_note" aria-label="Заметка" value="'+esc(d.note||'')+'" placeholder="Заметка: например, отложено с аванса"></div>'+
      (S.accounts.length<2?'<p class="fine">Для этого нужна хотя бы одна копилка. Заведи её на главном экране.</p>':'');
   }else{
-    body='<div class="f"><label for="f_note">'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'</label><input id="f_note" value="'+esc(d.note||'')+'" placeholder="'+(isE?'Например: Пятёрочка, такси домой':(d.cat==='refund'?'Например: половина за продукты, возврат за заказ':'Например: аванс, подработка, подарок'))+'"></div>'+
+    body='<div class="f"><input id="f_note" aria-label="'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'" value="'+esc(d.note||'')+'" placeholder="'+(isE?'На что: Пятёрочка, такси домой':(d.cat==='refund'?'Что вернули: половина за продукты':'Откуда: аванс, подработка, подарок'))+'"></div>'+
      (d.type==='i'&&d.cat==='refund'?'<p class="fine">Возврат уменьшает траты за месяц: например, половина за общие покупки, возврат за заказ, кэшбэк.</p>'+forSelect(d):'<div class="f cbx"><label for="f_catq">Категория</label><input id="f_catq" type="text" autocomplete="off" enterkeyhint="done" placeholder="Выбери или начни вводить" value="'+esc(d.cat&&CMAP[d.cat]?CMAP[d.cat].name:'')+'"><div id="f_catl" class="catl" data-nosw="1" hidden></div><select id="f_cat" hidden tabindex="-1">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+NEWCAT+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не удалось определить по заметке. Выберите категорию, в следующий раз запомню.')+'</span></div>')+
      (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">— не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'');
     accH=(isE&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'})?'<div class="f"><label for="f_acc">'+(S.simple?'Со счёта':'Чем оплачено')+'</label><select id="f_acc">'+srcOpts(d.acc)+'</select><span class="fine" id="f_fh"'+(d.fund?'':' hidden')+'>'+(d.fund?'Копилка найдена по заметке. Можно поменять.':'')+'</span></div>':'');
@@ -2821,8 +2824,9 @@ function entrySheet(){
   var qk='';
   if(!sh.id&&!isT){
     var ql=quickLists(d.type);if(d.type==='i'){var rf=d.cat==='refund';ql.notes=ql.notes.filter(function(q){return (q.cat==='refund')===rf});ql.cats=rf?[]:ql.cats.filter(function(c){return c!=='refund'})}sh.q=ql.notes;
-    if(ql.notes.length)qk+='<div class="f"><label>Часто</label><div class="btns hs" data-nosw="1">'+ql.notes.map(function(q,i){return '<button type="button" class="btn ghost sm" style="flex:none" data-a="quick" data-i="'+i+'">'+esc(q.note.length>16?q.note.slice(0,15)+'…':q.note)+'</button>'}).join('')+'</div></div>';
-    if(ql.cats.length)qk+='<div class="f"><label>Частые категории</label><div class="btns hs" data-nosw="1">'+ql.cats.map(function(c){return '<button type="button" class="btn sm'+(d.cat===c?'':' ghost')+'" style="flex:none" data-a="qcat" data-v="'+c+'">'+esc((CMAP[c]||CMAP.other).name)+'</button>'}).join('')+'</div></div>';
+    var qb=ql.notes.map(function(q,i){return '<button type="button" class="btn ghost sm" style="flex:none" data-a="quick" data-i="'+i+'">'+esc(q.note.length>16?q.note.slice(0,15)+'…':q.note)+'</button>'}).join('')+
+      ql.cats.map(function(c){return '<button type="button" class="btn sm qc'+(d.cat===c?' on':'')+'" style="flex:none" data-a="qcat" data-v="'+c+'"><span class="dot" style="background:'+(CMAP[c]||CMAP.other).color+'"></span>'+esc((CMAP[c]||CMAP.other).name)+'</button>'}).join('');
+    if(qb)qk='<div class="f"><label>Часто</label><div class="btns hs" data-nosw="1">'+qb+'</div></div>';
   }
   var dSeg=dateSeg(d.date);
   var modeH=isT?'':'<div class="f"><label for="f_mode">Как учесть</label><select id="f_mode">'+MODES.map(function(m){return '<option value="'+m[0]+'"'+(entryMode(d)===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select><span class="fine" id="f_modeh">'+MODEH[entryMode(d)]+'</span></div>';
@@ -2832,7 +2836,7 @@ function entrySheet(){
   openSheet('<h3>'+(sh.id?'Запись':'Новая запись')+'</h3>'+
    '<div class="seg">'+segs+'</div>'+
    '<form id="fm" class="f ent" style="gap:10px" autocomplete="off">'+
-   '<div class="f"><label for="f_amt">Сумма, ₽</label><input id="f_amt" class="amount" inputmode="decimal" placeholder="0" value="'+(d.amt||'')+'">'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
+   '<div class="f"><input id="f_amt" class="amount" aria-label="Сумма, ₽" inputmode="decimal" placeholder="0 ₽" value="'+(d.amt||'')+'">'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+
    '<div class="f"><label>Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'" hidden><div class="seg" id="f_dseg">'+dSeg+'</div></div>'+

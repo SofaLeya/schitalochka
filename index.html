@@ -1504,11 +1504,13 @@ function isPayDay(d){var ym=d.slice(0,7),nx=nextYM(ym,1);return payDays().some(f
 function nextPayDates(n){ // ближайшие даты выплат с учётом выходных
   var ym=T.slice(0,7),out=[];for(var k=0;k<3;k++){var m=nextYM(ym,k);payDays().forEach(function(x){var d=payDate(m,x);if(d>=T&&out.indexOf(d)<0)out.push(d)})}
   return out.sort().slice(0,n)}
-function balanceBefore(d){ // «Свободные деньги» на начало дня d: без записей самого дня (в том числе без зарплаты, пришедшей сегодня)
-  var b=0;S.accounts.forEach(function(a){if(a.type!=='main')return;b+=(+a.start||0)+accAdj(a,d,false);
-    S.entries.forEach(function(x){if(x.date>=d||x.hist||x.nobal)return;
-      if(x.type==='t'){if(x.from===a.id)b-=x.amt;if(x.to===a.id)b+=x.amt}
-      else if(accOf(x)===a.id)b+=x.type==='i'?x.amt:-x.amt})});
+function balanceBefore(d){ // «Свободные деньги» на начало дня d. Считается назад от сегодняшнего остатка по всем записям,
+  // включая загруженные из выписки (они уже сидят в остатке) - так прошлые месяцы не зависят от стартовой суммы и старых поправок
+  var b=0;S.accounts.forEach(function(a){if(a.type!=='main')return;b+=accBal(a);
+    (a.adj||[]).forEach(function(x){if(x.date>=d&&x.date<=T)b-=+x.amt||0});
+    S.entries.forEach(function(x){if(x.date<d||x.date>T||x.nobal||x.demo&&!S.demo)return;
+      if(x.type==='t'){if(x.from===a.id)b+=x.amt;if(x.to===a.id)b-=x.amt}
+      else if(accOf(x)===a.id)b-=x.type==='i'?x.amt:-x.amt})});
   return b}
 function payPraise(){
   if(S.demo||!isPayDay(T))return null;
@@ -1843,7 +1845,7 @@ function reviewCard(){
     '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
   (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
     H+='<div class="row" style="padding:10px 2px 2px"><div class="grow"><div class="t">Свободные деньги</div><div class="s">'+money(b0)+' на 1 '+MONTHS_G[+ym.slice(5,7)-1]+' → '+money(b1)+(cur?' сейчас':' на конец месяца')+'</div></div><span class="amt" style="color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</span>'+tipBtn('rvbal')+'</div>'+
-      tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Поправки остатка теперь считаются с того дня, когда их сделали. Старые поправки (до 13 ноября 2026) записаны без даты, поэтому сдвигают и прошлые месяцы.')})();
+      tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Считается назад от сегодняшнего остатка по всем записям, в том числе загруженным из выписки. Если какой-то траты или поступления не хватает в записях, цифра на начало месяца сдвинется на эту сумму.')})();
   /* 2. категории */
   var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});
   var ch=Object.keys(keys).map(function(kk){var c=curCat[kk]||0,b=baseCat[kk]||0;return {k:kk,c:c,b:b,df:c-b}});

@@ -1504,6 +1504,19 @@ function isPayDay(d){var ym=d.slice(0,7),nx=nextYM(ym,1);return payDays().some(f
 function nextPayDates(n){ // ближайшие даты выплат с учётом выходных
   var ym=T.slice(0,7),out=[];for(var k=0;k<3;k++){var m=nextYM(ym,k);payDays().forEach(function(x){var d=payDate(m,x);if(d>=T&&out.indexOf(d)<0)out.push(d)})}
   return out.sort().slice(0,n)}
+/* поправка остатка на начало месяца: сегодняшний остаток не меняется, разница записывается поправкой на 1-е число */
+function msAdjSum(ym){var d=ym+'-01',t=0;S.accounts.forEach(function(a){if(a.type==='main')(a.adj||[]).forEach(function(x){if(x.ms&&x.date===d)t+=+x.amt||0})});return t}
+function msFixSheet(){var ym=sh.ym,mi=+ym.slice(5,7)-1,b0=balanceBefore(ym+'-01');
+  openSheet('<h3>Остаток на 1 '+MONTHS_G[mi]+'</h3><div class="f" style="gap:12px"><p class="fine" style="margin:0">Сейчас приложение считает, что на 1 '+MONTHS_G[mi]+' было '+money(b0)+'. Если было по-другому, впиши, сколько. Сегодняшний остаток не изменится, а разница запишется поправкой на 1 '+MONTHS_G[mi]+' и будет видна в «Разборе месяца».</p>'+
+   '<div class="f"><label for="ms_v">Было на 1 '+MONTHS_G[mi]+', ₽</label><input id="ms_v" inputmode="decimal" value="'+Math.round(b0)+'" style="background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px"></div>'+
+   '<p class="fine" id="f_err" style="color:var(--out);margin:0" hidden></p><div class="btns"><button type="button" class="btn" data-a="msFixSave">Сохранить</button>'+(Math.abs(msAdjSum(ym))>=0.5?'<button type="button" class="btn ghost" data-a="msFixDel">Убрать поправку</button>':'')+'</div><button type="button" class="btn ghost sm" data-a="close">Отмена</button></div>')}
+function msFixApply(ym,delta){ // delta: на сколько уменьшить остаток на начало месяца
+  var a=accById(defAcc());if(!a||Math.abs(delta)<0.005)return;var d=ym+'-01';
+  a.start=(+a.start||0)-delta;a.adj=(a.adj||[]).slice();
+  var ex=a.adj.filter(function(x){return x.ms&&x.date===d})[0];
+  if(ex){ex.amt=Math.round(((+ex.amt||0)+delta)*100)/100;if(Math.abs(ex.amt)<0.005)a.adj=a.adj.filter(function(x){return x!==ex})}
+  else a.adj.push({date:d,amt:Math.round(delta*100)/100,ms:true});
+  save();closeSheet();render()}
 function balanceBefore(d){ // «Свободные деньги» на начало дня d. Считается назад от сегодняшнего остатка по всем записям,
   // включая загруженные из выписки (они уже сидят в остатке) - так прошлые месяцы не зависят от стартовой суммы и старых поправок
   var b=0;S.accounts.forEach(function(a){if(a.type!=='main')return;b+=accBal(a);
@@ -1843,8 +1856,8 @@ function reviewCard(){
     '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:26px;line-height:1.1">'+(cur?'≈ ':'')+money(ref0)+'</b>'+(chip?'<span style="font-weight:700;font-size:14px;color:'+chipCol+'">'+chip+'</span>':'')+'</div>'+
     bar+tipBox('rvtop',det.join(' '))+
     '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
-  (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
-    H+='<div class="row" style="padding:10px 2px 2px"><div class="grow"><div class="t">Свободные деньги</div><div class="s">'+money(b0)+' на 1 '+MONTHS_G[+ym.slice(5,7)-1]+' → '+money(b1)+(cur?' сейчас':' на конец месяца')+'</div></div><span class="amt" style="color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</span>'+tipBtn('rvbal')+'</div>'+
+  (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0,fx=msAdjSum(ym);
+    H+='<div class="row" style="padding:10px 2px 2px"><div class="grow"><div class="t">Свободные деньги</div><div class="s">'+money(b0)+' на 1 '+MONTHS_G[+ym.slice(5,7)-1]+' → '+money(b1)+(cur?' сейчас':' на конец месяца')+(Math.abs(fx)>=0.5?' · в т.ч. поправка '+(fx>0?'+':'−')+money(Math.abs(fx)):'')+'</div><button type="button" class="link" data-a="msFix" data-v="'+ym+'" style="background:none;border:0;padding:4px 0 0;color:var(--accent);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer">поправить на начало месяца</button></div><span class="amt" style="color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</span>'+tipBtn('rvbal')+'</div>'+
       tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Считается назад от сегодняшнего остатка по всем записям, в том числе загруженным из выписки. Если какой-то траты или поступления не хватает в записях, цифра на начало месяца сдвинется на эту сумму.')})();
   /* 2. категории */
   var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});
@@ -3259,6 +3272,9 @@ document.addEventListener('click',function(ev){
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
   else if(a==='splitDrop'){var sy=S.entries.filter(function(e){return e.id===id})[0];if(sy){sy.splitDone='no';save();render()}}
   else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
+  else if(a==='msFix'){sh={ms:true,ym:v};msFixSheet()}
+  else if(a==='msFixSave'){var mv=num(document.getElementById('ms_v').value);if(!isFinite(mv))showErr('Впиши сумму числом.');else{msFixApply(sh.ym,balanceBefore(sh.ym+'-01')-mv);toast('Остаток на начало месяца поправлен')}}
+  else if(a==='msFixDel'){msFixApply(sh.ym,-msAdjSum(sh.ym));toast('Поправка убрана')}
   else if(a==='climEdit'){sh={clim:true,cat:v||''};climSheet()}
   else if(a==='climStep'){var ci=document.getElementById('cl_v');if(ci){var cv=num(ci.value);ci.value=Math.max(0,Math.round((isFinite(cv)?cv:0)+(+v)))||''}}
   else if(a==='climSave'){climSave(v)}

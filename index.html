@@ -583,8 +583,11 @@ function migrate(o){
 function accById(id){for(var i=0;i<S.accounts.length;i++)if(S.accounts[i].id===id)return S.accounts[i];return null}
 function defAcc(){var m=S.accounts.filter(function(a){return a.type==='main'})[0];return (m||S.accounts[0]).id}
 function accOf(x){return x.acc&&accById(x.acc)?x.acc:defAcc()}
+/* поправки остатка с датой: прошлые месяцы не переписываются задним числом */
+function accAdj(a,d,incl){return (a.adj||[]).reduce(function(s,x){return s+((incl?x.date<=d:x.date<d)?+x.amt||0:0)},0)}
+function addAdj(a,dlt){dlt=Math.round(dlt*100)/100;if(Math.abs(dlt)<0.005)return;var hasE=S.entries.some(function(x){return !x.hist&&!x.nobal&&(x.type==='t'?(x.from===a.id||x.to===a.id):accOf(x)===a.id)});if(!hasE&&!(a.adj||[]).length){a.start=(+a.start||0)+dlt;return}a.adj=(a.adj||[]).concat([{date:T,amt:dlt}])}
 function accBal(a){
-  var b=+a.start||0;
+  var b=(+a.start||0)+accAdj(a,T,true);
   S.entries.forEach(function(x){
     if(x.date>T||x.hist||x.nobal)return;
     if(x.type==='t'){if(x.from===a.id)b-=x.amt;if(x.to===a.id)b+=x.amt}
@@ -1502,7 +1505,7 @@ function nextPayDates(n){ // ближайшие даты выплат с учё�
   var ym=T.slice(0,7),out=[];for(var k=0;k<3;k++){var m=nextYM(ym,k);payDays().forEach(function(x){var d=payDate(m,x);if(d>=T&&out.indexOf(d)<0)out.push(d)})}
   return out.sort().slice(0,n)}
 function balanceBefore(d){ // «Свободные деньги» на начало дня d: без записей самого дня (в том числе без зарплаты, пришедшей сегодня)
-  var b=0;S.accounts.forEach(function(a){if(a.type!=='main')return;b+=+a.start||0;
+  var b=0;S.accounts.forEach(function(a){if(a.type!=='main')return;b+=(+a.start||0)+accAdj(a,d,false);
     S.entries.forEach(function(x){if(x.date>=d||x.hist||x.nobal)return;
       if(x.type==='t'){if(x.from===a.id)b-=x.amt;if(x.to===a.id)b+=x.amt}
       else if(accOf(x)===a.id)b+=x.type==='i'?x.amt:-x.amt})});
@@ -1810,8 +1813,8 @@ function reviewCard(){
   var lim=dayLimit(),planM=lim*n,ref0=cur?fc:spent;
   var cls=lim>0?(ref0>planM*1.1?'warn':ref0<planM*0.95?'good':'info'):(base&&ref0>base*1.1?'warn':base&&ref0<base*0.95?'good':'info');
   var chip='';
-  if(lim>0){var dp=ref0-planM;chip=Math.abs(dp)<planM*0.03?'ровно в плане':dp>0?'+'+money(dp)+' к плану':'−'+money(-dp)+' к плану'}
-  else if(base){var db=ref0-base;chip=Math.abs(db)<base*0.05?'как обычно':(db>0?'+':'−')+money(Math.abs(db))+' к обычному'}
+  if(lim>0){var dp=ref0-planM;chip=Math.abs(dp)<planM*0.03?'ровно в плане':dp>0?'на '+money(dp)+' больше плана':'на '+money(-dp)+' меньше плана'}
+  else if(base){var db=ref0-base;chip=Math.abs(db)<base*0.05?'как обычно':'на '+money(Math.abs(db))+(db>0?' больше':' меньше')+' обычного'}
   var chipCol=cls==='warn'?'var(--out)':cls==='good'?'var(--in)':'var(--muted)';
   var scale=Math.max(planM||0,ref0,1)*1.05,bar='';
   if(lim>0||cur){
@@ -1838,6 +1841,9 @@ function reviewCard(){
     '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:26px;line-height:1.1">'+(cur?'≈ ':'')+money(ref0)+'</b>'+(chip?'<span style="font-weight:700;font-size:14px;color:'+chipCol+'">'+chip+'</span>':'')+'</div>'+
     bar+tipBox('rvtop',det.join(' '))+
     '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
+  (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
+    H+='<div class="row" style="padding:10px 2px 2px"><div class="grow"><div class="t">Свободные деньги</div><div class="s">'+money(b0)+' на 1 '+MONTHS_G[+ym.slice(5,7)-1]+' → '+money(b1)+(cur?' сейчас':' на конец месяца')+'</div></div><span class="amt" style="color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</span>'+tipBtn('rvbal')+'</div>'+
+      tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Поправки остатка теперь считаются с того дня, когда их сделали. Старые поправки (до 13 ноября 2026) записаны без даты, поэтому сдвигают и прошлые месяцы.')})();
   /* 2. категории */
   var keys={};Object.keys(curCat).concat(Object.keys(baseCat)).forEach(function(kk){keys[kk]=1});
   var ch=Object.keys(keys).map(function(kk){var c=curCat[kk]||0,b=baseCat[kk]||0;return {k:kk,c:c,b:b,df:c-b}});
@@ -3217,7 +3223,7 @@ document.addEventListener('click',function(ev){
   else if(a==='editRule'){var ru=S.rules.filter(function(x){return x.id===id})[0];if(ru){sh={ru:true,id:id,d:{name:ru.name,amt:ru.amt,day:ru.day,acc:ru.acc}};ruleSheet()}}
   else if(a==='delRule'){S.rules=S.rules.filter(function(x){return x.id!==sh.id});save();closeSheet();render()}
   else if(a==='recon'){sh={rc:true};reconSheet()}
-  else if(a==='fixBal'){var fa=accById(id);if(fa){fa.start=(+fa.start||0)+parseFloat(k);save();reconSheet();render()}}
+  else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
   else if(a==='settings'){sh={confirm:false};settingsSheet()}
   else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){sh={sp:true,id:sx.id};
     openSheet('<h3>Сколько вернули?</h3><p class="fine">'+esc(sx.note||(CMAP[sx.cat]||CMAP.other).name)+' · трата '+money(sx.amt)+', ждали '+money(sx.split)+'</p><div class="f"><label for="f_spgot">Пришло, ₽</label><input id="f_spgot" inputmode="decimal" value="'+String(sx.split).replace('.',',')+'"><span class="fine">Можно больше или меньше, чем ждали.</span></div><p class="fine" id="f_sperr" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="splitSave">Записать</button></div>')}}
@@ -3555,7 +3561,7 @@ document.addEventListener('submit',function(ev){
     var val=ad.type==='debt'?-Math.abs(sv):sv,next=S.accounts.map(function(a){return a});
     var gl=ad.type==='save'&&ad.goal?num(ad.goal):0;if(ad.goal&&ad.type==='save'&&!(gl>0))return showErr('Цель — сумма числом.');
     var mo=ad.type==='save'&&ad.monthly?num(ad.monthly):0;if(ad.monthly&&ad.type==='save'&&!(mo>0))return showErr('«Откладываю в месяц» — сумма числом.');
-    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:val-(accBal(a)-(+a.start||0))};if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
+    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(a.adj)o.adj=a.adj.slice();addAdj(o,val-accBal(a));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
     if(!next.some(function(a){return a.type==='main'}))return showErr('Должны остаться свободные деньги.');
     S.accounts=next;save();closeSheet();render();toast('Остаток сохранён');
   }else if(document.getElementById('s_lim')){

@@ -1861,7 +1861,7 @@ function reviewCard(){
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
       '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1">Свободные деньги</b><b style="font-size:17px;color:'+(dd>=0?'var(--in)':'var(--out)')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b>'+tipBtn('rvbal')+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+
-      (Math.abs(fx)>=0.5?'<span class="fine" style="font-size:12px">в т.ч. поправка '+(fx>0?'+':'−')+money(Math.abs(fx))+' на 1 '+mg+'</span>':'')+
+      (Math.abs(fx)>=0.5?'<span class="fine" style="font-size:12px">Вписано вручную: '+money(b0)+'. По записям выходило '+money(b0+fx)+'.'+' Разница '+money(Math.abs(fx))+' - ручная поправка, её нет в записях.</span>':'')+
       '<button type="button" class="btn ghost sm" style="background:transparent;border:1.5px solid var(--accent);color:var(--accent)" data-a="msFix" data-v="'+ym+'">'+(Math.abs(fx)>=0.5?'Изменить':'Поправить')+' остаток на 1 '+mg+'</button>'+
       tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Считается назад от сегодняшнего остатка по всем записям, в том числе загруженным из выписки. Если какой-то траты или поступления не хватает в записях, цифра на начало месяца сдвинется на эту сумму.')+'</div>'})();
   /* 2. категории */

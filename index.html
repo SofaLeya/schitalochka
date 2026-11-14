@@ -236,10 +236,12 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .cheer .tabs{background:var(--surface)}
 .cheer .tabs .plus{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff}
 .cheer .btn{font-weight:800}
-.card.monster{flex-direction:row;align-items:flex-start;gap:12px}
-.monster .mbox{flex:none;width:96px;height:96px}
-.monster .mt{display:flex;flex-direction:column;gap:4px;min-width:0}
-.monster .mt b{font-size:15px}
+.card.monster{flex-direction:column;align-items:stretch;gap:8px}
+.monster .mbox{flex:none;align-self:center;width:132px;height:132px}
+.monster .mt{display:flex;flex-direction:column;gap:6px;min-width:0}
+.monster .mt b{font-size:15px;justify-content:center!important;gap:10px!important}
+.monster .mt .fine{text-align:center}
+.monster .mt .btns{align-self:center!important}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
 @media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
@@ -297,6 +299,8 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .mopt{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface);border:2px solid transparent;border-radius:16px;padding:10px 6px;text-align:center}
 .mopt.on{border-color:var(--accent);background:var(--surface2)}
 .mopt .mpic{width:84px;height:84px;display:block}
+.mopt .msw{display:flex;gap:4px;margin:2px 0 1px}
+.mopt .msw i{display:block;width:16px;height:16px;border-radius:50%;border:1px solid rgba(128,128,128,.4)}
 button.mbox{padding:0;border:0;background:none}
 </style>
 
@@ -678,12 +682,14 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-14a';
+var APP_VER='2026-11-15a';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['«Платежи» разделены на две вкладки: «Месяц» - что отметить и что скоро, «План» - доходы, платежи, лимиты и всё про план.',
+var NEWS=['Монстрик на главной стал крупнее и теперь стоит по центру карточки.',
+ 'В выборе монстрика под каждым персонажем видны три цвета: так заранее понятно, как будет выглядеть приложение.'];
+var NEWS_OLD=['«Платежи» разделены на две вкладки: «Месяц» - что отметить и что скоро, «План» - доходы, платежи, лимиты и всё про план.',
  '«В день» на главной теперь называется «В среднем» - это средние траты за месяц. Сколько можно тратить, показывает «До зарплаты».',
- 'В «Анализе» у категорий видно, какая это доля всех трат, а «Выгрузка» переехала вниз.'];
-var NEWS_OLD=['Полный режим: в «Платежах» появился «План по категориям». Лимиты делят деньги на жизнь, по ходу месяца их можно менять только на этот месяц или насовсем и перекидывать из одной категории в другую.',
+ 'В «Анализе» у категорий видно, какая это доля всех трат, а «Выгрузка» переехала вниз.',
+'Полный режим: в «Платежах» появился «План по категориям». Лимиты делят деньги на жизнь, по ходу месяца их можно менять только на этот месяц или насовсем и перекидывать из одной категории в другую.',
  'Если ждёшь возврат («Делю с кем-то»), монстрик напоминает о нём вместо своей фразы, там же кнопка «Пришло».',
  'Запись стала короче: категория в одном поле, дата кнопками «Сегодня / Вчера», а «Чем оплачено» и «Как учесть» спрятаны в «Ещё».',
  '«Платежи»: сверху сводка месяца, при «Потрачено» можно вписать настоящую сумму, зарплата в выходной сдвигается на рабочий день, а неотмеченное за прошлый месяц можно отметить.',
@@ -1155,6 +1161,10 @@ function petTheme(){var k=S&&S.pet&&S.pet.theme;return k&&PTHEME[k]?k:petKind()}
 function paintBars(){try{var c=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#14111c',m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',c);if(window.AndroidApp&&AndroidApp.setBars)AndroidApp.setBars(c)}catch(e){}}
 function previewPetTheme(){try{var k=sh&&sh.d&&(sh.d.theme||sh.d.kind);if(k&&PTHEME[k]){document.documentElement.setAttribute('data-pet',k);paintBars()}}catch(e){}}
 function themeDot(k){var p=PTHEME[k]||{h:260,s:60};return (p.ov&&p.ov.hero1)||hsl(p.h,p.s*.8,50)}
+/* три кружка под карточкой монстрика: главный цвет, второй цвет и акцент (как в светлой теме приложения) */
+function themeSwatch(k){var p=PTHEME[k];if(!p)return '';var la=p.la||46,o=p.ov||{},
+  c=[o.hero1||(p.hl?hsl(p.h,p.s*.75,62):hsl(p.h,p.s,la+2)),o.hero2||(p.hl?hsl(p.h2,p.s*.85,78):hsl(p.h2,p.s,66)),o.accent||hsl(p.h,p.s,la)];
+  return '<span class="msw" aria-hidden="true">'+c.map(function(x){return '<i style="background:'+x+'"></i>'}).join('')+'</span>'}
 function applyPetTheme(){
   try{var r=document.documentElement,k=petTheme(),pk=PTHEME[k]?k:'';
     if(!document.getElementById('petcss')){var g=(getComputedStyle(r).getPropertyValue('--graf')||'').trim(),st=document.createElement('style');st.id='petcss';st.textContent=petThemeCss(g);document.head.appendChild(st)}
@@ -1489,7 +1499,7 @@ function petSheet(){
    '<button type="button" data-a="petTheme" data-v="" class="btn sm '+(d.theme?'ghost':'')+'" style="'+chip+'">'+(d.theme?'':'✓ ')+'Как у монстрика</button>'+
    VM.filter(function(m){return PTHEME[m.id]}).map(function(m){var on=d.theme===m.id;return '<button type="button" data-a="petTheme" data-v="'+m.id+'" class="btn sm '+(on?'':'ghost')+'" style="'+chip+'"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+themeDot(m.id)+';margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.5)"></span>'+m.name+'</button>'}).join('')+'</div></details>';
   openSheet('<h3>Твой монстрик</h3><form id="fm" class="f" style="gap:12px" autocomplete="off"><div class="f"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>'+colors+
-   '<div class="mgrid">'+VM.map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b><span class="fine">'+m.about+'</span></button>'}).join('')+'</div>'+
+   '<div class="mgrid">'+VM.map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id)+'</span><b>'+m.name+'</b>'+themeSwatch(m.id)+'<span class="fine">'+m.about+'</span></button>'}).join('')+'</div>'+
    '<div class="btns" style="position:sticky;bottom:calc(-18px - env(safe-area-inset-bottom,0px));background:var(--bg);padding:10px 0 calc(8px + env(safe-area-inset-bottom,0px));margin-bottom:calc(-8px - env(safe-area-inset-bottom,0px))"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div></form>');
   try{var sc2=document.querySelector('#ov .sheet');if(sc2&&st)sc2.scrollTop=st}catch(e){}
 }
@@ -1612,7 +1622,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,96,null,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика">'+monster(mood,132,null,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'</button><div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));

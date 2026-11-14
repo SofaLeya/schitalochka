@@ -367,7 +367,16 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .ohue.on{border-color:var(--ink)}
 .mopt .msw{display:flex;gap:4px;margin:2px 0 1px}
 .mopt .msw i{display:block;width:16px;height:16px;border-radius:50%;border:1px solid rgba(128,128,128,.4)}
-button.mbox{padding:0;border:0;background:none}
+button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:transparent}
+.rxh{position:absolute;left:50%;top:18%;z-index:3;pointer-events:none;font-size:26px;font-weight:900;color:#ff6fa5;-webkit-text-stroke:3px #2b1a3f;paint-order:stroke fill;font-family:sans-serif}
+@media (prefers-reduced-motion:no-preference){
+.mbox.rx1{animation:rxsq .55s ease-out}.mbox.rx2{animation:rxhop .75s ease-in-out}.mbox.rx3{animation:rxwob .9s ease-in-out}.mbox.rx4{animation:rxspin 1s ease-in-out}
+.rxh{animation:rxup 1.1s ease-out forwards}
+@keyframes rxsq{0%{transform:scale(1,1)}25%{transform:scale(1.14,.82)}55%{transform:scale(.93,1.1)}80%{transform:scale(1.03,.98)}100%{transform:scale(1,1)}}
+@keyframes rxhop{0%,100%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.1,.88)}40%{transform:translateY(-22px) scale(.95,1.07)}65%{transform:translateY(0) scale(1.08,.9)}80%{transform:translateY(-5px)}}
+@keyframes rxwob{0%,100%{transform:rotate(0)}15%{transform:rotate(-12deg)}35%{transform:rotate(10deg)}55%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
+@keyframes rxspin{0%{transform:rotate(0) scale(1)}40%{transform:rotate(200deg) scale(.9) translateY(-10px)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes rxup{0%{transform:translate(-50%,6px) scale(.5);opacity:0}20%{opacity:1;transform:translate(-50%,-4px) scale(1.1)}100%{transform:translate(-50%,-44px) scale(1);opacity:0}}}
 </style>
 
 <div id="app"></div>
@@ -1255,7 +1264,7 @@ function itemOpen(it,L){return it.season?inSeason():(it.lv==null||L>=it.lv)}
 function itemLock(it){return it.season?'Зимняя шапка доступна с декабря до 20 января':'Откроется на '+it.lv+' уровне'}
 function petSize(){var z=S&&S.pet&&S.pet.size;return PSIZES.some(function(x){return x.id===z})?z:'m'}
 function headAnchor(kind,hd){var tp=TOPP[kind]||[70,28,1,0];if(SMALLH[hd]&&EARP[kind])tp=EARP[kind];return tp}
-function petBgOp(){var o=S&&S.pet&&+S.pet.bgo;return o>=20&&o<=100?o/100:1}
+function petBgOp(){var o=S&&S.pet&&S.pet.bgo!=null?+S.pet.bgo:NaN;return o>=0&&o<=100?o/100:1}
 function petBgOn(){return !(S&&S.pet&&S.pet.bg===0)}
 var BGKEY='podkopka-bgimg';
 function bgImg(){try{return localStorage.getItem(BGKEY)||''}catch(e){return ''}}
@@ -1741,7 +1750,7 @@ function petSheet(){
     body='<span class="fine">Размер на главной</span><div class="otiles">'+PSIZES.map(function(z){return '<button type="button" class="otile'+(d.size===z.id?' on':'')+'" data-a="petSize" data-v="'+z.id+'"><span class="pm" style="display:flex;align-items:flex-end;justify-content:center">'+monster('happy',z.px*.6,d.kind,undefined,undefined,look)+'</span><span>'+z.name+'</span></button>'}).join('')+'</div>'+
      '<span class="fine" style="margin-top:6px">Фон за монстриком</span><div class="otiles">'+
      [[1,'Авто',bgSvg(SCENE)],['sun','Солнце',bgSvg('sun')],['cloud','Облака',bgSvg('cloud')],['rain','Дождь',bgSvg('rain')],['dusk','Закат',bgSvg('dusk')],['night','Ночь',bgSvg('night')],['snow','Снег',bgSvg('snow')],[2,'Космос',bgSvg('space')],[3,'Своя',curImg?'<img alt="" src="'+curImg+'" style="width:100%;height:100%;object-fit:cover">':'<span style="display:flex;height:100%;align-items:center;justify-content:center;font-size:22px">🖼</span>'],[0,'Без фона','']].map(function(o){return '<button type="button" class="otile'+(d.bg===o[0]?' on':'')+'" data-a="'+(o[0]===3&&!curImg?'petBgPick':'petBg')+'" data-v="'+o[0]+'"><span class="bgp"'+(o[0]?'':' style="background:var(--surface)"')+'>'+o[2]+'</span><span>'+o[1]+'</span></button>'}).join('')+'</div>'+
-     (d.bg?'<label class="fine" for="pl_bo" style="align-self:stretch;font-weight:600">Яркость фона: <b id="pl_bov">'+Math.round(d.bgo||100)+'%</b></label><input type="range" id="pl_bo" min="20" max="100" step="5" value="'+Math.round(d.bgo||100)+'" style="align-self:stretch">':'')+
+     (d.bg?'<label class="fine" for="pl_bo" style="align-self:stretch;font-weight:600">Прозрачность фона: <b id="pl_bov">'+(100-Math.round(d.bgo==null?100:d.bgo))+'%</b></label><input type="range" id="pl_bo" min="0" max="100" step="5" value="'+(100-Math.round(d.bgo==null?100:d.bgo))+'" style="align-self:stretch">':'')+
      '<input type="file" id="pet_bgfile" accept="image/*" hidden>'+(curImg?'<button type="button" class="btn ghost sm" data-a="petBgPick" style="align-self:flex-start">Выбрать другую картинку</button>':'')+
      '<span class="fine">"Авто" сам меняет фон: ночью звёзды, в плохом настроении дождь, зимой снег. Любой фон можно закрепить. Своя картинка хранится только на этом устройстве.</span>'+
      '<span class="fine" style="margin-top:10px;font-weight:600">Цвет монстрика и приложения</span>'+'<div class="otiles">'+HUES.map(function(h,i){return '<button type="button" class="otile'+(look.hue===h?' on':'')+'" data-a="petHue" data-v="'+h+'"><span class="pm">'+monster('happy',60,d.kind,undefined,undefined,{acc:[],hue:h})+'</span><span>'+(h?'Оттенок '+i:'Родной')+'</span></button>'}).join('')+'</div>'+
@@ -1752,7 +1761,7 @@ function petSheet(){
   var tabs=[['kind','Монстрик'],['outfit','Наряд'],['view','Вид']];
   var pv=PSIZES.filter(function(x){return x.id===d.size})[0]||PSIZES[1];
   openSheet('<h3>Твой монстрик</h3><form id="fm" class="f" style="gap:12px" autocomplete="off">'+
-   '<div class="pstick"><div style="display:flex;gap:12px;align-items:center"><span id="pvbox" style="flex:none;width:92px;height:92px;border-radius:16px;overflow:hidden;position:relative;display:block"><span id="pvbg" style="position:absolute;inset:0;display:block;opacity:'+((d.bgo||100)/100)+'">'+bgHtml(d.bg,curImg,SCENE)+'</span>'+'<span id="pvm" style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center">'+monster('happy',88,d.kind,undefined,undefined,look)+'</span></span><div class="f" style="flex:1;min-width:0"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div></div>'+(lockIt?'<span class="fine" style="color:var(--accent);font-weight:600">'+esc(lockIt.name)+': '+esc(itemLock(lockIt))+'. Пока можно только примерить, сохранить нельзя.</span>':'')+'</div>'+
+   '<div class="pstick"><div style="display:flex;gap:12px;align-items:center"><span id="pvbox" style="flex:none;width:92px;height:92px;border-radius:16px;overflow:hidden;position:relative;display:block"><span id="pvbg" style="position:absolute;inset:0;display:block;opacity:'+((d.bgo==null?100:d.bgo)/100)+'">'+bgHtml(d.bg,curImg,SCENE)+'</span>'+'<span id="pvm" style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center">'+monster('happy',88,d.kind,undefined,undefined,look)+'</span></span><div class="f" style="flex:1;min-width:0"><label for="p_name">Как его зовут</label><input id="p_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div></div>'+(lockIt?'<span class="fine" style="color:var(--accent);font-weight:600">'+esc(lockIt.name)+': '+esc(itemLock(lockIt))+'. Пока можно только примерить, сохранить нельзя.</span>':'')+'</div>'+
    '<div class="ptabs" role="tablist">'+tabs.map(function(t){return '<button type="button" role="tab" class="'+(sh.tab===t[0]?'on':'')+'" data-a="petTab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
    body+
    '<div class="btns" style="position:sticky;bottom:calc(-18px - env(safe-area-inset-bottom,0px));background:var(--bg);padding:10px 0 calc(8px + env(safe-area-inset-bottom,0px));margin-bottom:calc(-8px - env(safe-area-inset-bottom,0px))"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn"'+(lockIt?' disabled style="opacity:.45"':'')+'>Сохранить</button></div></form>');
@@ -1822,7 +1831,7 @@ function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.dem
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
-  return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc)+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
+  return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc)+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
@@ -3386,7 +3395,7 @@ function plSet(e){var b=document.getElementById('plbox');if(!b||!sh||!sh.pt)retu
   if(accIsHead(it.id)){var tp=headAnchor(sh.d.kind,it.id);it.x=cl(px-tp[0]);it.y=cl(py+8*(it.s||1)-tp[1])}
   else{var fe=EYEG[sh.d.kind]||EYEG.puff,fcx=fe[0].reduce(function(a,b){return a+b},0)/fe[0].length;it.x=cl(px-fcx);it.y=cl(py-fe[1])}
   plRender()}
-document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='pl_bo'&&sh&&sh.pt){sh.d.bgo=+t.value;var lb=document.getElementById('pl_bov');if(lb)lb.textContent=t.value+'%';var pb=document.getElementById('pvbg');if(pb)pb.style.opacity=t.value/100;return}
+document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='pl_bo'&&sh&&sh.pt){sh.d.bgo=100-t.value;var lb=document.getElementById('pl_bov');if(lb)lb.textContent=t.value+'%';var pb=document.getElementById('pvbg');if(pb)pb.style.opacity=(100-t.value)/100;return}
   if(!t||(t.id!=='pl_sz'&&t.id!=='pl_rt')||!sh||!sh.pt)return;var ti=plTgt(sh.d);if(ti<0)return;var it=sh.d.acc[ti];
   if(t.id==='pl_sz'){it.s=(+t.value||100)/100;var z=document.getElementById('pl_szv');if(z)z.textContent=Math.round(it.s*100)+'%'}
   else{it.r=+t.value||0;var z2=document.getElementById('pl_rtv');if(z2)z2.textContent=Math.round(it.r)+'°'}
@@ -3622,6 +3631,7 @@ document.addEventListener('click',function(ev){
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
   else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
   else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
+  else if(a==='petTap'){var st0=b.closest('.mstage'),sl=b.querySelector('svg.lying');if(!b._rx){b._rx=1;var now=Date.now();window._tapT=(window._tapT||[]).filter(function(t){return now-t<5000});window._tapT.push(now);window._tapN=((window._tapN||0)+1)%3;var cls=window._tapT.length>=6?'rx4':['rx1','rx2','rx3'][window._tapN];if(cls==='rx4')window._tapT=[];if(sl&&cls!=='rx4')cls='rx1';b.classList.add(cls);var h=document.createElement('span');h.className='rxh';h.textContent=sl?'Zz':'♥';if(st0)st0.appendChild(h);setTimeout(function(){b.classList.remove(cls);b._rx=0;if(h.parentNode)h.parentNode.removeChild(h)},cls==='rx4'?1050:1150)}}
   else if(a==='petPick'){var lk=petLook(),pac=lk.acc.map(function(o){return Object.assign({},o)}),pL=dayLimit()?g2().L:0;if(lk.auto){var pah=inSeason()?'santa':(pL>=8?'crown':'');if(pah&&pac.length<3&&!pac.some(function(o){return accIsHead(o.id)}))pac.unshift({id:pah,x:0,y:0,s:1,r:0})}sh={pt:true,L:dayLimit()?g2().L:0,d:{kind:petKind(),theme:(S.pet&&S.pet.theme&&PTHEME[S.pet.theme])?S.pet.theme:'',name:(S.pet&&S.pet.name)||'',acc:pac,hue:lk.hue,size:petSize(),bg:petBgMode(),bgo:Math.round(petBgOp()*100),hp:null}};petSheet()}
   else if(a==='petHue'&&sh&&sh.pt){var pn3=document.getElementById('p_name');if(pn3)sh.d.name=pn3.value;sh.d.hue=+v||0;petSheet()}
   else if(a==='petAcc'&&sh&&sh.pt){var pn9=document.getElementById('p_name');if(pn9)sh.d.name=pn9.value;sh.hint='';var ix=-1;sh.d.acc.forEach(function(o,i){if(o.id===v)ix=i});
@@ -3851,7 +3861,7 @@ document.addEventListener('submit',function(ev){
   if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});S.planOut=(sh.pcOut||[]).slice();save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;S.planOut=(sh.pcOut||[]).slice();delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
   if(sh.pt){var lkA=false;(sh.d.acc||[]).forEach(function(o){var df=accDef(o.id);if(df&&!itemOpen(df,sh.L||0))lkA=true});
     if(lkA)return;
-    S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20),head:'',face:'',hue:sh.d.hue||0,size:sh.d.size||'m',bgo:Math.round(sh.d.bgo||100),bg:(sh.d.bg===3&&!(sh.bgImg||bgImg()))?1:sh.d.bg,accK:sh.d.kind,acc:(sh.d.acc||[]).slice(0,3).map(function(o){return {id:o.id,x:Math.round(o.x||0),y:Math.round(o.y||0),s:+(o.s||1).toFixed(2),r:Math.round(o.r||0)}})};
+    S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20),head:'',face:'',hue:sh.d.hue||0,size:sh.d.size||'m',bgo:Math.round(sh.d.bgo==null?100:sh.d.bgo),bg:(sh.d.bg===3&&!(sh.bgImg||bgImg()))?1:sh.d.bg,accK:sh.d.kind,acc:(sh.d.acc||[]).slice(0,3).map(function(o){return {id:o.id,x:Math.round(o.x||0),y:Math.round(o.y||0),s:+(o.s||1).toFixed(2),r:Math.round(o.r||0)}})};
     if(sh.bgImg){try{localStorage.setItem(BGKEY,sh.bgImg)}catch(e){S.pet.bg=1;toast('Картинка не поместилась, оставила обычный фон')}}save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
   if(document.getElementById('c_from')){
     var fr=document.getElementById('c_from').value;if(!fr)return showErr('Укажите дату.');

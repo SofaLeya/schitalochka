@@ -678,12 +678,15 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-13c';
+var APP_VER='2026-11-14a';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['Полный режим: в «Платежах» появился «План по категориям». Лимиты делят деньги на жизнь, по ходу месяца их можно менять только на этот месяц или насовсем и перекидывать из одной категории в другую.',
+var NEWS=['«Платежи» разделены на две вкладки: «Месяц» - что отметить и что скоро, «План» - доходы, платежи, лимиты и всё про план.',
+ '«В день» на главной теперь называется «В среднем» - это средние траты за месяц. Сколько можно тратить, показывает «До зарплаты».',
+ 'В «Анализе» у категорий видно, какая это доля всех трат, а «Выгрузка» переехала вниз.'];
+var NEWS_OLD=['Полный режим: в «Платежах» появился «План по категориям». Лимиты делят деньги на жизнь, по ходу месяца их можно менять только на этот месяц или насовсем и перекидывать из одной категории в другую.',
  'Если ждёшь возврат («Делю с кем-то»), монстрик напоминает о нём вместо своей фразы, там же кнопка «Пришло».',
- 'Запись стала короче: категория в одном поле, дата кнопками «Сегодня / Вчера», а «Чем оплачено» и «Как учесть» спрятаны в «Ещё».'];
-var NEWS_OLD=['«Платежи»: сверху сводка месяца, при «Потрачено» можно вписать настоящую сумму, зарплата в выходной сдвигается на рабочий день, а неотмеченное за прошлый месяц можно отметить.',
+ 'Запись стала короче: категория в одном поле, дата кнопками «Сегодня / Вчера», а «Чем оплачено» и «Как учесть» спрятаны в «Ещё».',
+ '«Платежи»: сверху сводка месяца, при «Потрачено» можно вписать настоящую сумму, зарплата в выходной сдвигается на рабочий день, а неотмеченное за прошлый месяц можно отметить.',
  'Полный режим: в «Платежах» появились «Редкие траты» (подарки, страховка, одежда на сезон), а «План на 3 месяца» показывает, сколько останется сверху. При «Пришло» можно вписать, сколько пришло на самом деле.',
  '«Анализ» подрос: план и дни без трат на графике, новые блоки «По месяцам» и «Привычки», стрелки к прошлому месяцу в категориях.',
  'Цвета приложения можно выбрать отдельно от монстрика: нажми «сменить» у монстрика.',
@@ -2748,6 +2751,7 @@ function reconSheet(){
   }).join('');
   openSheet('<h3>Сверка с банком</h3><form id="fm" class="f" style="gap:14px" autocomplete="off"><p class="fine">Впишите остатки из банка. Покажу расхождение и, если надо, поправлю остаток в приложении.</p>'+rows+'<div id="k_res"></div><div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="submit" class="btn">Сверить</button></div></form>');
 }
+var ptab='m';
 function viewPlan(){
   var ym=T.slice(0,7);
   /* честный план: доход − платежи со свободных − раскладка в копилки − жизнь по плану − резерв на редкое.
@@ -2801,7 +2805,21 @@ function viewPlan(){
   var prevCard=prevL.length?'<div class="card" style="gap:6px"><h2>Не отмечено в '+MONTHS_P[+pA[1]-1]+'</h2><p class="fine" style="margin:0">Отметь, что было. Если платежа или дохода не было, нажми «Не было».</p>'+prevL.map(function(o){var r=o[1],kind=o[0];
     return '<div class="row" style="padding-block:8px;border-top:1px solid var(--line)"><div class="grow"><div class="t">'+esc(r.name)+'</div><div class="s">'+dlabel(itemDate(kind,r,pym))+' · '+money(r.amt)+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">'+(kind==='r'?'Потрачено':'Пришло')+'</button><button class="btn sm ghost" data-a="markSkip" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">Не было</button></div></div>'}).join('')+'</div>':'';
   var rTot=0,iTot=0,rLate=0;S.recur.forEach(function(r){rTot+=perMonth(r);if(dueIn(r,ym)&&!doneFor('rid',r.id,ym)&&planned(ym,r.day)<=T&&!(S.planFrom&&planned(ym,r.day)<S.planFrom))rLate++});S.incomes.forEach(function(r){iTot+=r.amt});
-  return '<div class="top"><h1>Платежи и доходы</h1>'+topBtns()+'</div>'+sumCard+prevCard+rulesCard('pend')+
+  /* вкладка «Месяц»: только то, что надо отмечать; вкладка «План»: всё, что настраивается раз в месяц и реже */
+  var segP='<div class="seg" role="group" aria-label="Раздел платежей">'+[['m','Месяц'],['p','План']].map(function(x){return '<button type="button" data-a="ptab" data-v="'+x[0]+'" aria-pressed="'+(ptab===x[0])+'" class="'+(ptab===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>';
+  var head='<div class="top"><h1>Платежи и доходы</h1>'+topBtns()+'</div>'+segP;
+  if(ptab!=='p'){
+    var mi=[];S.recur.forEach(function(r){if(dueIn(r,ym))mi.push(['r',r])});S.incomes.forEach(function(r){mi.push(['i',r])});
+    var mr=function(x){var f=x[0]==='r'?'rid':'iid';if(doneFor(f,x[1].id,ym))return 2;var d=itemDate(x[0],x[1],ym);return d<=T&&!(S.planFrom&&d<S.planFrom)?0:1};
+    mi.forEach(function(x){x[2]=mr(x);x[3]=itemDate(x[0],x[1],ym)});
+    mi.sort(function(p2,q){return p2[2]-q[2]||(p2[3]<q[3]?-1:p2[3]>q[3]?1:0)});
+    var GN=['Надо отметить','Скоро','Отмечено'];
+    var grp=[0,1,2].map(function(g){var l=mi.filter(function(x){return x[2]===g});if(!l.length)return '';
+      return '<div class="card"><h2>'+GN[g]+(g===0?' · '+l.length:'')+'</h2>'+l.map(function(x){return planRow(x[0],x[1],ym)}).join('')+'</div>'}).join('');
+    if(!mi.length)grp='<div class="card"><p class="empty">Пока нечего отмечать. Добавь зарплату и обязательные платежи на вкладке «План».</p><button class="btn ghost" data-a="ptab" data-v="p">Открыть «План»</button></div>';
+    return head+sumCard+(S.demo?'':prevCard)+rulesCard('pend')+grp; // в примерах прошлый месяц не показываем: новичку это стена кнопок
+  }
+  return head+
    fcard('recur','Регулярные платежи',money(rTot)+' в месяц',(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет')+(rLate?' · не отмечено: '+rLate:''),
      (S.recur.length?sorted(S.recur,'r').map(function(r){return planRow('r',r,ym)}).join(''):'<p class="empty">Добавь аренду, связь, подписки.</p>'),'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button>')+
    fcard('inc','Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
@@ -3194,6 +3212,7 @@ document.addEventListener('click',function(ev){
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}
   else if(a==='hf'){hf=v;render()}
+  else if(a==='ptab'){ptab=v;window.scrollTo(0,0);render()}
   else if(a==='hMore'){hMonths+=1;render()}
   else if(a==='hFilt'){hfo=!hfo;if(hfo)hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};render()}
   else if(a==='hApply'){if(hd){hfrom=hd.from||'';hto=hd.to||'';hc=hd.c||'';hacc=hd.acc||'';ha=hd.a||'';hsk=hd.sk||''}if(hfrom&&hto&&hfrom>hto){var tt=hfrom;hfrom=hto;hto=tt}hfo=false;render();window.scrollTo(0,0)}
@@ -3293,7 +3312,7 @@ document.addEventListener('click',function(ev){
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
   else if(a==='splitDrop'){var sy=S.entries.filter(function(e){return e.id===id})[0];if(sy){sy.splitDone='no';save();render()}}
-  else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
+  else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';ptab='p';uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
   else if(a==='climEdit'){sh={clim:true,cat:v||''};climSheet()}
   else if(a==='climStep'){var ci=document.getElementById('cl_v');if(ci){var cv=num(ci.value);ci.value=Math.max(0,Math.round((isFinite(cv)?cv:0)+(+v)))||''}}
   else if(a==='climSave'){climSave(v)}

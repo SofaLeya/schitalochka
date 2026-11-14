@@ -1286,17 +1286,31 @@ function pc(x,y,r){return 'M'+(x-r)+' '+y+'a'+r+' '+r+' 0 1 0 '+(2*r)+' 0a'+r+' 
 /* наклейка: сначала белая обводка всех частей, потом цвет с тёмным контуром */
 function stkG(parts,sw){var w='',c='';parts.forEach(function(p){w+='<path d="'+p[0]+'" fill="#fff" stroke="#fff" stroke-width="'+(sw||5)+'" stroke-linejoin="round"/>';c+='<path d="'+p[0]+'" '+(p[1].indexOf('(')>0?'style="fill:'+p[1]+'"':'fill="'+p[1]+'"')+' stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/>'});return w+c}
 var ITEM={
- bow:function(){return stkG([['M0 -3C-6 -14-18 -14-16 -4C-15 4-6 2 0 -3Z','#ff5c8a'],['M0 -3C6 -14 18 -14 16 -4C15 4 6 2 0 -3Z','#ff5c8a'],[pc(0,-3,3.4),'#ffa3bf']])},
+ bow:function(){var L='M0 -2C-3 -15-19 -17-17 -5C-16 3-5 3 0 -2Z',R='M0 -2C3 -15 19 -17 17 -5C16 3 5 3 0 -2Z';
+  return stkG([['M-1 -1L-9 6.2L-5 5.4L-2.8 7.8L1.6 0Z','#e0356a'],['M1 -1L9 6.2L5 5.4L2.8 7.8L-1.6 0Z','#e0356a'],[L,'#ff5c8a'],[R,'#ff5c8a'],[pc(0,-3,3.8),'#ff3d78']])
+   +'<path d="M-3.2 -4C-6 -11-12 -12-13 -7" fill="none" stroke="#ffc2d6" stroke-width="1.3" stroke-linecap="round"/><path d="M3.2 -4C6 -11 12 -12 13 -7" fill="none" stroke="#ffc2d6" stroke-width="1.3" stroke-linecap="round"/>'
+   +'<path d="M-6.6 -2.2L-14 -4.5M-6.4 -5.5L-13.6 -9M6.6 -2.2L14 -4.5M6.4 -5.5L13.6 -9" stroke="'+INK+'" stroke-width=".7" opacity=".35" stroke-linecap="round"/>'
+   +'<circle cx="-11" cy="-3" r="1.1" fill="#fff"/><circle cx="-8" cy="-9" r="1" fill="#fff"/><circle cx="11" cy="-3" r="1.1" fill="#fff"/><circle cx="8" cy="-9" r="1" fill="#fff"/><circle cx="-1" cy="-4.4" r="1.1" fill="#fff" opacity=".85"/>'},
  flower:function(){var p=[['M-1 4Q-9 3-12 -3Q-5 -2 -1 4Z','#4cc46a'],['M1 4Q9 3 12 -3Q5 -2 1 4Z','#4cc46a']],i,a,r;
   for(i=0;i<7;i++){a=i*Math.PI*2/7-Math.PI/2;p.push([pc(+(Math.cos(a)*8.2).toFixed(1),+(-8+Math.sin(a)*8.2).toFixed(1),5.8),'#ff9cc6'])}
   for(i=0;i<5;i++){a=i*Math.PI*2/5-Math.PI/2+.3;p.push([pc(+(Math.cos(a)*4.6).toFixed(1),+(-8+Math.sin(a)*4.6).toFixed(1),4.8),'#ff72a8'])}
   for(i=0;i<3;i++){a=i*Math.PI*2/3-Math.PI/2+.6;p.push([pc(+(Math.cos(a)*2).toFixed(1),+(-8+Math.sin(a)*2).toFixed(1),3.4),'#ff4f93'])}
   return stkG(p)+'<path d="M-3 -9Q0 -13 3 -9Q4 -5 0 -5" fill="none" stroke="'+INK+'" stroke-width="1.1" stroke-linecap="round"/><circle cx="0" cy="-8" r="1.3" fill="#ffd23f"/>'},
  coin:function(){return '<circle cx="0" cy="-7" r="11.5" fill="#fff"/><circle cx="0" cy="-7" r="9.5" fill="#f5c542" stroke="'+INK+'" stroke-width="1.8"/><circle cx="0" cy="-7" r="6.4" fill="none" stroke="#d89a1a" stroke-width="1.1"/><text x="0" y="-3.4" font-size="11" font-weight="800" text-anchor="middle" fill="'+INK+'" font-family="sans-serif">₽</text><path d="M-6 -12q2 -3 5 -3.4" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".85"/>'},
- party:function(){return stkG([['M-11 5L0 -24L11 5Z','#7c5cff'],[pc(0,-25,3.6),'#ffd23f']])+'<circle cx="-3" cy="-4" r="1.8" fill="#ffd23f"/><circle cx="3.5" cy="-10" r="1.8" fill="#ffd23f"/><circle cx="-1" cy="-15" r="1.5" fill="#ffd23f"/>'},
+ party:function(){var C='M-12 5L0 -25L12 5Q0 9-12 5Z';
+  return stkG([[C,'#7c5cff'],['M-12.8 5.2Q0 10 12.8 5.2L11.8 0.6Q0 4.6-11.8 0.6Z','#ffd23f'],[pc(0,-26,4.4),'#ffd23f']])
+   +'<clipPath id="pcl"><path d="'+C+'"/></clipPath><g clip-path="url(#pcl)"><path d="M-14 -3L14 -13M-14 -11L14 -21M-14 5L14 -5" stroke="#ff5c8a" stroke-width="3.2"/></g>'
+   +'<path d="'+C+'" fill="none" stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/><path d="M-12.8 5.2Q0 10 12.8 5.2L11.8 0.6Q0 4.6-11.8 0.6Z" fill="none" stroke="'+INK+'" stroke-width="1.4" stroke-linejoin="round"/>'
+   +'<circle cx="-4" cy="-6" r="1.5" fill="#ffd23f"/><circle cx="4.5" cy="-2" r="1.4" fill="#7ff0ff"/><circle cx="1" cy="-13" r="1.3" fill="#fff"/><circle cx="-1.5" cy="-21" r="1" fill="#7ff0ff"/>'
+   +'<path d="M-2.2 -27.4q1 -1.6 3 -1.2M2.6 -24.8q.6 .8 .2 1.8" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round" opacity=".9"/>'},
  halo:function(){var e='<ellipse cx="0" cy="-13" rx="13" ry="4.2" fill="none" stroke="';return '<g class="bobx">'+e+'#fff" stroke-width="8"/>'+e+INK+'" stroke-width="5.6"/>'+e+'#ffd23f" stroke-width="3"/></g>'},
  chef:function(){return stkG([['M-11 4L-11 -5C-20 -7-18 -23-6 -21C-4 -30 7 -30 9 -21C20 -23 20 -7 11 -5L11 4Q0 8-11 4Z','#ffffff']])+'<path d="M-11 -1Q0 3 11 -1" fill="none" stroke="'+INK+'" stroke-width="1.4"/>'},
- top:function(){return stkG([['M-15 4Q0 8 15 4Q0 0-15 4Z','#2b2b3a'],['M-9 3L-9 -16Q0 -19 9 -16L9 3Q0 6-9 3Z','#2b2b3a']])+'<path d="M-9 -3Q0 0 9 -3L9 -8Q0 -5-9 -8Z" fill="#e63946" stroke="'+INK+'" stroke-width="1.4"/>'},
+ top:function(){var BR='M-17.5 3C-17.5 -1 -9 -3 0 -3S17.5 -1 17.5 3C17.5 7 9 8.5 0 8.5S-17.5 7-17.5 3Z',CR='M-10.5 3L-11 -19Q0 -23 11 -19L10.5 3Q0 6.6-10.5 3Z';
+  return stkG([[BR,'#2b2b3a'],[CR,'#2b2b3a']])
+   +'<path d="M-10.6 -3.4Q0 0 10.6 -3.4L10.8 -9.2Q0 -5.8-10.8 -9.2Z" fill="#e63946" stroke="'+INK+'" stroke-width="1.4" stroke-linejoin="round"/>'
+   +'<path d="M-3.4 -7.6H3.4V-3.2H-3.4Z" fill="#ffc94a" stroke="'+INK+'" stroke-width="1.1" stroke-linejoin="round"/><path d="M-1.6 -6.2H1.6V-4.6H-1.6Z" fill="none" stroke="'+INK+'" stroke-width=".9"/>'
+   +'<path d="M-11 -19Q0 -15.4 11 -19" fill="none" stroke="#5a5a72" stroke-width="1.2" opacity=".8"/>'
+   +'<path d="M-7 -16L-7.3 -11M-7.2 -1L-7.3 1" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".35"/><path d="M-15 3.4Q-9 6 -3 6.8" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".3"/>'},
  witch:function(){return stkG([['M-22 5Q0 12 22 5Q12 -1 -22 5Z','#4b2a7a'],['M-12 4Q-9 -12 -4 -22Q1 -30 11 -29Q6 -24 7 -19Q10 -8 13 4Q0 8 -12 4Z','#5b2d91']])+'<path d="M-11.5 -2Q0 2.5 12 -2L13 4Q0 8.5 -12 4Z" fill="#ffd23f" stroke="'+INK+'" stroke-width="1.4" stroke-linejoin="round"/><rect x="-3" y="-1.6" width="6" height="5" rx="1" fill="none" stroke="'+INK+'" stroke-width="1.2"/>'},
  santa:function(){return stkG([['M-13 4Q-12 -14 4 -22Q16 -18 13 4Z','#e63946'],['M-15 -1H15Q17 5 13 7H-13Q-17 5-15 -1Z','#ffffff'],[pc(6,-23,4.3),'#ffffff']])},
  crown:function(){return '<path d="M-14 6L-10 -10L-4 -1L0 -14L4 -1L10 -10L14 6Z" fill="#ffc94a" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><path d="M-14 6L-10 -10L-4 -1L0 -14L4 -1L10 -10L14 6Z" fill="none" stroke="'+INK+'" stroke-width="1.2" stroke-linejoin="round"/><circle cx="0" cy="-14" r="2.5" fill="#fff"/>'}

@@ -236,8 +236,8 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .cheer .tabs{background:var(--surface)}
 .cheer .tabs .plus{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff}
 .cheer .btn{font-weight:800}
-.card.monster{flex-direction:column;align-items:stretch;gap:8px}
-.mstage{position:relative;border-radius:16px;overflow:hidden;display:flex;justify-content:center;align-items:flex-end;width:100%}
+.card.monster{flex-direction:row;align-items:flex-start;gap:12px}
+.mstage{position:relative;border-radius:16px;overflow:hidden;display:flex;justify-content:center;align-items:flex-end;flex:none}
 .mstage.nobg{background:none}
 .mstage .mbg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .monster .mbox{flex:none;position:relative;z-index:1;margin-bottom:2px}
@@ -268,9 +268,14 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .otile .bgp{width:100%;height:56px;border-radius:10px;overflow:hidden;display:block;position:relative}
 .otile .bgp svg{position:absolute;inset:0;width:100%;height:100%}
 .monster .mt{display:flex;flex-direction:column;gap:6px;min-width:0}
-.monster .mt b{font-size:15px;justify-content:center!important;gap:10px!important}
-.monster .mt .fine{text-align:center}
-.monster .mt .btns{align-self:center!important}
+.monster .mt{flex:1}
+.monster .mt b{font-size:15px}
+@media (max-width:520px){
+.card.monster.big{flex-direction:column;align-items:stretch;gap:8px}
+.card.monster.big .mstage{width:100%!important}
+.card.monster.big .mt b{justify-content:center!important;gap:10px!important}
+.card.monster.big .mt .fine{text-align:center}
+.card.monster.big .mt .btns{align-self:center!important}}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
 @media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
@@ -732,7 +737,7 @@ function applyPayout(day,ym){
 var APP_VER='2026-11-15c';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
 var NEWS=['Монстрика можно выбрать по размеру: маленький, средний или большой. Теперь он не такой огромный.',
- 'Наряды стали интереснее: нимб, монетка, поварской колпак, ведьмина шляпа, маска и 3D-очки. Шапки сидят ровно на каждом монстрике.',
+ 'Наряды стали интереснее: нимб, монетка, поварской колпак, ведьмина шляпа и 3D-очки. Шапки сидят ровно на каждом монстрике.',
  'За монстриком появился фон: ночью звёзды, в хорошем настроении солнце, в плохом дождь, зимой снег. Его можно выключить.',
  'Меню наряда стало удобнее: вкладки и крупные плитки. Открыть: «сменить» у монстрика.'];
 var NEWS_OLD=['Монстриков можно наряжать: бантик, цветок, колпак, цилиндр, корона и очки. Новое открывается с ростом уровня, а зимой появляется новогодняя шапка. Всё в окне «Наряд и цвет»: нажми «сменить» у монстрика.',
@@ -1221,7 +1226,7 @@ function themeSwatch(k){var p=PTHEME[k];if(!p)return '';var la=p.la||46,o=p.ov||
 /* ---------- наряды монстриков: головной убор, очки, цвет, размер, фон, трюки ---------- */
 /* lv - с какого уровня доступно, season - только зимой (декабрь и до 20 января) */
 var HEADS=[{id:'',name:'Авто'},{id:'none',name:'Без убора'},{id:'bow',name:'Бантик',lv:0},{id:'flower',name:'Цветок',lv:1},{id:'coin',name:'Монетка',lv:2},{id:'party',name:'Колпак',lv:3},{id:'halo',name:'Нимб',lv:4},{id:'chef',name:'Повар',lv:5},{id:'top',name:'Цилиндр',lv:6},{id:'witch',name:'Ведьма',lv:7},{id:'crown',name:'Корона',lv:8},{id:'santa',name:'Зимняя',season:1}];
-var FACES=[{id:'',name:'Без очков'},{id:'round',name:'Круглые',lv:1},{id:'mask',name:'Маска',lv:3},{id:'sun',name:'Солнечные',lv:4},{id:'d3',name:'3D',lv:5},{id:'heart',name:'Сердечки',lv:6},{id:'star',name:'Звёзды',lv:9}];
+var FACES=[{id:'',name:'Без очков'},{id:'round',name:'Круглые',lv:1},{id:'sun',name:'Солнечные',lv:4},{id:'d3',name:'3D',lv:5},{id:'heart',name:'Сердечки',lv:6},{id:'star',name:'Звёзды',lv:9}];
 var HUES=[0,50,110,170,230,290];
 var PSIZES=[{id:'s',name:'Маленький',px:84},{id:'m',name:'Средний',px:104},{id:'l',name:'Большой',px:132}];
 /* макушка у каждого вида: x, y, масштаб, наклон по скату головы (подобрано по замерам на сетке) */
@@ -1279,9 +1284,6 @@ function accFace(id,kind){
     else{var dl=rect(x0,y,rl+4,hh+2,rl*.3);shape(dl,'#2ee6ff',2.2);l+='<path d="M'+(x0-rl-4+rl*.3)+' '+(y-hh-2)+'Q'+(x0-rl-4)+' '+(y-hh-2)+' '+(x0-rl-4)+' '+(y-hh-2+rl*.3)+'V'+(y+hh+2-rl*.3)+'Q'+(x0-rl-4)+' '+(y+hh+2)+' '+(x0-rl-4+rl*.3)+' '+(y+hh+2)+'H'+x0+'V'+(y-hh-2)+'Z" fill="#ff3b3b" stroke="'+INK+'" stroke-width="2.2" stroke-linejoin="round"/>'}
     var ex=two?hw:rl+4;ar='M'+(x0-ex)+' '+y+'L'+(x0-ex-9)+' '+(y-4)+'M'+(x1+ex)+' '+y+'L'+(x1+ex+9)+' '+(y-4);
     if(two)ar+='M'+(x0+hw)+' '+(y-2)+'L'+(x1-hw)+' '+(y-2)}
-  else if(id==='mask'){var hh2=rl*.8,L0=x0-rl-4,R0=x1+rl+4,hl=(two?r*1.3+1:r*1.15+2),band=rect((L0+R0)/2,y,(R0-L0)/2,hh2,hh2),holes='';
-    cs.forEach(function(x){holes+='M'+(x-hl)+' '+y+'a'+hl+' '+(hl*.92)+' 0 1 0 '+(2*hl)+' 0a'+hl+' '+(hl*.92)+' 0 1 0 '+(-2*hl)+' 0Z'});
-    return '<g class="gls"><path d="'+band+'" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><path d="'+band+holes+'" fill="#e63946" fill-rule="evenodd" stroke="'+INK+'" stroke-width="2" stroke-linejoin="round"/><path d="'+band+'" fill="none" stroke="#fff" stroke-width="1" opacity="0"/></g>'}
   else return '';
   return '<g class="gls">'+(ar?'<path d="'+ar+'" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"/>':'')+w+(ar?'<path d="'+ar+'" stroke="'+INK+'" stroke-width="2.6" fill="none" stroke-linecap="round"/>':'')+l+'</g>'}
 /* иконки предметов для плиток меню */
@@ -1769,7 +1771,7 @@ function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.dem
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
-  return '<div class="mstage'+(on?'':' nobg')+'" style="height:'+h+'px">'+(on?bgSvg(sc):'')+'<button class="mbox" data-a="petPick" aria-label="Выбрать монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
+  return '<div class="mstage'+(on?'':' nobg')+'" style="height:'+h+'px;width:'+(px+(z.id==='l'?16:20))+'px">'+(on?bgSvg(sc):'')+'<button class="mbox" data-a="petPick" aria-label="Выбрать монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
@@ -1828,7 +1830,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));

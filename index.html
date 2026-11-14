@@ -236,10 +236,14 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .cheer .tabs{background:var(--surface)}
 .cheer .tabs .plus{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#fff}
 .cheer .btn{font-weight:800}
-.card.monster{flex-direction:row;align-items:flex-start;gap:12px}
-.mstage{position:relative;border-radius:16px;overflow:hidden;display:flex;justify-content:center;align-items:flex-end;flex:none}
+.card.monster{flex-direction:row;align-items:flex-start;gap:12px;position:relative;overflow:hidden}
+.card.monster>*{position:relative;z-index:1}
+.card.monster>.mbgl{position:absolute;inset:0;z-index:0}
+.mbgl .msc{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,8,28,0),rgba(15,8,28,.25))}
+.card.monster.hasbg .mt b,.card.monster.hasbg .mt .fine,.card.monster.hasbg .mt button.fine{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)}
+.mbg{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.mstage{position:relative;display:flex;justify-content:center;align-items:flex-end;flex:none}
 .mstage.nobg{background:none}
-.mstage .mbg{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
 .monster .mbox{flex:none;position:relative;z-index:1;margin-bottom:2px}
 .bgs{animation:bgtw 3s ease-in-out infinite}
 .bgc{animation:bgdr 26s ease-in-out infinite alternate}
@@ -1317,18 +1321,18 @@ function bgSvg(sc){
   h+='<defs><linearGradient id="bg-'+sc+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+G[0]+'"/><stop offset="1" stop-color="'+G[1]+'"/></linearGradient></defs><rect width="300" height="160" fill="url(#bg-'+sc+')"/>';
   if(sc==='night'){
     [[22,38,1.4],[60,78,1],[95,32,1.6],[130,64,1.1],[160,28,1.3],[190,88,1],[255,32,1.5],[275,76,1.2],[40,118,1],[110,106,1.2],[205,48,1.1],[285,120,1],[150,124,1.3],[70,134,1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+((n*.43)%3).toFixed(2)+'s"/>'});
-    h+='<path d="M222 34a17 17 0 1 0 15 30a13 13 0 1 1 -15 -30Z" fill="#fff3b0"/>'}
+    h+='<path d="M258 30a17 17 0 1 0 15 30a13 13 0 1 1 -15 -30Z" fill="#fff3b0"/>'}
   else if(sc==='space'){
     [[18,30,1.2],[44,110,1],[70,22,1.5],[96,70,1],[120,130,1.3],[150,40,1],[176,108,1.4],[205,18,1],[238,92,1.2],[262,40,1.5],[285,120,1],[30,76,1.1],[140,90,.9],[190,140,1.1],[270,72,1],[56,146,1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+((n*.37)%3).toFixed(2)+'s"/>'});
-    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><ellipse cx="236" cy="52" rx="34" ry="8" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 236 52)"/><circle cx="236" cy="52" r="20" fill="url(#bg-pl)"/><path d="M204 60Q236 74 268 44" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 236 52)" clip-path="none"/><circle cx="52" cy="48" r="9" fill="#9fb4ff"/><circle cx="49" cy="45" r="3" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
+    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><ellipse cx="258" cy="36" rx="30" ry="7" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 258 36)"/><circle cx="258" cy="36" r="18" fill="url(#bg-pl)"/><path d="M229 43Q258 56 287 30" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 258 36)"/><circle cx="52" cy="48" r="9" fill="#9fb4ff"/><circle cx="49" cy="45" r="3" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
   else if(sc==='dusk'){
     h+='<circle cx="215" cy="150" r="52" fill="#ffd27a" opacity=".22"/><circle cx="215" cy="150" r="34" fill="#ffd27a" opacity=".9"/>';
     [[40,30,1.2],[100,22,1],[160,40,1.3],[260,26,1.1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+(n*.7)+'s"/>'});
     h+=cl(30,92,1,'#ffc2c9',.55,2)+cl(150,70,.8,'#ffc2c9',.5,6)}
   else if(sc==='sun'){
-    h+='<g class="bgr" style="transform-box:view-box;transform-origin:215px 52px">';
-    for(i=0;i<10;i++){var a=i*Math.PI/5;h+='<line x1="'+(215+Math.cos(a)*24).toFixed(1)+'" y1="'+(52+Math.sin(a)*24).toFixed(1)+'" x2="'+(215+Math.cos(a)*33).toFixed(1)+'" y2="'+(52+Math.sin(a)*33).toFixed(1)+'" stroke="#ffd84a" stroke-width="3" stroke-linecap="round"/>'}
-    h+='</g><circle cx="215" cy="52" r="18" fill="#ffd84a"/>'+cl(30,96,1,'#fff',.9,3)+cl(130,64,.8,'#fff',.85,7)}
+    h+='<g class="bgr" style="transform-box:view-box;transform-origin:258px 46px">';
+    for(i=0;i<10;i++){var a=i*Math.PI/5;h+='<line x1="'+(258+Math.cos(a)*24).toFixed(1)+'" y1="'+(46+Math.sin(a)*24).toFixed(1)+'" x2="'+(258+Math.cos(a)*33).toFixed(1)+'" y2="'+(46+Math.sin(a)*33).toFixed(1)+'" stroke="#ffd84a" stroke-width="3" stroke-linecap="round"/>'}
+    h+='</g><circle cx="258" cy="46" r="18" fill="#ffd84a"/>'+cl(30,96,1,'#fff',.9,3)+cl(130,64,.8,'#fff',.85,7)}
   else if(sc==='cloud'){h+=cl(20,50,1.1,'#fff',.8,1)+cl(120,96,1.3,'#fff',.7,5)+cl(210,56,.9,'#fff',.85,8)}
   else if(sc==='rain'){
     h+=cl(30,34,1.3,'#98a3bd',.95,2)+cl(150,26,1.5,'#8792ad',.95,6)+cl(240,40,1.1,'#98a3bd',.95,9);
@@ -1764,7 +1768,7 @@ function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.dem
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
-  return '<div class="mstage'+(on?'':' nobg')+'" style="height:'+h+'px;width:'+(px+(z.id==='l'?16:20))+'px">'+bgHtml(petBgMode(),bgImg(),sc)+'<button class="mbox" data-a="petPick" aria-label="Выбрать монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
+  return (on?'<div class="mbgl">'+bgHtml(petBgMode(),bgImg(),sc)+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petPick" aria-label="Выбрать монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 function monsterCard(me,net,dnum){
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
@@ -1823,7 +1827,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster'+(petSize()==='l'?' big':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));

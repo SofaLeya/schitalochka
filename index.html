@@ -746,7 +746,7 @@ function applyPayout(day,ym){
 var APP_VER='2026-11-15d';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
 var NEWS=['Ночью монстрики спят в кроватках на боку под одеялом.',
- 'Шапку и очки можно поставить пальцем на нужное место и изменить им размер. Цветок стал пионом, кроватка сказочная. Фон монстрика на выбор: погода, космос, своя картинка или без фона.',
+ 'Можно носить до трёх вещей сразу, ставить их пальцем куда хочешь, менять размер и поворот. Цветок стал пионом, кроватка сказочная. Любой фон можно выбрать сразу (солнце, дождь, снег и другие). Фон монстрика на выбор: погода, космос, своя картинка или без фона.',
  'Новые очки: маска шпиона. Закрытые наряды можно примерить заранее. Бантики, цветочки и монетки теперь висят на ушках и рожках.',
  'Монстриков Желтка, Кубика, Ёжика, Осьминожка и Призрачка убрали: у кого они были, вернулся Мохнатик.'];
 var NEWS_OLD=['Монстрика можно выбрать по размеру: маленький, средний или большой. Теперь он не такой огромный.',
@@ -1252,15 +1252,20 @@ function headAnchor(kind,hd){var tp=TOPP[kind]||[70,28,1,0];if(SMALLH[hd]&&EARP[
 function petBgOn(){return !(S&&S.pet&&S.pet.bg===0)}
 var BGKEY='podkopka-bgimg';
 function bgImg(){try{return localStorage.getItem(BGKEY)||''}catch(e){return ''}}
-function petBgMode(){var b=S&&S.pet&&S.pet.bg;if(b===0)return 0;if(b===2)return 2;if(b===3&&bgImg())return 3;return 1}
-function bgHtml(mode,img,sc){if(!mode)return '';if(mode===2)return bgSvg('space');if(mode===3&&img)return '<img class="mbg" alt="" src="'+img+'">';return bgSvg(sc)}
-function petLook(){var p=(S&&S.pet)||{},h=p.head,f=p.face,u=+p.hue||0;
-  if(!HEADS.some(function(x){return x.id===h}))h='';
-  if(!FACES.some(function(x){return x.id===f}))f='';
+var BGS=['sun','cloud','rain','dusk','night','snow'];
+function petBgMode(){var b=S&&S.pet&&S.pet.bg;if(b===0)return 0;if(b===2)return 2;if(b===3&&bgImg())return 3;if(typeof b==='string'&&BGS.indexOf(b)>=0)return b;return 1}
+function bgHtml(mode,img,sc){if(!mode)return '';if(typeof mode==='string')return bgSvg(mode);if(mode===2)return bgSvg('space');if(mode===3&&img)return '<img class="mbg" alt="" src="'+img+'">';return bgSvg(sc)}
+function accDef(id){for(var i=0;i<HEADS.length;i++)if(HEADS[i].id===id&&id&&id!=='none')return HEADS[i];for(i=0;i<FACES.length;i++)if(FACES[i].id===id&&id)return FACES[i];return null}
+function accIsHead(id){return !!ITEM[id]}
+function petLook(){var p=(S&&S.pet)||{},u=+p.hue||0,kind=petKind(),acc=[],auto=false,cl=function(v,a,b){v=+v||0;return Math.max(a,Math.min(b,v))};
   if(HUES.indexOf(u)<0)u=0;
-  if(h==='santa'&&!inSeason())h='';
-  var pp=function(o){return (o&&o.k===petKind())?[Math.max(-45,Math.min(45,+o.x||0)),Math.max(-45,Math.min(45,+o.y||0)),Math.max(.5,Math.min(2,+o.s||1))]:null};
-  return {head:h,face:f,hue:u,hp:pp(p.hp),fp:pp(p.fp)}}
+  if(Array.isArray(p.acc)){var same=p.accK===kind;
+    p.acc.forEach(function(o){if(!o||!accDef(o.id)||acc.length>=3)return;if(o.id==='santa'&&!inSeason())return;acc.push({id:o.id,x:same?cl(o.x,-60,60):0,y:same?cl(o.y,-60,60):0,s:same?cl(o.s||1,.5,2):1,r:same?cl(o.r,-180,180):0})})}
+  else{var h=p.head,f=p.face,pp=function(o){return (o&&o.k===kind)?{x:cl(o.x,-60,60),y:cl(o.y,-60,60),s:cl(o.s||1,.5,2),r:0}:{x:0,y:0,s:1,r:0}};
+    if(h&&h!=='none'&&accDef(h)&&!(h==='santa'&&!inSeason())){var q=pp(p.hp);q.id=h;acc.push(q)}
+    if(f&&accDef(f)){var q2=pp(p.fp);q2.id=f;acc.push(q2)}
+    auto=!h||h==='';}
+  return {acc:acc,auto:auto,hue:u}}
 function pc(x,y,r){return 'M'+(x-r)+' '+y+'a'+r+' '+r+' 0 1 0 '+(2*r)+' 0a'+r+' '+r+' 0 1 0 '+(-2*r)+' 0Z'}
 /* наклейка: сначала белая обводка всех частей, потом цвет с тёмным контуром */
 function stkG(parts,sw){var w='',c='';parts.forEach(function(p){w+='<path d="'+p[0]+'" fill="#fff" stroke="#fff" stroke-width="'+(sw||5)+'" stroke-linejoin="round"/>';c+='<path d="'+p[0]+'" fill="'+p[1]+'" stroke="'+INK+'" stroke-width="1.8" stroke-linejoin="round"/>'});return w+c}
@@ -1627,12 +1632,12 @@ function monster(mood,size,kind,lvl,act,look){
   var isSk=(kind==='skel'||kind==='skelf'),s=stkChar(kind,mood,(mood==='hungry'&&isSk)?'sleep':act),crown=STKCROWN[kind];
   if(look.hue)s='<g filter="url(#hr'+look.hue+')">'+s+'</g>';
   if(lvl>=5)s+='<path d="M120 50 l2 5 5 2 -5 2 -2 5 -2-5 -5-2 5-2z M16 40 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5-4 -4-1.5 4-1.5z" fill="#ffd166"/>';
-  var hd=look.head;if(hd==='')hd=inSeason()?'santa':(lvl>=8?'crown':'');
-  var tp=TOPP[kind]||[70,28,1,0];
-  if(SMALLH[hd]&&EARP[kind])tp=EARP[kind];
-  if(look.hp)tp=[tp[0]+look.hp[0],tp[1]+look.hp[1],tp[2]*look.hp[2],tp[3]];
-  if(hd&&hd!=='none')s+=accHead(hd,tp[0],tp[1],tp[2],tp[3]);
-  if(look.face){var fg=accFace(look.face,kind);if(look.fp){var fe=EYEG[kind]||EYEG.puff,fcx=fe[0].reduce(function(a,b){return a+b},0)/fe[0].length,fcy=fe[1];fg='<g transform="translate('+(fcx+look.fp[0])+' '+(fcy+look.fp[1])+') scale('+look.fp[2]+') translate('+(-fcx)+' '+(-fcy)+')">'+fg+'</g>'}s+=fg}
+  var acc=look.acc;
+  if(!acc){acc=[];if(look.head&&look.head!=='none')acc.push({id:look.head,x:0,y:0,s:1,r:0});if(look.face)acc.push({id:look.face,x:0,y:0,s:1,r:0});if(look.head==='')look={acc:acc,auto:true}}
+  if(look.auto){var ah=inSeason()?'santa':(lvl>=8?'crown':'');if(ah&&!acc.some(function(o){return accIsHead(o.id)}))acc=[{id:ah,x:0,y:0,s:1,r:0}].concat(acc)}
+  acc.forEach(function(it){
+    if(accIsHead(it.id)){var tp=headAnchor(kind,it.id);s+=accHead(it.id,tp[0]+(it.x||0),tp[1]+(it.y||0),tp[2]*(it.s||1),tp[3]+(it.r||0))}
+    else{var fg=accFace(it.id,kind);if(it.x||it.y||(it.s&&it.s!==1)||it.r){var fe=EYEG[kind]||EYEG.puff,fcx=fe[0].reduce(function(a,b){return a+b},0)/fe[0].length,fcy=fe[1];fg='<g transform="translate('+(fcx+(it.x||0))+' '+(fcy+(it.y||0))+') rotate('+(it.r||0)+') scale('+(it.s||1)+') translate('+(-fcx)+' '+(-fcy)+')">'+fg+'</g>'}s+=fg}});
   if(mood==='hungry'){ /* спит на боку в кроватке, одеяло до глазок */
     s=s.replace('<ellipse cx="70" cy="131" rx="40" ry="6" fill="#000" opacity=".13"/>','');
     if(!isSk)s=s.replace(/<g class="tail"[^>]*>[\s\S]*?<\/g>/g,'');
@@ -1697,12 +1702,15 @@ function trickTick(){
   }catch(e){}
 }
 setInterval(trickTick,3000);
-function plTgt(d){var hasH=d.head&&d.head!=='none',hasF=!!d.face,t=sh&&sh.plt;if(t==='face'&&hasF)return 'face';if(hasH)return 'head';return hasF?'face':'head'}
-function plPanel(look,d){var hasH=d.head&&d.head!=='none',hasF=!!d.face;if(!hasH&&!hasF)return '';
-  var t=plTgt(d),cur=(t==='head'?d.hp:d.fp)||[0,0,1],lk={head:d.head||'',face:d.face||'',hue:d.hue||0,hp:d.hp||null,fp:d.fp||null};
-  return '<div class="plc">'+(hasH&&hasF?'<div class="ptabs" style="width:100%"><button type="button" class="'+(t==='head'?'on':'')+'" data-a="petPlt" data-v="head">Шапка</button><button type="button" class="'+(t==='face'?'on':'')+'" data-a="petPlt" data-v="face">Очки</button></div>':'')+
-   '<span class="fine" style="font-weight:600">Нажми на монстрика или проведи пальцем, куда поставить '+(t==='head'?'шапку':'очки')+'</span><div id="plbox" class="plbox"><span id="plm" style="display:block;width:190px;height:190px">'+monster('happy',190,d.kind,undefined,undefined,lk)+'</span></div>'+
-   '<label class="fine" for="pl_sz" style="align-self:stretch">Размер: <b id="pl_szv">'+Math.round(cur[2]*100)+'%</b></label><input type="range" id="pl_sz" min="50" max="200" step="5" value="'+Math.round(cur[2]*100)+'" style="align-self:stretch">'+
+function dLook(d){return {acc:d.acc||[],hue:d.hue||0}}
+function accDefaults(acc,kind){var seen=0;acc.forEach(function(it){it.x=0;it.y=0;it.r=0;it.s=1;if(SMALLH[it.id]&&EARP[kind]){if(seen>0){var e=EARP[kind];it.x=140-2*e[0];it.r=-2*e[3]}seen++}})}
+function plTgt(d){var n=(d.acc||[]).length;if(!n)return -1;var i=(sh&&sh.pli!=null)?sh.pli:n-1;return Math.max(0,Math.min(n-1,i))}
+function plPanel(d){var acc=d.acc||[];if(!acc.length)return '';
+  var t=plTgt(d),it=acc[t],df=accDef(it.id);
+  return '<div class="plc">'+(acc.length>1?'<div class="ptabs" style="width:100%">'+acc.map(function(o,i){var df2=accDef(o.id);return '<button type="button" class="'+(i===t?'on':'')+'" data-a="petPlt" data-v="'+i+'">'+esc(df2?df2.name:'')+'</button>'}).join('')+'</div>':'')+
+   '<span class="fine" style="font-weight:600">Нажми на монстрика или проведи пальцем, куда поставить: '+esc(df?df.name.toLowerCase():'')+'</span><div id="plbox" class="plbox"><span id="plm" style="display:block;width:190px;height:190px">'+monster('happy',190,d.kind,undefined,undefined,dLook(d))+'</span></div>'+
+   '<label class="fine" for="pl_sz" style="align-self:stretch">Размер: <b id="pl_szv">'+Math.round((it.s||1)*100)+'%</b></label><input type="range" id="pl_sz" min="50" max="200" step="5" value="'+Math.round((it.s||1)*100)+'" style="align-self:stretch">'+
+   '<label class="fine" for="pl_rt" style="align-self:stretch">Поворот: <b id="pl_rtv">'+Math.round(it.r||0)+'°</b></label><input type="range" id="pl_rt" min="-180" max="180" step="5" value="'+Math.round(it.r||0)+'" style="align-self:stretch">'+
    '<button type="button" class="btn ghost sm" data-a="petHpReset">Вернуть на место</button></div>'}
 function petSheet(){
   var d=sh.d;if(!sh.k0)sh.k0=d.kind;if(!sh.tab)sh.tab='kind';var VM=monsVisible(sh.k0);
@@ -1710,29 +1718,30 @@ function petSheet(){
   var scEl=document.querySelector('#ov .sheet'),st=scEl?scEl.scrollTop:0;
   var chip='flex:none;padding:6px 10px;font-size:13px';
   var tname=d.theme?((MONS.filter(function(m){return m.id===d.theme})[0]||{}).name||''):'как у монстрика';
-  var L=sh.L||0,look={head:d.head||'',face:d.face||'',hue:d.hue||0,hp:d.hp||null,fp:d.fp||null};
+  var L=sh.L||0,look=dLook(d),acc=d.acc||[];
   var hint='<span class="fine"'+(sh.hint?' style="color:var(--accent);font-weight:600"':'')+'>'+(sh.hint?esc(sh.hint):'Новое открывается с ростом уровня.')+'</span>';
-  function tile(a,it,cur,kind){var on=cur===it.id,open=itemOpen(it,L);
-    return '<button type="button" class="otile'+(on?' on':'')+(open?'':' lk')+'" data-a="'+a+'" data-v="'+it.id+'">'+itemIcon(kind,it.id)+'<span>'+it.name+'</span>'+(open?'':'<i class="lkb">🔒 '+(it.season?'зима':'ур. '+it.lv)+'</i>')+'</button>'}
+  function tile(it,kind){var on=acc.some(function(o){return o.id===it.id}),open=itemOpen(it,L);
+    return '<button type="button" class="otile'+(on?' on':'')+(open?'':' lk')+'" data-a="petAcc" data-v="'+it.id+'">'+itemIcon(kind,it.id)+'<span>'+it.name+'</span>'+(open?'':'<i class="lkb">🔒 '+(it.season?'зима':'ур. '+it.lv)+'</i>')+'</button>'}
   var pth=PTHEME[d.kind]||{h:260,s:60},body='',curImg=sh.bgImg||bgImg();
   if(sh.tab==='kind'){
     body='<div class="mgrid">'+VM.map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="petKind" data-v="'+m.id+'"><span class="mpic">'+monster('happy',84,m.id,undefined,undefined,look)+'</span><b>'+m.name+'</b>'+themeSwatch(m.id)+'<span class="fine">'+m.about+'</span></button>'}).join('')+'</div>'}
   else if(sh.tab==='outfit'){
-    body='<span class="fine">Головной убор</span><div class="otiles">'+HEADS.filter(function(it){return !it.season||inSeason()||look.head===it.id}).map(function(it){return tile('petHead',it,look.head,'head')}).join('')+'</div>'+
-     plPanel(look,d)+
-     '<span class="fine" style="margin-top:6px">Очки</span><div class="otiles">'+FACES.map(function(it){return tile('petFace',it,look.face,'face')}).join('')+'</div>'+'<span class="fine">Закрытое можно примерить, но сохранить получится после открытия.</span>'}
+    body='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="fine" style="font-weight:600">Надето: '+acc.length+' из 3</span>'+(acc.length?'<button type="button" class="btn ghost sm" data-a="petAccClear">Снять всё</button>':'')+'</div>'+(sh.hint?'<span class="fine" style="color:var(--accent);font-weight:600">'+esc(sh.hint)+'</span>':'')+
+     '<span class="fine">Головной убор</span><div class="otiles">'+HEADS.filter(function(it){return it.id&&it.id!=='none'&&(!it.season||inSeason()||acc.some(function(o){return o.id===it.id}))}).map(function(it){return tile(it,'head')}).join('')+'</div>'+
+     '<span class="fine" style="margin-top:6px">Очки</span><div class="otiles">'+FACES.filter(function(it){return it.id}).map(function(it){return tile(it,'face')}).join('')+'</div>'+
+     plPanel(d)+'<span class="fine">Можно носить до трёх вещей сразу. Закрытое можно примерить, но сохранить получится после открытия.</span>'}
   else if(sh.tab==='color'){
-    body='<span class="fine">Цвет монстрика</span><div class="otiles">'+HUES.map(function(h,i){return '<button type="button" class="otile'+(look.hue===h?' on':'')+'" data-a="petHue" data-v="'+h+'"><span class="pm">'+monster('happy',60,d.kind,undefined,undefined,{head:'',face:'',hue:h})+'</span><span>'+(h?'Оттенок '+i:'Родной')+'</span></button>'}).join('')+'</div>'+
+    body='<span class="fine">Цвет монстрика</span><div class="otiles">'+HUES.map(function(h,i){return '<button type="button" class="otile'+(look.hue===h?' on':'')+'" data-a="petHue" data-v="'+h+'"><span class="pm">'+monster('happy',60,d.kind,undefined,undefined,{acc:[],hue:h})+'</span><span>'+(h?'Оттенок '+i:'Родной')+'</span></button>'}).join('')+'</div>'+
      '<details id="pcol"'+(sh.cOpen?' open':'')+' style="background:var(--surface2);border-radius:14px;padding:10px 12px;margin-top:6px"><summary style="cursor:pointer;font-weight:600;font-size:14px">Цвета приложения: <span style="color:var(--accent)">'+esc(tname)+'</span></summary><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">'+
      '<button type="button" data-a="petTheme" data-v="" class="btn sm '+(d.theme?'ghost':'')+'" style="'+chip+'">'+(d.theme?'':'✓ ')+'Как у монстрика</button>'+
      VM.filter(function(m){return PTHEME[m.id]}).map(function(m){var on=d.theme===m.id;return '<button type="button" data-a="petTheme" data-v="'+m.id+'" class="btn sm '+(on?'':'ghost')+'" style="'+chip+'"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'+themeDot(m.id)+';margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.5)"></span>'+m.name+'</button>'}).join('')+'</div></details>'}
   else{
     body='<span class="fine">Размер на главной</span><div class="otiles">'+PSIZES.map(function(z){return '<button type="button" class="otile'+(d.size===z.id?' on':'')+'" data-a="petSize" data-v="'+z.id+'"><span class="pm" style="display:flex;align-items:flex-end;justify-content:center">'+monster('happy',z.px*.6,d.kind,undefined,undefined,look)+'</span><span>'+z.name+'</span></button>'}).join('')+'</div>'+
-     '<span class="fine" style="margin-top:6px">Фон за монстриком</span><div class="otiles" style="grid-template-columns:repeat(2,minmax(0,1fr))">'+
-     [[1,'Погода и время суток',bgSvg(SCENE)],[2,'Космос',bgSvg('space')],[3,'Своя картинка',curImg?'<img alt="" src="'+curImg+'" style="width:100%;height:100%;object-fit:cover">':'<span style="display:flex;height:100%;align-items:center;justify-content:center;font-size:24px">🖼</span>'],[0,'Без фона','']].map(function(o){return '<button type="button" class="otile'+(d.bg===o[0]?' on':'')+'" data-a="'+(o[0]===3&&!curImg?'petBgPick':'petBg')+'" data-v="'+o[0]+'"><span class="bgp"'+(o[0]?'':' style="background:var(--surface)"')+'>'+o[2]+'</span><span>'+o[1]+'</span></button>'}).join('')+'</div>'+
+     '<span class="fine" style="margin-top:6px">Фон за монстриком</span><div class="otiles">'+
+     [[1,'Авто',bgSvg(SCENE)],['sun','Солнце',bgSvg('sun')],['cloud','Облака',bgSvg('cloud')],['rain','Дождь',bgSvg('rain')],['dusk','Закат',bgSvg('dusk')],['night','Ночь',bgSvg('night')],['snow','Снег',bgSvg('snow')],[2,'Космос',bgSvg('space')],[3,'Своя',curImg?'<img alt="" src="'+curImg+'" style="width:100%;height:100%;object-fit:cover">':'<span style="display:flex;height:100%;align-items:center;justify-content:center;font-size:22px">🖼</span>'],[0,'Без фона','']].map(function(o){return '<button type="button" class="otile'+(d.bg===o[0]?' on':'')+'" data-a="'+(o[0]===3&&!curImg?'petBgPick':'petBg')+'" data-v="'+o[0]+'"><span class="bgp"'+(o[0]?'':' style="background:var(--surface)"')+'>'+o[2]+'</span><span>'+o[1]+'</span></button>'}).join('')+'</div>'+
      '<input type="file" id="pet_bgfile" accept="image/*" hidden>'+(curImg?'<button type="button" class="btn ghost sm" data-a="petBgPick" style="align-self:flex-start">Выбрать другую картинку</button>':'')+
-     '<span class="fine">Погода сама меняется: ночью звёзды, в плохом настроении дождь, зимой снег. Своя картинка хранится только на этом устройстве.</span>'}
-  var hi=HEADS.filter(function(x){return x.id===look.head})[0],fi=FACES.filter(function(x){return x.id===look.face})[0],lockIt=(hi&&!itemOpen(hi,L)&&hi)||(fi&&!itemOpen(fi,L)&&fi)||null;
+     '<span class="fine">"Авто" сам меняет фон: ночью звёзды, в плохом настроении дождь, зимой снег. Любой фон можно закрепить. Своя картинка хранится только на этом устройстве.</span>'}
+  var lockIt=null;acc.forEach(function(o){var df=accDef(o.id);if(!lockIt&&df&&!itemOpen(df,L))lockIt=df});
   var tabs=[['kind','Монстрик'],['outfit','Наряд'],['color','Цвет'],['view','Вид']];
   var pv=PSIZES.filter(function(x){return x.id===d.size})[0]||PSIZES[1];
   openSheet('<h3>Твой монстрик</h3><form id="fm" class="f" style="gap:12px" autocomplete="off">'+
@@ -3365,12 +3374,15 @@ function remBlock(){if(!remApk())return '';var o=remGet();
    '<div class="btns" style="align-items:center"><input type="time" id="rem_t" value="'+(o.t||'22:00')+'" style="flex:none;width:auto"><button type="button" class="btn'+(o.on?' ghost':'')+'" data-a="remToggle">'+(o.on?'Выключить':'Включить')+'</button></div></div>'}
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='pet_bgfile'&&t.files&&t.files[0]&&sh&&sh.pt){var f=t.files[0],rd=new FileReader(),pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;
   rd.onload=function(){var im=new Image();im.onload=function(){try{var k=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);sh.bgImg=cv.toDataURL('image/jpeg',.82);sh.d.bg=3;petSheet()}catch(er){toast('Не получилось открыть картинку')}};im.onerror=function(){toast('Это не картинка')};im.src=rd.result};rd.readAsDataURL(f)}});
-function plRender(){var lk={head:sh.d.head||'',face:sh.d.face||'',hue:sh.d.hue||0,hp:sh.d.hp||null,fp:sh.d.fp||null},m=document.getElementById('plm'),v=document.getElementById('pvm');if(m)m.innerHTML=monster('happy',190,sh.d.kind,undefined,undefined,lk);if(v)v.innerHTML=monster('happy',88,sh.d.kind,undefined,undefined,lk)}
-function plSet(e){var b=document.getElementById('plbox');if(!b||!sh||!sh.pt)return;var r=b.getBoundingClientRect(),k=140/r.width,px=(e.clientX-r.left)*k,py=(e.clientY-r.top)*k,t=plTgt(sh.d),cl=function(v){return Math.max(-45,Math.min(45,Math.round(v)))};
-  if(t==='head'){var tp=headAnchor(sh.d.kind,sh.d.head),sc=sh.d.hp?sh.d.hp[2]:1;sh.d.hp=[cl(px-tp[0]),cl(py+8*sc-tp[1]),sc]}
-  else{var fe=EYEG[sh.d.kind]||EYEG.puff,fcx=fe[0].reduce(function(a,b){return a+b},0)/fe[0].length,fsc=sh.d.fp?sh.d.fp[2]:1;sh.d.fp=[cl(px-fcx),cl(py-fe[1]),fsc]}
+function plRender(){var lk=dLook(sh.d),m=document.getElementById('plm'),v=document.getElementById('pvm');if(m)m.innerHTML=monster('happy',190,sh.d.kind,undefined,undefined,lk);if(v)v.innerHTML=monster('happy',88,sh.d.kind,undefined,undefined,lk)}
+function plSet(e){var b=document.getElementById('plbox');if(!b||!sh||!sh.pt)return;var t=plTgt(sh.d);if(t<0)return;var it=sh.d.acc[t],r=b.getBoundingClientRect(),k=140/r.width,px=(e.clientX-r.left)*k,py=(e.clientY-r.top)*k,cl=function(v){return Math.max(-60,Math.min(60,Math.round(v)))};
+  if(accIsHead(it.id)){var tp=headAnchor(sh.d.kind,it.id);it.x=cl(px-tp[0]);it.y=cl(py+8*(it.s||1)-tp[1])}
+  else{var fe=EYEG[sh.d.kind]||EYEG.puff,fcx=fe[0].reduce(function(a,b){return a+b},0)/fe[0].length;it.x=cl(px-fcx);it.y=cl(py-fe[1])}
   plRender()}
-document.addEventListener('input',function(e){var t=e.target;if(!t||t.id!=='pl_sz'||!sh||!sh.pt)return;var v=(+t.value||100)/100,tg=plTgt(sh.d),z=document.getElementById('pl_szv');if(z)z.textContent=Math.round(v*100)+'%';if(tg==='head')sh.d.hp=[(sh.d.hp||[0,0])[0],(sh.d.hp||[0,0])[1],v];else sh.d.fp=[(sh.d.fp||[0,0])[0],(sh.d.fp||[0,0])[1],v];plRender()});
+document.addEventListener('input',function(e){var t=e.target;if(!t||(t.id!=='pl_sz'&&t.id!=='pl_rt')||!sh||!sh.pt)return;var ti=plTgt(sh.d);if(ti<0)return;var it=sh.d.acc[ti];
+  if(t.id==='pl_sz'){it.s=(+t.value||100)/100;var z=document.getElementById('pl_szv');if(z)z.textContent=Math.round(it.s*100)+'%'}
+  else{it.r=+t.value||0;var z2=document.getElementById('pl_rtv');if(z2)z2.textContent=Math.round(it.r)+'°'}
+  plRender()});
 document.addEventListener('pointerdown',function(e){var b=e.target&&e.target.closest&&e.target.closest('#plbox');if(!b||!sh||!sh.pt)return;sh.drag=1;try{b.setPointerCapture(e.pointerId)}catch(er){}e.preventDefault();plSet(e)});
 document.addEventListener('pointermove',function(e){if(sh&&sh.pt&&sh.drag)plSet(e)});
 document.addEventListener('pointerup',function(){if(sh&&sh.pt&&sh.drag){sh.drag=null;var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value}});
@@ -3602,14 +3614,20 @@ document.addEventListener('click',function(ev){
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
   else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
   else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
-  else if(a==='petPick'){var lk=petLook();sh={pt:true,L:dayLimit()?g2().L:0,d:{kind:petKind(),theme:(S.pet&&S.pet.theme&&PTHEME[S.pet.theme])?S.pet.theme:'',name:(S.pet&&S.pet.name)||'',head:lk.head,face:lk.face,hue:lk.hue,size:petSize(),bg:petBgMode(),hp:lk.hp,fp:lk.fp}};petSheet()}
-  else if((a==='petHead'||a==='petFace'||a==='petHue')&&sh&&sh.pt){var pn3=document.getElementById('p_name');if(pn3)sh.d.name=pn3.value;sh.hint='';if(a==='petHead'){sh.d.head=v;sh.d.hp=null}else if(a==='petFace'){sh.d.face=v;sh.d.fp=null}else sh.d.hue=+v||0;petSheet()}
-  else if((a==='petTab'||a==='petSize'||a==='petBg')&&sh&&sh.pt){var pn5=document.getElementById('p_name');if(pn5)sh.d.name=pn5.value;if(a==='petTab'){sh.tab=v;sh.hint=''}else if(a==='petSize')sh.d.size=v;else sh.d.bg=+v;petSheet()}
-  else if(a==='petHpReset'&&sh&&sh.pt){var pn6=document.getElementById('p_name');if(pn6)sh.d.name=pn6.value;if(plTgt(sh.d)==='head')sh.d.hp=null;else sh.d.fp=null;petSheet()}
-  else if(a==='petPlt'&&sh&&sh.pt){var pn8=document.getElementById('p_name');if(pn8)sh.d.name=pn8.value;sh.plt=v;petSheet()}
+  else if(a==='petPick'){var lk=petLook(),pac=lk.acc.map(function(o){return Object.assign({},o)}),pL=dayLimit()?g2().L:0;if(lk.auto){var pah=inSeason()?'santa':(pL>=8?'crown':'');if(pah&&pac.length<3&&!pac.some(function(o){return accIsHead(o.id)}))pac.unshift({id:pah,x:0,y:0,s:1,r:0})}sh={pt:true,L:dayLimit()?g2().L:0,d:{kind:petKind(),theme:(S.pet&&S.pet.theme&&PTHEME[S.pet.theme])?S.pet.theme:'',name:(S.pet&&S.pet.name)||'',acc:pac,hue:lk.hue,size:petSize(),bg:petBgMode(),hp:null}};petSheet()}
+  else if(a==='petHue'&&sh&&sh.pt){var pn3=document.getElementById('p_name');if(pn3)sh.d.name=pn3.value;sh.d.hue=+v||0;petSheet()}
+  else if(a==='petAcc'&&sh&&sh.pt){var pn9=document.getElementById('p_name');if(pn9)sh.d.name=pn9.value;sh.hint='';var ix=-1;sh.d.acc.forEach(function(o,i){if(o.id===v)ix=i});
+    if(ix>=0){sh.d.acc.splice(ix,1);accDefaults(sh.d.acc,sh.d.kind)}
+    else if(sh.d.acc.length>=3)sh.hint='Можно носить до трёх вещей: сними что-нибудь.';
+    else{sh.d.acc.push({id:v,x:0,y:0,s:1,r:0});accDefaults(sh.d.acc,sh.d.kind);sh.pli=sh.d.acc.length-1;var dfa=accDef(v);if(dfa&&!itemOpen(dfa,sh.L||0))sh.hint=itemLock(dfa)+'. Пока можно только примерить.'}
+    petSheet()}
+  else if(a==='petAccClear'&&sh&&sh.pt){var pn10=document.getElementById('p_name');if(pn10)sh.d.name=pn10.value;sh.d.acc=[];sh.hint='';petSheet()}
+  else if((a==='petTab'||a==='petSize'||a==='petBg')&&sh&&sh.pt){var pn5=document.getElementById('p_name');if(pn5)sh.d.name=pn5.value;if(a==='petTab'){sh.tab=v;sh.hint=''}else if(a==='petSize')sh.d.size=v;else sh.d.bg=/^\d$/.test(v)?+v:v;petSheet()}
+  else if(a==='petHpReset'&&sh&&sh.pt){var pn6=document.getElementById('p_name');if(pn6)sh.d.name=pn6.value;var ti2=plTgt(sh.d);if(ti2>=0){var o2=sh.d.acc[ti2];o2.x=0;o2.y=0;o2.s=1;o2.r=0;accDefaults(sh.d.acc,sh.d.kind)}petSheet()}
+  else if(a==='petPlt'&&sh&&sh.pt){var pn8=document.getElementById('p_name');if(pn8)sh.d.name=pn8.value;sh.pli=+v;petSheet()}
   else if(a==='petBgPick'&&sh&&sh.pt){var pn7=document.getElementById('p_name');if(pn7)sh.d.name=pn7.value;var bf=document.getElementById('pet_bgfile');if(bf)bf.click()}
   else if(a==='petLock'&&sh&&sh.pt){var pn4=document.getElementById('p_name');if(pn4)sh.d.name=pn4.value;sh.hint=v;petSheet()}
-  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;sh.d.hp=null;sh.d.fp=null;petSheet();previewPetTheme();}
+  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;accDefaults(sh.d.acc,v);petSheet();previewPetTheme();}
   else if(a==='petTheme'&&sh&&sh.pt){var pn2=document.getElementById('p_name');if(pn2)sh.d.name=pn2.value;sh.d.theme=v||'';petSheet();previewPetTheme();}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
   else if(a==='ccAddI'){uiPrompt('Название новой категории дохода').then(function(n3){if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}})}
@@ -3823,10 +3841,9 @@ document.addEventListener('submit',function(ev){
   if(sh.cl){var cl={};document.querySelectorAll('[data-cl]').forEach(function(e){var v=num(e.value);if(v>0)cl[e.dataset.cl]=Math.round(v)});Object.keys(catLimits()).forEach(function(k){if(!document.querySelector('[data-cl="'+k+'"]'))cl[k]=catLimits()[k]});S.catLim=cl;save();closeSheet();render();toast('Лимиты сохранены');return}
   if(sh.tp){var tt=tplRead();if(!tt.note&&!tt.cat)return showErr('Впиши название.');if(sh.tid){S.tpls=tpls().map(function(x){return x.id===sh.tid?Object.assign(tt,{id:sh.tid}):x})}else{tt.id=uid();tpls().push(tt)}save();closeSheet();render();toast('Сохранено: '+(tt.note||'трата')+', '+tplWhen(tt));return}
   if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});S.planOut=(sh.pcOut||[]).slice();save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;S.planOut=(sh.pcOut||[]).slice();delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
-  if(sh.pt){var lkH=HEADS.filter(function(x){return x.id===sh.d.head})[0],lkF=FACES.filter(function(x){return x.id===sh.d.face})[0];
-    if((lkH&&!itemOpen(lkH,sh.L||0))||(lkF&&!itemOpen(lkF,sh.L||0)))return;
-    S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20),head:sh.d.head||'',face:sh.d.face||'',hue:sh.d.hue||0,size:sh.d.size||'m',bg:(sh.d.bg===3&&!(sh.bgImg||bgImg()))?1:sh.d.bg};
-    [['hp',sh.d.hp],['fp',sh.d.fp]].forEach(function(q){var v=q[1];if(v&&(v[0]||v[1]||v[2]!==1))S.pet[q[0]]={k:sh.d.kind,x:v[0],y:v[1],s:v[2]}});
+  if(sh.pt){var lkA=false;(sh.d.acc||[]).forEach(function(o){var df=accDef(o.id);if(df&&!itemOpen(df,sh.L||0))lkA=true});
+    if(lkA)return;
+    S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20),head:'',face:'',hue:sh.d.hue||0,size:sh.d.size||'m',bg:(sh.d.bg===3&&!(sh.bgImg||bgImg()))?1:sh.d.bg,accK:sh.d.kind,acc:(sh.d.acc||[]).slice(0,3).map(function(o){return {id:o.id,x:Math.round(o.x||0),y:Math.round(o.y||0),s:+(o.s||1).toFixed(2),r:Math.round(o.r||0)}})};
     if(sh.bgImg){try{localStorage.setItem(BGKEY,sh.bgImg)}catch(e){S.pet.bg=1;toast('Картинка не поместилась, оставила обычный фон')}}save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
   if(document.getElementById('c_from')){
     var fr=document.getElementById('c_from').value;if(!fr)return showErr('Укажите дату.');

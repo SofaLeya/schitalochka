@@ -3629,7 +3629,7 @@ document.addEventListener('click',function(ev){
   else if(a==='petPlt'&&sh&&sh.pt){var pn8=document.getElementById('p_name');if(pn8)sh.d.name=pn8.value;sh.pli=+v;petSheet()}
   else if(a==='petBgPick'&&sh&&sh.pt){var pn7=document.getElementById('p_name');if(pn7)sh.d.name=pn7.value;var bf=document.getElementById('pet_bgfile');if(bf)bf.click()}
   else if(a==='petLock'&&sh&&sh.pt){var pn4=document.getElementById('p_name');if(pn4)sh.d.name=pn4.value;sh.hint=v;petSheet()}
-  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;sh.d.kind=v;accDefaults(sh.d.acc,v);petSheet();previewPetTheme();}
+  else if(a==='petKind'&&sh&&sh.pt){var pn=document.getElementById('p_name');if(pn)sh.d.name=pn.value;var sv=(sh.d.acc||[]).map(function(o){return{s:o.s,x:o.x,y:o.y,r:o.r}});sh.d.kind=v;accDefaults(sh.d.acc,v);(sh.d.acc||[]).forEach(function(o,i){var q=sv[i];if(!q)return;o.s=q.s||1;if(!SMALLH[o.id]){o.x=q.x||0;o.y=q.y||0;o.r=q.r||0}});petSheet();previewPetTheme();}
   else if(a==='petTheme'&&sh&&sh.pt){var pn2=document.getElementById('p_name');if(pn2)sh.d.name=pn2.value;sh.d.theme=v||'';petSheet();previewPetTheme();}
   else if(a==='rvAddRec'){var rc=rvCands[+id];if(rc){S.recur.push({id:uid(),name:rc.name,amt:rc.amt,day:Math.min(28,rc.day),cat:rc.cat});save();render();toast('Добавлено в платежи: '+rc.name)}}
   else if(a==='ccAddI'){uiPrompt('Название новой категории дохода').then(function(n3){if(n3&&newCat(n3,true)){settingsSheet();toast('Категория дохода добавлена')}})}

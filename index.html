@@ -383,11 +383,20 @@ html.bigtext{zoom:1.14}
 .ohue.on{border-color:var(--ink)}
 .mopt .msw{display:flex;gap:4px;margin:2px 0 1px}
 .mopt .msw i{display:block;width:16px;height:16px;border-radius:50%;border:1px solid rgba(128,128,128,.4)}
-button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:transparent}
+button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.rxh.w{font-size:16px;color:#fff;-webkit-text-stroke:4px #2b1a3f;white-space:nowrap}.rxh.n{color:#ffd65a}.rxh.s{color:#b9f3ff}
 .rxh{position:absolute;left:50%;top:18%;z-index:3;pointer-events:none;font-size:26px;font-weight:900;color:#ff6fa5;-webkit-text-stroke:3px #2b1a3f;paint-order:stroke fill;font-family:sans-serif}
 @media (prefers-reduced-motion:no-preference){
 .mbox.rx1{animation:rxsq .55s ease-out}.mbox.rx2{animation:rxhop .75s ease-in-out}.mbox.rx3{animation:rxwob .9s ease-in-out}.mbox.rx4{animation:rxspin 1s ease-in-out}
-.rxh{animation:rxup 1.1s ease-out forwards}
+.rxh{animation:rxup 1.1s ease-out forwards}.rxh.l{animation-name:rxupl}.rxh.r{animation-name:rxupr}
+.mbox.rx5{animation:rxdance 1s ease-in-out}.mbox.rx6{animation:rxgig .7s linear}.mbox.rx7{animation:rxtall .8s ease-in-out}.mbox.rx8{animation:rxdbl .9s ease-in-out}.mbox.rx9{animation:rxhug 1.3s ease-in-out}
+@keyframes rxdance{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-8px) rotate(-8deg)}40%{transform:translateX(8px) rotate(8deg)}60%{transform:translateX(-8px) rotate(-8deg)}80%{transform:translateX(6px) rotate(5deg)}}
+@keyframes rxgig{0%,100%{transform:translate(0,0)}10%,50%,90%{transform:translate(-3px,1px) rotate(-2deg)}30%,70%{transform:translate(3px,-1px) rotate(2deg)}}
+@keyframes rxtall{0%,100%{transform:scale(1,1)}30%{transform:scale(.9,1.16) translateY(-6px)}60%{transform:scale(1.06,.95)}}
+@keyframes rxdbl{0%,50%,100%{transform:translateY(0) scale(1,1)}20%,70%{transform:translateY(-16px) scale(.96,1.05)}45%,95%{transform:translateY(0) scale(1.08,.92)}}
+@keyframes rxhug{0%,100%{transform:scale(1)}35%,70%{transform:scale(1.12,1.08)}50%{transform:scale(1.15,1.06) rotate(-3deg)}}
+@keyframes rxupl{0%{transform:translate(-120%,6px) scale(.5);opacity:0}20%{opacity:1}100%{transform:translate(-170%,-50px) rotate(-15deg);opacity:0}}
+@keyframes rxupr{0%{transform:translate(20%,6px) scale(.5);opacity:0}20%{opacity:1}100%{transform:translate(70%,-50px) rotate(15deg);opacity:0}}
 @keyframes rxsq{0%{transform:scale(1,1)}25%{transform:scale(1.14,.82)}55%{transform:scale(.93,1.1)}80%{transform:scale(1.03,.98)}100%{transform:scale(1,1)}}
 @keyframes rxhop{0%,100%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.1,.88)}40%{transform:translateY(-22px) scale(.95,1.07)}65%{transform:translateY(0) scale(1.08,.9)}80%{transform:translateY(-5px)}}
 @keyframes rxwob{0%,100%{transform:rotate(0)}15%{transform:rotate(-12deg)}35%{transform:rotate(10deg)}55%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
@@ -1746,7 +1755,7 @@ function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.dem
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
-  return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc,bgTall())+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
+  return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc,bgTall())+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" data-m="'+mood+'" data-l="'+(lvl||0)+'" data-x="'+(act||'')+'" data-px="'+px+'" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 /* имя пользователя: монстрик зовёт по имени редко - только в приветствии и в крупной похвале, примерно через день */
 function uName(){var n=S&&S.uname;return n&&String(n).trim()?String(n).trim():''}
 function withName(msg,tag){var n=uName();if(!n||!msg||hsh(petDay()+tag)%2)return msg;
@@ -2042,6 +2051,25 @@ function tipsNow(){
   var no=S.subNo||[],rc=regCands(ym).filter(function(c){return no.indexOf(norm(c.name))<0})[0];
   if(rc)out.push({t:'sub',mood:'think',sub:rc,text:S.simple?'Похоже на подписку: "'+rc.name+'", около '+money(rc.amt)+' каждый месяц. Проверь, нужна ли она ещё.':'Похоже на регулярный платёж: "'+rc.name+'", около '+money(rc.amt)+' каждый месяц. Добавь его в «Платежи» - план станет честнее.'});
   return out}
+/* реакции на тапы: случайная из 7 (без повтора подряд), лицо на миг радостное, у каждого монстрика свой звук;
+   много тапов подряд - кружится, долгое нажатие - обнимашки, спящий только сонно бормочет */
+var PET_SND={fluff:'Мрр!',puff:'Пуф!',slime:'Блюп!',rat:'Пи-пи!',mouse:'Пи!',frog:'Ква!',duck:'Кря!',cat:'Мур!',skel:'Клац-клац!',skelf:'Клац!',straw:'Чмок!',cher:'Дзинь!'};
+function petFloat(st,txt,cls,delay){if(!st)return;setTimeout(function(){var h=document.createElement('span');h.className='rxh'+(cls?' '+cls:'');h.textContent=txt;st.appendChild(h);setTimeout(function(){if(h.parentNode)h.parentNode.removeChild(h)},1200)},delay||0)}
+function petReact(b,hug){
+  if(b._rx)return;var st0=b.closest('.mstage'),sl=b.querySelector('svg.lying'),now=Date.now(),cls,dur=1150,fl=[];
+  window._tapT=(window._tapT||[]).filter(function(t){return now-t<5000});window._tapT.push(now);
+  if(sl){cls='rx1';fl=[[['Zz','Хр-р...','Ещё 5 минуточек...','М-м?'][Math.floor(Math.random()*4)],'w']]}
+  else if(hug){cls='rx9';dur=1350;fl=[['♥',''],['♥','l',150],['♥','r',300],['Обнимашки!','w',200]]}
+  else if(window._tapT.length>=6){window._tapT=[];cls='rx4';dur=1050;fl=[['Голова кружится!','w'],['✦','s l',100],['✦','s r',200]]}
+  else{var R=[['rx1',[['♥','']]],['rx2',[['♥',''],['♥','l',150]]],['rx3',[['Хи-хи!','w']]],['rx5',[['♪','n l'],['♫','n r',200]]],['rx6',[['Щекотно!','w']]],['rx7',[['✦','s l'],['✦','s r',150],['✦','s',300]]],['rx8',[[PET_SND[petKind()]||'Ой!','w']]]];
+    var k;do{k=Math.floor(Math.random()*R.length)}while(R.length>1&&k===window._tapK);window._tapK=k;cls=R[k][0];fl=R[k][1];dur=cls==='rx5'?1050:cls==='rx6'?800:1150}
+  b._rx=1;b.classList.add(cls);
+  var old=null;if(!sl&&b.dataset.m&&b.dataset.m!=='joy'){try{old=b.innerHTML;b.innerHTML=monster('joy',+b.dataset.px||96,null,+b.dataset.l||0,b.dataset.x==='pay'?'pay':'')}catch(e){old=null}}
+  fl.forEach(function(f){petFloat(st0,f[0],f[1],f[2])});
+  setTimeout(function(){b.classList.remove(cls);if(old!=null&&b.isConnected)b.innerHTML=old;b._rx=0},dur)}
+document.addEventListener('pointerdown',function(ev){var b=ev.target.closest&&ev.target.closest('.mbox');if(!b)return;
+  clearTimeout(window._hugTm);window._hugTm=setTimeout(function(){window._hugAt=Date.now();petReact(b,true)},600)});
+['pointerup','pointercancel','pointerleave'].forEach(function(n){document.addEventListener(n,function(){clearTimeout(window._hugTm)})});
 try{window.tipsNow=function(){return tipsNow()}}catch(e){}
 function monTip(PD,td,hr){
   if(td.length||hr<10||hr>=21||(hsh(PD+'tip')%2))return null;
@@ -3467,7 +3495,7 @@ function newDraft(type){return {type:type||'e',amt:'',cat:'',acc:defAcc(),from:'
     drag.rows.forEach(function(r,i){if(r===drag.row)return;var sh=0;if(drag.from<to&&i>drag.from&&i<=to)sh=-drag.h;else if(drag.from>to&&i<drag.from&&i>=to)sh=drag.h;r.style.transition='transform .15s';r.style.transform=sh?'translateY('+sh+'px)':''})},{passive:false});
   /* пока тянем строку, страница не должна прокручиваться */
   document.addEventListener('touchmove',function(e){if(drag&&e.cancelable)e.preventDefault()},{passive:false});
-  document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.drag'))e.preventDefault()});
+  document.addEventListener('contextmenu',function(e){if(e.target.closest&&(e.target.closest('.drag')||e.target.closest('.mbox')))e.preventDefault()});
   function end(e){if(pend&&(!e||e.pointerId===pend.id))pendClear();
     if(!drag||(e&&e.pointerId!==drag.id))return;var d=drag;drag=null;
     d.rows.forEach(function(r){r.style.transform='';r.style.transition=''});d.row.classList.remove('dragging');
@@ -3621,7 +3649,7 @@ document.addEventListener('click',function(ev){
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
   else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
   else if(a==='noSpendUndo'){var pd1=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d!==pd1});save();render()}
-  else if(a==='petTap'){if(!S.tapHint){S.tapHint=1;save();toast('Меню монстрика - кнопка "сменить" рядом с именем')}var st0=b.closest('.mstage'),sl=b.querySelector('svg.lying');if(!b._rx){b._rx=1;var now=Date.now();window._tapT=(window._tapT||[]).filter(function(t){return now-t<5000});window._tapT.push(now);window._tapN=((window._tapN||0)+1)%3;var cls=window._tapT.length>=6?'rx4':['rx1','rx2','rx3'][window._tapN];if(cls==='rx4')window._tapT=[];if(sl&&cls!=='rx4')cls='rx1';b.classList.add(cls);var h=document.createElement('span');h.className='rxh';h.textContent=sl?'Zz':'♥';if(st0)st0.appendChild(h);setTimeout(function(){b.classList.remove(cls);b._rx=0;if(h.parentNode)h.parentNode.removeChild(h)},cls==='rx4'?1050:1150)}}
+  else if(a==='petTap'){if(!S.tapHint){S.tapHint=1;save();toast('Меню монстрика - кнопка "сменить" рядом с именем')}if(window._hugAt&&Date.now()-window._hugAt<600)return;petReact(b,false)}
   else if(a==='petPick'){var lk=petLook(),pac=lk.acc.map(function(o){return Object.assign({},o)}),pL=dayLimit()?g2().L:0;if(lk.auto){var pah=inSeason()?'santa':(pL>=8?'crown':'');if(pah&&pac.length<3&&!pac.some(function(o){return accIsHead(o.id)}))pac.unshift({id:pah,x:0,y:0,s:1,r:0})}sh={pt:true,L:dayLimit()?g2().L:0,d:{kind:petKind(),theme:(S.pet&&S.pet.theme&&PTHEME[S.pet.theme])?S.pet.theme:'',name:(S.pet&&S.pet.name)||'',acc:pac,hue:lk.hue,size:petSize(),bg:petBgMode(),bgo:Math.round(petBgOp()*100),hp:null}};petSheet()}
   else if(a==='petHue'&&sh&&sh.pt){var pn3=document.getElementById('p_name');if(pn3)sh.d.name=pn3.value;sh.d.hue=+v||0;petSheet()}
   else if(a==='petAcc'&&sh&&sh.pt){var pn9=document.getElementById('p_name');if(pn9)sh.d.name=pn9.value;sh.hint='';var ix=-1;sh.d.acc.forEach(function(o,i){if(o.id===v)ix=i});

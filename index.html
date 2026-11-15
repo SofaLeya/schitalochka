@@ -31,7 +31,6 @@ h1,h2,h3,p{margin:0}
 .top h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
 .ico{width:40px;height:40px;border-radius:12px;background:var(--surface);display:grid;place-items:center;color:var(--muted)}
 .ico svg{width:20px;height:20px}
-.ico{flex:none}.top h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top.haspet h1{font-size:19px}.top.haspet{gap:6px}
 .card{background:var(--surface);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .card h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .hero{background:var(--accent);color:var(--accent-ink);gap:6px}
@@ -3016,7 +3015,7 @@ function render(){
   if(tab==='game')tab='home';
   /* пока рисуется экран, данные не меняются: план считаем один раз, а не на каждую запись (иначе с годом истории главная тормозит) */
   PI_ON=1;PI_C=null;var v;try{v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan()}finally{PI_ON=0;PI_C=null}
-  if(tab==='home')v='<div class="top'+(S.nopet?' haspet':'')+'"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления

@@ -768,7 +768,7 @@ function applyPayout(day,ym){
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
 var APP_VER='2026-11-15f';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['В настройках появился блок "Вид": можно выключить монстрика и включить крупный текст.',
+var NEWS=['В настройках появился блок "Вид": можно включить крупный текст. Монстрика можно убрать в меню "сменить" и вернуть кнопкой на главной.',
  'Поправить остаток теперь можно карандашиком рядом с суммой. Карточка "Прогресс" стала аккуратнее, а удаление планов и счетов можно отменить.'];
 var NEWS_OLD=['Монстрик отзывается на нажатие. Меню наряда открывается кнопкой "сменить".',
  'Фон за монстриком: любая сцена на выбор и ползунок прозрачности. Можно носить до трёх вещей и подгонять их размер и поворот.','Ночью монстрики спят в кроватках на боку под одеялом.',
@@ -1741,7 +1741,7 @@ function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
   return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc,bgTall())+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 function monsterCard(me,net,dnum){
-  if(S.nopet)return '';
+  if(S.nopet)return '<div class="card" style="flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px"><span class="fine">Монстрик скрыт</span><button type="button" class="btn sm ghost" data-a="petShow">Показать монстрика</button></div>';
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
@@ -3353,7 +3353,7 @@ function undoSnap(sn,msg){toast(msg,false,function(){try{S=migrate(JSON.parse(sn
 function icoHint(k,txt){try{var o=JSON.parse(localStorage.getItem('sch-ih')||'{}');if(o[k])return;o[k]=1;localStorage.setItem('sch-ih',JSON.stringify(o));setTimeout(function(){toast(txt)},350)}catch(e){}}
 function bigOn(){try{return !!localStorage.getItem('sch-big')}catch(e){return false}}
 function bigApply(){try{document.documentElement.classList.toggle('bigtext',bigOn())}catch(e){}}
-function viewBlock(){return '<div class="f"><label>Вид</label><div class="optrow"><span>Монстрик на главной</span><button type="button" class="btn sm ghost" data-a="optPet">'+(S.nopet?'Выключен':'Включён')+'</button></div><div class="optrow"><span>Крупный текст</span><button type="button" class="btn sm ghost" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div></div>'}
+function viewBlock(){return '<div class="f"><label>Вид</label><div class="optrow"><span>Крупный текст</span><button type="button" class="btn sm ghost" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div></div>'}
 function onbMaybe(){if(!S.demo||S.setup||document.querySelector('#ov .sheet'))return;
   openSheet('<h3>Давай настроим за минуту</h3><p class="fine" style="margin:0">Три шага, и приложение считает под тебя.</p>'+
    '<div class="f"><label for="ob_bal">1. Сколько сейчас денег на карте</label><input id="ob_bal" inputmode="decimal" placeholder="Например, 15000"></div>'+
@@ -3484,8 +3484,8 @@ document.addEventListener('click',function(ev){
   else if(a==='onbGo'){var ob=num((document.getElementById('ob_bal')||{}).value),ol=num((document.getElementById('ob_lim')||{}).value);
     S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
     var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om&&isFinite(ob))addAdj(om,ob-accBal(om));if(ol>0)S.dayLimit=ol;S.setup=1;save();closeSheet();render();toast('Готово. Нажми "+" и запиши первую трату')}
-  else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Монстрик скрыт. Вернуть: Настройки, блок "Вид"',false,function(){S.nopet=false;save();render()})}
-  else if(a==='optPet'){S.nopet=!S.nopet;save();render();settingsSheet()}
+  else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Монстрик скрыт. Вернуть - кнопка на главной',false,function(){S.nopet=false;save();render()})}
+  else if(a==='petShow'){S.nopet=false;save();render()}
   else if(a==='optBig'){var bg=!bigOn();try{localStorage.setItem('sch-big',bg?'1':'')}catch(e){}bigApply();settingsSheet()}
   else if(a==='settings'){icoHint('set','Настройки');sh={confirm:false};settingsSheet()}
   else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){sh={sp:true,id:sx.id};

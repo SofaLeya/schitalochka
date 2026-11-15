@@ -389,17 +389,23 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 @media (prefers-reduced-motion:no-preference){
 .mbox.rx1{animation:rxsq .55s ease-out}.mbox.rx2{animation:rxhop .75s ease-in-out}.mbox.rx3{animation:rxwob .9s ease-in-out}.mbox.rx4{animation:rxspin 1s ease-in-out}
 .rxh{animation:rxup 1.1s ease-out forwards}.rxh.l{animation-name:rxupl}.rxh.r{animation-name:rxupr}
-.mbox.rx5{animation:rxdance 1s ease-in-out}.mbox.rx6{animation:rxgig .7s linear}.mbox.rx7{animation:rxtall .8s ease-in-out}.mbox.rx8{animation:rxdbl .9s ease-in-out}.mbox.rx9{animation:rxhug 1.3s ease-in-out}.mbox.rx10{animation:rxflip 1.5s cubic-bezier(.3,.1,.3,1);transform-origin:50% 55%;transform-style:preserve-3d}
-.m3d,.m3d>i{position:absolute;inset:0;transform-style:preserve-3d}.m3d>i{display:block}.m3d>i.sl{opacity:0;animation:m3dsl 1.5s linear}@keyframes m3dsl{0%,17%{opacity:0}20%,76%{opacity:1}79%,100%{opacity:0}}.m3d>i>svg{display:block;width:100%;height:100%}
-@keyframes rxflip{0%{transform:translateY(0) rotateX(0) scale(1,1)}
-14%{transform:translateY(4px) rotateX(0) scale(1.14,.8)}
-24%{transform:translateY(-18px) rotateX(-10deg) scale(.94,1.1)}
-40%{transform:translateY(-48px) rotateX(-140deg) scale(1)}
-55%{transform:translateY(-52px) rotateX(-250deg) scale(1)}
-72%{transform:translateY(-14px) rotateX(-352deg) scale(.96,1.06)}
-80%{transform:translateY(0) rotateX(-360deg) scale(1.16,.82)}
-90%{transform:translateY(-4px) rotateX(-360deg) scale(.97,1.04)}
-100%{transform:translateY(0) rotateX(-360deg) scale(1,1)}}
+.mbox.rx5{animation:rxdance 1s ease-in-out}.mbox.rx6{animation:rxgig .7s linear}.mbox.rx7{animation:rxtall .8s ease-in-out}.mbox.rx8{animation:rxdbl .9s ease-in-out}.mbox.rx9{animation:rxhug 1.3s ease-in-out}.mbox.rx10{animation:rxflip 1.5s cubic-bezier(.3,.1,.3,1);transform-origin:50% 60%}
+.fl2{position:absolute;inset:0}.fl2 .fs{position:absolute;inset:0;animation:flspr 1.5s linear forwards}.fl2 .fb{position:absolute;inset:0;opacity:0;animation:flball 1.5s linear forwards}
+.fl2 .fb svg,.fl2 .fs svg{display:block;width:100%;height:100%}
+.fl2 .roll{animation:flroll .62s linear 2 .3s}.fl2 .sw{transform-origin:70px 76px;animation:flsw .62s linear 2 .3s}
+@keyframes flspr{0%,19%{opacity:1}21%,77%{opacity:0}79%,100%{opacity:1}}
+@keyframes flball{0%,19%{opacity:0}21%,77%{opacity:1}79%,100%{opacity:0}}
+@keyframes flroll{from{transform:translateY(0)}to{transform:translateY(-104px)}}
+@keyframes flsw{from{transform:rotate(0)}to{transform:rotate(-360deg)}}
+@keyframes rxflip{0%{transform:translateY(0) scale(1,1)}
+14%{transform:translateY(5px) scale(1.14,.8)}
+22%{transform:translateY(-20px) scale(.92,1.1)}
+40%{transform:translateY(-50px) scale(1)}
+58%{transform:translateY(-50px) scale(1)}
+74%{transform:translateY(-12px) scale(1)}
+80%{transform:translateY(3px) scale(1.16,.82)}
+90%{transform:translateY(-4px) scale(.97,1.04)}
+100%{transform:translateY(0) scale(1,1)}}
 @keyframes rxdance{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-8px) rotate(-8deg)}40%{transform:translateX(8px) rotate(8deg)}60%{transform:translateX(-8px) rotate(-8deg)}80%{transform:translateX(6px) rotate(5deg)}}
 @keyframes rxgig{0%,100%{transform:translate(0,0)}10%,50%,90%{transform:translate(-3px,1px) rotate(-2deg)}30%,70%{transform:translate(3px,-1px) rotate(2deg)}}
 @keyframes rxtall{0%,100%{transform:scale(1,1)}30%{transform:scale(.9,1.16) translateY(-6px)}60%{transform:scale(1.06,.95)}}
@@ -2068,16 +2074,22 @@ var PET_SND={fluff:'Мрр!',puff:'Пуф!',slime:'Блюп!',rat:'Пи-пи!',m
 /* объёмный монстрик для сальто: лицо спереди, спина без лица сзади, между ними слои-срезы потемнее,
    к краям чуть меньше - получается мягкая "подушка" со всех сторон */
 var PET_BODY={puff:'#ff6fae',slime:'#34d3a0',rat:'#8b94a2',fluff:'#8f6bff',mouse:'#f5dcb6',frog:'#7bd85a',duck:'#ffd84d',cat:'#ffa45c',straw:'#e3213a',cher:'#cc1632',skel:'#f3efe6',skelf:'#f1eef8'};
+/* сальто как в мультиках: монстрик сворачивается в пушистый шарик, шарик крутится назад
+   (мордочка уезжает вверх за макушку и выныривает снизу), потом разворачивается обратно */
 function pet3d(px,lv){
-  var P=520,T=Math.round(px*0.17),N=16,front=monster('joy',px,null,lv,''),back,col=PET_BODY[petKind()]||'#8f6bff';
-  SKNOFACE=true;try{back=monster('calm',px,null,lv,'')}finally{SKNOFACE=false}
-  var k=((P-T)/P).toFixed(3); // лицо ближе к зрителю - уменьшаем, чтобы в начале и в конце размер совпадал с обычным
-  var h='<svg width="0" height="0" style="position:absolute"><filter id="m3dsil"><feFlood flood-color="'+col+'"/><feComposite in2="SourceAlpha" operator="in"/></filter></svg><div class="m3d">';
-  for(var i=1;i<N;i++){var z=T-2*T*i/N,q=Math.abs(z)/T,sc=((1-0.12*q*q)*(P-z)/P).toFixed(3),br=(0.62+0.25*(1-q*q)).toFixed(2);
-    h+='<i class="sl" style="transform:translateZ('+z.toFixed(1)+'px) scale('+sc+');filter:url(#m3dsil) brightness('+br+')">'+back+'</i>'}
-  h+='<i style="transform:rotateY(180deg) translateZ('+T+'px) scale('+k+');filter:brightness(.95)">'+back+'</i>';
-  h+='<i style="transform:translateZ('+T+'px) scale('+k+')">'+front+'</i>';
-  return h+'</div>'}
+  var k=petKind(),col=PET_BODY[k]||'#8f6bff',one=(k==='fluff'||k==='slime'),sk=(k==='skel'||k==='skelf');
+  var face=function(y){var e=one?'<path d="M60 '+(y-4)+' Q70 '+(y-14)+' 80 '+(y-4)+'" stroke="'+INK+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
+      :'<path d="M50 '+(y-4)+' Q57 '+(y-12)+' 64 '+(y-4)+' M76 '+(y-4)+' Q83 '+(y-12)+' 90 '+(y-4)+'" stroke="'+INK+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>';
+    return e+'<ellipse cx="46" cy="'+(y+6)+'" rx="7" ry="4" fill="#ff5c9a" opacity=".45"/><ellipse cx="94" cy="'+(y+6)+'" rx="7" ry="4" fill="#ff5c9a" opacity=".45"/><path d="M62 '+(y+8)+' Q70 '+(y+17)+' 78 '+(y+8)+'Z" fill="'+INK+'"/>'+
+      (sk?'':'<ellipse cx="70" cy="'+(y+34)+'" rx="22" ry="12" fill="#fff" opacity=".2"/>')+paw(28,y+8,-30)+paw(112,y+8,30)+paw(40,y+32,-60)+paw(100,y+32,60)};
+  var paw=function(x,y,r){return '<ellipse cx="'+x+'" cy="'+y+'" rx="10" ry="7.5" transform="rotate('+r+' '+x+' '+y+')" fill="'+col+'" stroke="'+INK+'" stroke-width="3.5"/><ellipse cx="'+(x-2)+'" cy="'+(y-2.5)+'" rx="4" ry="2" fill="#fff" opacity=".35"/>'};
+  var gid='flg'+Date.now();
+  var ball='<svg viewBox="0 0 140 140"><defs><radialGradient id="'+gid+'" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient><clipPath id="'+gid+'c"><ellipse cx="70" cy="76" rx="54" ry="40"/></clipPath></defs>'+
+    '<g class="sw"><path d="M18 70 A54 54 0 0 1 70 22" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/><path d="M122 82 A54 54 0 0 1 70 130" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/></g>'+
+    '<circle cx="70" cy="76" r="46" fill="#fff"/><circle cx="70" cy="76" r="41" fill="'+col+'" stroke="'+INK+'" stroke-width="4"/>'+
+    '<circle cx="70" cy="76" r="40" fill="url(#'+gid+')"/>'+
+    '<g clip-path="url(#'+gid+'c)"><g class="roll">'+face(80)+face(184)+'</g></g></svg>';
+  return '<div class="fl2"><div class="fs">'+monster('joy',px,null,lv,'')+'</div><div class="fb">'+ball+'</div></div>'}
 function petFloat(st,txt,cls,delay){if(!st)return;setTimeout(function(){var h=document.createElement('span');h.className='rxh'+(cls?' '+cls:'');h.textContent=txt;st.appendChild(h);setTimeout(function(){if(h.parentNode)h.parentNode.removeChild(h)},1200)},delay||0)}
 function petReact(b,hug){
   if(b._rx)return;var st0=b.closest('.mstage'),sl=b.querySelector('svg.lying'),now=Date.now(),cls,dur=1150,fl=[];

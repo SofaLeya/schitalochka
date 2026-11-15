@@ -583,10 +583,11 @@ function syncCats(){
 function catPool(){return sh&&sh.d&&sh.d.type==='e'?CATS:ICATS.filter(function(c){return c.id!=='refund'})}
 function dateSeg(v){var y=iso(addDays(parse(T),-1)),k=v===T?'t':v===y?'y':'o';
   return '<button type="button" data-a="sdate" data-v="t" class="'+(k==='t'?'on':'')+'">Сегодня</button><button type="button" data-a="sdate" data-v="y" class="'+(k==='y'?'on':'')+'">Вчера</button><button type="button" data-a="sdate" data-v="o" class="'+(k==='o'?'on':'')+'">📅 '+(k==='o'&&v?fdate(v):'Другая')+'</button>'}
-function moreSum(d){ // короткая сводка свёрнутых полей «Ещё»
-  var p=[];if(d.type==='e'){var ac=accById(d.acc||defAcc());if(ac&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'}))p.push(accName(ac))}
-  var m=entryMode(d);p.push(m==='own'?'обычная запись':m==='proxy'?'не моя трата':'не с моей карты');
-  return p.join(' · ')}
+function moreSum(d){ // короткая сводка свёрнутых полей «Ещё»: пока всё как обычно - что там можно поменять, иначе - что изменено
+  var p=[],m=entryMode(d),ac=d.type==='e'?accById(d.acc||defAcc()):null,main=!ac||ac.id===defAcc();
+  if(!main)p.push('из «'+accName(ac)+'»');if(m!=='own')p.push(m==='proxy'?'не моя трата':'не с моей карты');
+  if(p.length)return p.join(' · ');
+  return d.type==='e'?'из копилки, чужая трата':'необычная запись'}
 function moreUpd(){if(!sh||!sh.d)return;var el=document.getElementById('f_moresum');if(!el)return;var d=Object.assign({},sh.d),g=function(i){var e=document.getElementById(i);return e};
   if(g('f_acc'))d.acc=g('f_acc').value;if(g('f_mode')){d.skip=g('f_mode').value!=='own';d.nobal=g('f_mode').value==='other'}el.textContent=moreSum(d)}
 /* категория: одно поле, печатаешь - список подходящих прямо под ним */
@@ -1835,19 +1836,19 @@ function monsterCard(me,net,dnum){
   else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет — красота!'}
   else if(dnum<=3&&r>1){mood='think';msg='Месяц только начался: в среднем '+money(avg)+' в день. Посмотрим, как пойдёт.'}
   else if(r>1.3){mood='sad';msg=pk(['Заметно выше плана: '+money(avg)+' в день.','Сильно выбиваемся: '+money(avg)+' в день вместо '+money(lim)+'.'])+tail()}
-  else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся: '+money(avg)+' в день.'])+tail()}
-  else if(r>1){mood='think';msg=pk(['Хм, в среднем '+money(avg)+' в день — чуть выше плана. Что-то разовое?','Чуть-чуть выше плана: +'+money(over)+' в день. Пока не страшно.','Почти в плане, совсем немного сверху. Присмотримся?'])}
+  else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся из плана. Завтра можно полегче.'])+tail()}
+  else if(r>1){mood='think';msg=pk(['Хм, в среднем чуть выше плана. Что-то разовое?','Чуть-чуть выше плана: +'+money(over)+' в день. Пока не страшно.','Почти в плане, совсем немного сверху. Присмотримся?'])}
   else if(tn>lim&&tn<=lim*1.15){mood='calm';msg=pk(['Сегодня совсем немного сверху, не страшно. За месяц всё ок 👌','Совсем немного сверху, ничего страшного. За месяц ты в плане.'])}
   else if(tn>lim&&tn<=lim*1.5){mood='think';msg=pk(['Сегодня побольше вышло, но в среднем за месяц ты в плане. Завтра можно полегче.','Дороговатый день, но месяц пока в плане 👌'])}
   else if(tn>lim){mood='think';msg=pk(['Сегодня крупный день. Что-то разовое? В среднем за месяц пока в плане.','Сегодня заметно больше плана - что-то крупное? Месяц пока держится.'])}
   else if(tn<=0){mood='happy';msg='Записи есть, трат нет — отлично!'}
-  else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь: в среднем '+money(avg)+' в день при плане '+money(lim)+'.','Хороший запас! В среднем '+money(avg)+' в день.','Экономишь как профи: '+money(avg)+' в день.'])}
+  else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь, запас по плану есть!','Хороший запас! Так держать.','Экономишь как профи!','Месяц идёт лучше плана - красота.'])}
   else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
   var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:monTip(PD,td,hr);if(tb)mood=tb.mood;
-  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+(lim?'':'<span class="fine">План не задан · <button class="fine" data-a="planOpen" style="text-decoration:underline">задать</button></span>')+'</div></div>'+planAsk();
 }
 function oneNote(){return apkNote()||newsNote()||backupNote()||''}
 function viewHomeSimple(){
@@ -1860,15 +1861,15 @@ function viewHomeSimple(){
 }
 function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+'</div>'}
 function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#7ee2a8':r<=1?'#ffd166':'#ff8f8f';return '<span class="pbar"><i style="width:'+Math.min(100,Math.round(r*100))+'%;background:'+c+'"></i></span>'}
-function planSub(){return dayLimit()?'план '+money(dayLimit()):'<button class="fine" data-a="planOpen" style="text-decoration:underline;color:inherit;padding:0">задать план</button>'}
+function planSub(){return dayLimit()?'<button class="fine" data-a="planOpen" style="color:inherit;padding:0;background:none;border:0;font:inherit" aria-label="Изменить план">план '+money(dayLimit())+' ✎</button>':'<button class="fine" data-a="planOpen" style="text-decoration:underline;color:inherit;padding:0">задать план</button>'}
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast();
   var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты не с основного счёта сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button></div>'+
-   '<div class="stats">'+statTile('Можно '+tipBtn('h_can'),money(pd.val),pd.nextIn?'в день<br>до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день',null,'main')+
+   '<div class="stats">'+statTile('Можно '+tipBtn('h_can'),money(pd.val),pd.nextIn?'в день до<br>зарплаты '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день',null,'main')+
    statTile('В среднем',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
-   statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+tipBox('h_can','<b>Можно</b> - сколько можно тратить в день.'+(pd.val>0&&pd.nextIn?'<br><br>Если тратить до '+money(pd.val)+' в день, денег хватит до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7)+'.':'')+'<br><br>Обязательные платежи до этой даты уже вычтены.')+'</div>';
+   statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+tipBox('h_can','<b>Можно в день</b> - сколько можно тратить каждый день до зарплаты, чтобы хватило и на обязательные платежи. Это не то же, что план: план - цель на месяц, а здесь - что реально позволяют деньги на карте.'+(pd.val>0&&pd.nextIn?'<br><br>Если тратить до '+money(pd.val)+' в день, денег хватит до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7)+'.':'')+'<br><br>Обязательные платежи до этой даты уже вычтены.')+'</div>';
   var main;
   if(fc.date){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократи необязательные траты или сверься с планом платежей.</span></div>';
@@ -1919,9 +1920,10 @@ function accountsCard(){
   var h='<div class="card">'+head('save','Копилки',fs,'В «Свободные деньги» не входит.');
   if(!uiFold('save'))h+=(funds.length?'<div class="list" id="acclist">'+funds.map(function(a){return row(a,funds.length>1)}).join('')+'</div>'+(funds.length>1?'<p class="fine" style="margin:0">Порядок меняется: потяни за ⠿</p>':''):'<p class="fine">Копилок пока нет. Заведи, например, «Отпуск», «Подушка» или «Подарки».</p>');
   h+='<div class="btns"><button class="btn ghost sm" data-a="newDeposit">Отложить</button><button class="btn ghost sm" data-a="newWithdraw">Достать</button><button class="btn ghost sm" data-a="newAcc">Новая копилка</button></div></div>';
-  h+='<div class="card">'+head('debt','Долги',ds,debts.length?'':'Долгов нет');
-  if(!uiFold('debt')&&debts.length)h+='<div class="list">'+debts.map(function(a){return row(a,debts.length>1)}).join('')+'</div>';
-  h+='<div class="btns"><button class="btn ghost sm" data-a="newDebt">Новый долг</button></div></div>';
+  if(!debts.length)h+='<div class="card" style="padding:12px 14px"><div class="row" style="gap:10px"><div class="grow"><b>Долги</b> <span class="fine">· долгов нет</span></div><button class="btn ghost sm" style="flex:none" data-a="newDebt">＋ Долг</button></div></div>';
+  else{h+='<div class="card">'+head('debt','Долги',ds,'');
+  if(!uiFold('debt'))h+='<div class="list">'+debts.map(function(a){return row(a,debts.length>1)}).join('')+'</div>';
+  h+='<div class="btns"><button class="btn ghost sm" data-a="newDebt">Новый долг</button></div></div>'}
   return h;
 }
 
@@ -3187,7 +3189,7 @@ function render(){
   if(tab==='game')tab='home';
   /* пока рисуется экран, данные не меняются: план считаем один раз, а не на каждую запись (иначе с годом истории главная тормозит) */
   PI_ON=1;PI_C=null;var v;try{v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan()}finally{PI_ON=0;PI_C=null}
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
+  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!S.demo&&!ydHidden()&&realDays()>=3?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -3301,7 +3303,7 @@ function entrySheet(){
   }else{
     body='<div class="f"><input id="f_note" aria-label="'+(isE?'На что потратили':(d.cat==='refund'?'Что вернули или кто перевёл':'Откуда доход'))+'" value="'+esc(d.note||'')+'" placeholder="'+(isE?'На что: Пятёрочка, такси домой':(d.cat==='refund'?'Что вернули: половина за продукты':'Откуда: аванс, подработка, подарок'))+'"></div>'+
      (d.type==='i'&&d.cat==='refund'?forSelect(d):'<div class="f cbx"><label for="f_catq">Категория</label><input id="f_catq" type="text" autocomplete="off" enterkeyhint="done" placeholder="Выбери или начни вводить" value="'+esc(d.cat&&CMAP[d.cat]?CMAP[d.cat].name:'')+'"><div id="f_catl" class="catl" data-nosw="1" hidden></div><select id="f_cat" hidden tabindex="-1">'+opts(isE?CATS:ICATS.filter(function(c){return c.id!=='refund'}),d.cat)+NEWCAT+'</select><span class="fine" id="f_hint"'+(d.auto||d.unk?'':' hidden')+'>'+(d.auto?'Подобрана по заметке. Можно поменять.':'Не удалось определить по заметке. Выбери категорию, в следующий раз запомню.')+'</span></div>')+
-     (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">— не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'');
+     (isE&&!S.simple?'<div class="f"><label>Какая это трата?'+(d.clsSet?'':' <span class="fine" style="font-weight:400">· не отмечено</span>')+'</label><div class="seg">'+['need','mind','imp'].map(function(k){return '<button type="button" data-a="scls" data-v="'+k+'" class="'+(d.clsSet&&d.cls===k?'on':'')+'">'+CLS[k][0]+'</button>'}).join('')+'</div></div>':'');
     accH=(isE&&S.accounts.some(function(a){return a.type==='save'||a.type==='other'})?'<div class="f"><label for="f_acc">'+(S.simple?'Со счёта':'Чем оплачено')+'</label><select id="f_acc">'+srcOpts(d.acc)+'</select><span class="fine" id="f_fh"'+(d.fund?'':' hidden')+'>'+(d.fund?'Копилка найдена по заметке. Можно поменять.':'')+'</span></div>':'');
   }
   var qk='';
@@ -4110,6 +4112,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.g
 /* ---------- общее хранилище (только в веб-версии, где есть db) ---------- */
 var DB=null,COL=null,UID=null,known={},pushT=null,pushing=false,initDone=false,pendingR=false,syncState='off';
 function ydHidden(){try{return localStorage.getItem('sch-ydhide')==='1'}catch(e){return false}}
+function realDays(){var m={};S.entries.forEach(function(x){if(!x.demo)m[x.date]=1});return Object.keys(m).length}
 function syncLabel(){if(!DB&&ydOn())return ydLabel();return syncState==='ok'?'синхронизация вкл.':syncState==='wait'?'синхронизация…':syncState==='err'?'нет синхронизации':syncState==='ro'?'только чтение':''}
 function syncBtnHtml(){ // подпись кнопки в шапке: что делает и когда в последний раз получилось
   if(!ydOn())return '';

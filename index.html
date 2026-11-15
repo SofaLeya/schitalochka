@@ -2009,27 +2009,29 @@ function histList(){
   var months={};all.forEach(function(x){months[x.date.slice(0,7)]=1});
   var mlist=Object.keys(months).sort().reverse(),shown=flt?mlist:mlist.slice(0,hMonths);
   var head='';
-  if(flt){var e=sumNet(all,LK),i=0;all.forEach(function(x){if(x.type==='i'&&x.cat!=='refund'&&!x.skip)i+=x.amt});var sv=hd;hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};var lb=[];if(hfrom||hto)lb.push(hdLabel('per'));if(hc)lb.push(hdLabel('c'));if(hacc)lb.push(hdLabel('acc'));if(ha)lb.push(hdLabel('a'));if(hsk)lb.push(hdLabel('sk'));hd=sv;
-  head=(lb.length?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+lb.map(function(t){return '<span class="chip" style="font-size:12.5px;padding:4px 10px">'+esc(t)+'</span>'}).join('')+'</div>':'')+'<p class="fine" style="padding:0 2px;margin:0">Найдено: '+all.length+(e?' · расходы '+money(e):'')+(i?' · поступления '+money(i):'')+' · <button class="fine" data-a="hClear" style="text-decoration:underline">сбросить</button></p>'}
-  if(!mlist.length)return head+'<div class="card"><p class="empty">'+(flt?'Ничего не нашлось.':'Записей пока нет. Добавь первую, и она появится здесь.')+'</p>'+(flt?'':'<div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'</div>';
+  if(flt){var e=sumNet(all,LK),i=0;all.forEach(function(x){if(x.type==='i'&&x.cat!=='refund'&&!x.skip)i+=x.amt});var sv=hd;hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};var lb=[];if(hfrom||hto)lb.push(['per',hdLabel('per')]);if(hc)lb.push(['c',hdLabel('c')]);if(hacc)lb.push(['acc',hdLabel('acc')]);if(ha)lb.push(['a',hdLabel('a')]);if(hsk)lb.push(['sk',hdLabel('sk')]);if(hq)lb.push(['q','«'+hq+'»']);hd=sv;
+  head=(lb.length?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+lb.map(function(t){return '<button type="button" class="chip" data-a="hRm" data-v="'+t[0]+'" aria-label="Убрать фильтр" style="font-size:12.5px;padding:4px 10px;display:inline-flex;gap:6px;align-items:center">'+esc(t[1])+' <b aria-hidden="true">✕</b></button>'}).join('')+'</div>':'')+'<p class="fine" style="padding:0 2px;margin:0">Найдено: '+all.length+(e?' · расходы '+money(e):'')+(i?' · поступления '+money(i):'')+' · <button class="fine" data-a="hClear" style="text-decoration:underline">сбросить</button></p>'}
+  if(!mlist.length)return head+'<div class="card"><p class="empty">'+(flt?'Ничего не нашлось. Попробуй убрать фильтр - нажми ✕ на нём.':'Записей пока нет. Добавь первую, и она появится здесь.')+'</p>'+(flt?'':'<div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'</div>';
   var out=head;
   shown.forEach(function(m){
     var me=all.filter(function(x){return x.date.slice(0,7)===m&&!hid(x)}),a=m.split('-'),sp=sumNet(me,LK);
-    out+='<div class="mhead"><b>'+cap(MONTHS[+a[1]-1])+' '+a[0]+'</b><span class="fine">'+(sp>0?'расходы '+money(sp):'')+'</span></div>';
+    out+='<div class="mhead"><b>'+cap(MONTHS[+a[1]-1])+' '+a[0]+'</b><span class="fine">'+(sp>0?'траты '+money(sp):'')+'</span></div>';
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
-      var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),dsum=(dsp>0?'расходы '+money(dsp):'')+'';
-      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+', '+WD[dt.getDay()]+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
+      var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimit(),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,sumNet(life(by[d]),LK)):0,
+        dsum=(dsp>0?(lim>0&&ln>0?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>'+(dsp-ln>1?' · всего '+money(dsp):''):'траты '+money(dsp)):'')+(din>0?(dsp>0?' · ':'')+'<span style="color:var(--in)">+'+money(din)+'</span>':''),
+        dn=d===T?'Сегодня, ':d===iso(addDays(parse(T),-1))?'Вчера, ':'';
+      out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dn+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(dn?'':', '+WD[dt.getDay()])+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
     });
   });
   if(!flt&&mlist.length>shown.length)out+='<button class="btn ghost" data-a="hMore">Показать ещё месяц</button>';
   return out;
 }
 function viewHist(){
-  var seg='<div class="seg">'+[['all','Все'],['e','Расходы'],['i','Доходы'],['t','Переводы']].map(function(s){return '<button data-a="hf" data-v="'+s[0]+'" class="'+(hf===s[0]?'on':'')+'">'+s[1]+'</button>'}).join('')+'</div>';
+  var seg='<div class="seg">'+[['all','Все'],['e','Траты'],['i','Доходы'],['t','Переводы']].map(function(s){return '<button data-a="hf" data-v="'+s[0]+'" class="'+(hf===s[0]?'on':'')+'">'+s[1]+'</button>'}).join('')+'</div>';
   var SEL='background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 8px;min-width:0';
   var nf=(ha?1:0)+(hc?1:0)+(hacc?1:0)+(hsk?1:0)+(hfrom||hto?1:0);
-  var sr='<div class="row" style="gap:8px"><input id="h_q" type="search" value="'+esc(hq)+'" placeholder="Поиск по записям" style="flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px"><button class="btn ghost sm" data-a="hFilt" style="flex:none;display:flex;gap:8px;align-items:center">Фильтры'+(nf?' · '+nf:'')+'<span class="chev'+(hfo?' open':'')+'" style="width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate('+(hfo?'-135':'45')+'deg);margin-top:'+(hfo?'4':'-3')+'px"></span></button></div>';
+  var sr='<div class="row" style="gap:8px"><input id="h_q" type="search" value="'+esc(hq)+'" placeholder="🔍 Поиск" style="flex:1;min-width:0;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px"><button class="btn ghost sm" data-a="hFilt" style="flex:none;display:flex;gap:8px;align-items:center">Фильтры'+(nf?' · '+nf:'')+'<span class="chev'+(hfo?' open':'')+'" style="width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate('+(hfo?'-135':'45')+'deg);margin-top:'+(hfo?'4':'-3')+'px"></span></button></div>';
   var D=hd||{};
   function grp(k,title,val,body){return '<details class="fgrp" data-k="'+k+'"><summary><span>'+title+'</span><span class="fine fval" id="hv_'+k+'">'+val+'</span></summary><div class="hb">'+body+'</div></details>'}
   var fp=hfo?'<div class="card" style="gap:8px"><div class="help f" style="gap:6px">'+
@@ -3631,6 +3633,7 @@ document.addEventListener('click',function(ev){
   else if(a==='smallHist'||a==='noteHist'){hacc='';hsk='';hc='';hd=null;hfo=false;hf='e';hq=a==='noteHist'?v:'';ha=a==='smallHist'?'lt300':'';var cha=vym.split('-');hfrom=vym+'-01';hto=vym+'-'+p2(dim(+cha[0],+cha[1]-1));if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='hist';window.scrollTo(0,0);render()}
   else if(a==='anYM'){vym=v;render();window.scrollTo(0,0)}
   else if(a==='catHist'){hq='';ha='';hacc='';hsk='';hd=null;hfo=false;hf='e';hc=v;var cha=vym.split('-');hfrom=vym+'-01';hto=vym+'-'+p2(dim(+cha[0],+cha[1]-1));if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='hist';window.scrollTo(0,0);render()}
+  else if(a==='hRm'){if(v==='per'){hfrom='';hto=''}else if(v==='c')hc='';else if(v==='acc')hacc='';else if(v==='a')ha='';else if(v==='sk')hsk='';else if(v==='q')hq='';hd=null;render()}
   else if(a==='hClear'){hq='';ha='';hc='';hacc='';hsk='';hfrom='';hto='';hd=null;hfo=false;render()}
   else if(a==='hPer'){if(!hd)hd={};var tp=petDay(),ymp=tp.slice(0,7);if(v==='m0'){hd.from=ymp+'-01';hd.to=tp}else if(v==='m1'){var pm=nextYM(ymp,-1),pa=pm.split('-');hd.from=pm+'-01';hd.to=pm+'-'+p2(dim(+pa[0],+pa[1]-1))}else if(v==='d7'){hd.from=iso(addDays(parse(tp),-6));hd.to=tp}else if(v==='d30'){hd.from=iso(addDays(parse(tp),-29));hd.to=tp}else{hd.from='';hd.to=''}var f1=document.getElementById('h_from'),f2=document.getElementById('h_to');if(f1)f1.value=hd.from;if(f2)f2.value=hd.to;hdSync()}
   else if(a==='newEntry'){sh={id:null,d:newDraft('e')};entrySheet()}

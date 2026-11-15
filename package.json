@@ -1,0 +1,6 @@
+{
+  "name": "schitalochka-tests",
+  "private": true,
+  "scripts": { "test": "playwright test" },
+  "devDependencies": { "@playwright/test": "1.49.1" }
+}

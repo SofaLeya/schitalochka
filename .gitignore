@@ -3,3 +3,6 @@ android/build/
 android/app/build/
 android/local.properties
 *.jks
+node_modules/
+playwright-report/
+test-results/

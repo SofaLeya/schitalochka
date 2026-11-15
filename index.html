@@ -830,7 +830,7 @@ function bkDays(){if(!S.lastBackup)return null;return diffDays(S.lastBackup,T)}
 function vis(x){return !x.demo||!!S.demo}
 function realCount(){return S.entries.filter(function(e){return !e.demo}).length}
 function backupNote(){
-  if(S.demo||realCount()<3)return '';
+  if(S.demo||realCount()<10)return '';
   if(ydOn()&&YD.st!=='err')return ''; // Яндекс Диск подключён и работает — данные уже в облаке, напоминание не нужно
   var d=bkDays();if(d!==null&&d<7)return '';
   try{var tl=JSON.parse(localStorage.getItem('tgbk-last:schitalochka')||'{}');if(tl.t&&Date.now()-tl.t<7*864e5)return ''}catch(e){}

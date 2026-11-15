@@ -152,6 +152,7 @@ const patch = (page, o) => page.evaluate(o => { const d = JSON.parse(localStorag
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')));
 
 test('монстрик через пару дней спрашивает имя, "Не скажу" больше не спрашивает', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 10, 16, 13, 0)); // днём: ночью (0-7) монстрик спит и имя не спрашивает
   await start(page);
   await addExpense(page, 300, 'Кофе');
   await expect(page.locator('#un_in')).toHaveCount(0); // сразу после знакомства не спрашивает

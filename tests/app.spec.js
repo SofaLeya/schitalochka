@@ -147,3 +147,24 @@ test('знакомство с монстриком: реагирует на вв
   await expect(page.locator('.card.monster')).toContainText('Барсик');
   expect(errs).toEqual([]);
 });
+
+const patch = (page, o) => page.evaluate(o => { const d = JSON.parse(localStorage.getItem('podkopka-v1')); Object.assign(d, o); localStorage.setItem('podkopka-v1', JSON.stringify(d)); }, o);
+const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')));
+
+test('монстрик через пару дней спрашивает имя, "Не скажу" больше не спрашивает', async ({ page }) => {
+  await start(page);
+  await addExpense(page, 300, 'Кофе');
+  await expect(page.locator('#un_in')).toHaveCount(0); // сразу после знакомства не спрашивает
+  await patch(page, { onbAt: '2020-01-01' }); // прошло больше двух дней
+  await page.reload();
+  await expect(page.locator('#un_in')).toBeVisible();
+  await page.fill('#un_in', 'Софа');
+  await page.click('[data-a=unameOk]');
+  await expect(page.locator('#un_in')).toHaveCount(0);
+  expect((await stored(page)).uname).toBe('Софа');
+  await patch(page, { uname: '', unameAsked: 0 });
+  await page.reload();
+  await page.click('[data-a=unameNo]');
+  await page.reload();
+  await expect(page.locator('#un_in')).toHaveCount(0);
+});

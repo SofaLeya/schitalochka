@@ -308,6 +308,7 @@ html.bigtext{zoom:1.14}
 .onbm{display:flex;gap:10px;align-items:center}.onbpic{flex:none;width:92px;height:92px}.onbm .bub{position:relative;flex:1;background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14.5px;line-height:1.35}.onbm .bub::before{content:'';position:absolute;left:-7px;top:50%;margin-top:-7px;border:7px solid transparent;border-left:0;border-right-color:var(--surface2)}
 .mgrid.onbgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.onbgrid .mopt{padding:6px 2px;gap:2px}.onbmini{width:52px;height:52px;display:block;margin:0 auto}
 @media (prefers-reduced-motion:no-preference){.onbpic>svg{animation:bob 2.6s ease-in-out infinite}.onbm .bub{animation:onbpop .25s ease-out}@keyframes onbpop{from{transform:scale(.94);opacity:.4}to{transform:none;opacity:1}}}
+#un_in{background:var(--surface);color:var(--text,inherit);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:15px;min-height:38px}.card.monster.hasbg #un_in{background:rgba(18,8,40,.42);border-color:rgba(255,255,255,.38);color:#fff}.card.monster.hasbg #un_in::placeholder{color:rgba(255,255,255,.7)}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -1661,7 +1662,7 @@ function petSheet(){
      '<span class="fine" style="margin-top:6px">Очки</span><div class="otiles">'+FACES.filter(function(it){return it.id}).map(function(it){return tile(it,'face')}).join('')+'</div>'+
      '<span class="fine">Можно носить до трёх вещей сразу. Закрытое можно примерить, но сохранить получится после открытия. Место, размер и поворот настраиваются в блоке "Подогнать".</span>'}
   else{
-    body='<span class="fine">Размер на главной</span><div class="otiles">'+PSIZES.map(function(z){return '<button type="button" class="otile'+(d.size===z.id?' on':'')+'" data-a="petSize" data-v="'+z.id+'"><span class="pm" style="display:flex;align-items:flex-end;justify-content:center">'+monster('happy',z.px*.6,d.kind,undefined,undefined,look)+'</span><span>'+z.name+'</span></button>'}).join('')+'</div>'+
+    body='<div class="f"><label for="pu_name">Как монстрику тебя звать</label><input id="pu_name" maxlength="20" value="'+esc(d.uname==null?uName():d.uname)+'" placeholder="Можно не указывать"><span class="fine">Монстрик будет иногда звать по имени, не в каждой фразе.</span></div><span class="fine">Размер на главной</span><div class="otiles">'+PSIZES.map(function(z){return '<button type="button" class="otile'+(d.size===z.id?' on':'')+'" data-a="petSize" data-v="'+z.id+'"><span class="pm" style="display:flex;align-items:flex-end;justify-content:center">'+monster('happy',z.px*.6,d.kind,undefined,undefined,look)+'</span><span>'+z.name+'</span></button>'}).join('')+'</div>'+
      '<span class="fine">Большой лучше смотрится на широких экранах. На телефоне он занимает много места.</span><span class="fine" style="margin-top:6px">Фон за монстриком</span><div class="otiles">'+
      [[1,'Авто',bgSvg(SCENE)],['sun','Солнце',bgSvg('sun')],['cloud','Облака',bgSvg('cloud')],['rain','Дождь',bgSvg('rain')],['dusk','Закат',bgSvg('dusk')],['night','Ночь',bgSvg('night')],['snow','Снег',bgSvg('snow')],[2,'Космос',bgSvg('space')],[3,'Своя',curImg?'<img alt="" src="'+curImg+'" style="width:100%;height:100%;object-fit:cover">':'<span style="display:flex;height:100%;align-items:center;justify-content:center;font-size:22px">🖼</span>'],[0,'Без фона','']].map(function(o){return '<button type="button" class="otile'+(d.bg===o[0]?' on':'')+'" data-a="'+(o[0]===3&&!curImg?'petBgPick':'petBg')+'" data-v="'+o[0]+'"><span class="bgp"'+(o[0]?'':' style="background:var(--surface)"')+'>'+o[2]+'</span><span>'+o[1]+'</span></button>'}).join('')+'</div>'+
      (d.bg?'<label class="fine" for="pl_bo" style="align-self:stretch;font-weight:600">Прозрачность фона: <b id="pl_bov">'+(100-Math.round(d.bgo==null?100:d.bgo))+'%</b></label><input type="range" id="pl_bo" min="0" max="100" step="5" value="'+(100-Math.round(d.bgo==null?100:d.bgo))+'" style="align-self:stretch">':'')+
@@ -1746,6 +1747,13 @@ var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
   return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc,bgTall())+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
+/* имя пользователя: монстрик зовёт по имени редко - только в приветствии и в крупной похвале, примерно через день */
+function uName(){var n=S&&S.uname;return n&&String(n).trim()?String(n).trim():''}
+function withName(msg,tag){var n=uName();if(!n||!msg||hsh(petDay()+tag)%2)return msg;
+  var c=msg.charAt(1);return n+', '+(c&&c===c.toUpperCase()&&c!==c.toLowerCase()?msg:msg.charAt(0).toLowerCase()+msg.slice(1))}
+function nameAsk(){if(S.demo||S.unameAsked||uName()||!(S.onb||S.setup)||realCount()<1)return '';
+  var hr=new Date().getHours();if(hr<7)return '';if(S.onbAt&&petDay()<iso(addDays(parse(S.onbAt),2)))return '';
+  return '<div class="bub"><b>Кстати, а как тебя зовут?</b><div class="fine" style="margin-top:2px">Буду иногда звать по имени.</div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input id="un_in" maxlength="20" placeholder="Имя" aria-label="Твоё имя" style="flex:1;min-width:0"><button class="btn sm" data-a="unameOk" style="flex:none">Готово</button></div><button class="fine" data-a="unameNo" style="text-decoration:underline;margin-top:6px">Не скажу</button></div>'}
 function monsterCard(me,net,dnum){
   if(S.nopet)return '';
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
@@ -1767,16 +1775,18 @@ function monsterCard(me,net,dnum){
     ][Math.max(0,Math.min(3,pp.lvl-1))]);
     var noSv=!payTarget();
     if(noSv)msg='Сегодня зарплата, а у тебя ещё '+pa+'! Заведём копилку и отложим?';
+    msg=withName(msg,'pay');
     nsBtn='<div class="btns" style="align-self:flex-start"><button class="btn sm" data-a="payPut">'+(noSv?'Завести копилку':'Отложить '+pa)+'</button><button class="btn sm ghost" data-a="payLater">Пропустить</button></div>'}
   else if(!ns&&tn<=0&&hr>=15&&S.entries.some(function(x){return !x.demo})){
     if(hr<20){mood='joy';msg=pk(['День перевалил за середину, а сегодня ни рубля не потрачено - так держать!','Ни одной траты за день, и вечер уже близко. Горжусь!','День пока без трат - мне нравится. Дотянем до вечера?'])}
-    else{mood='joy';msg=pk(['Целый день без трат - отличный результат! Завтра утром можно забрать за это звёзды.','Сегодня ни рубля. Вот это выдержка! Завтра утром заберёшь звёзды.','Ни одной траты за день! Горжусь тобой. Звёзды за этот день можно будет забрать завтра.'])}
+    else{mood='joy';msg=pk(['Целый день без трат - отличный результат! Завтра утром можно забрать за это звёзды.','Сегодня ни рубля. Вот это выдержка! Завтра утром заберёшь звёзды.','Ни одной траты за день! Горжусь тобой. Звёзды за этот день можно будет забрать завтра.']);msg=withName(msg,'ns')}
     nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','День идёт спокойно: трат всего на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
     var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' Сегодня можно до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
+    if(uName()&&!(hsh(PD+'gm')%2))gm=gm.replace(/!$/,', '+uName()+'!');
     if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
@@ -1806,7 +1816,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||(pp?'':nameAsk())||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function oneNote(){return apkNote()||newsNote()||backupNote()||''}
 function viewHomeSimple(){
@@ -2751,7 +2761,7 @@ function onbRead(){var d=sh.d,g=function(i){var e=document.getElementById(i);ret
 function onbFinish(){onbRead();var d=sh.d,ob=num(d.bal),ol=num(d.lim);
   S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
   var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om){delete om.demoStart;if(isFinite(ob))addAdj(om,ob-accBal(om))}if(ol>0)S.dayLimit=ol;
-  S.pet=Object.assign({},S.pet||{},{kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)});S.setup=1;S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Нажми "+" и запиши первую трату')}
+  S.pet=Object.assign({},S.pet||{},{kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)});S.onbAt=petDay();S.setup=1;S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Нажми "+" и запиши первую трату')}
 /* меню «Платежи и из копилок»: траты месяца, которые не входят в траты на жизнь (раскрывается по нажатию) */
 function outCard(me){
   var inLife={};life(me).forEach(function(x){inLife[x.id]=1});
@@ -3500,6 +3510,8 @@ document.addEventListener('click',function(ev){
   else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
   else if(a==='onbSkip'){S.setup=1;S.onb=1;save();closeSheet();applyPetTheme()}
   else if(a==='onbGo'){onbFinish()}
+  else if(a==='unameOk'){var ui=document.getElementById('un_in'),un=ui?ui.value.trim().slice(0,20):'';if(!un){if(ui)ui.focus();return}S.uname=un;S.unameAsked=1;save();render();toast('Приятно познакомиться, '+un+'!')}
+  else if(a==='unameNo'){S.unameAsked=1;save();render();toast('Хорошо! Если передумаешь, имя можно указать в меню монстрика "сменить"')}
   else if(a==='onbNext'){onbRead();sh.step++;onbSheet()}
   else if(a==='onbBack'){onbRead();sh.step--;onbSheet()}
   else if(a==='onbPet'){onbRead();sh.d.kind=v;sh.d.picked=1;onbSheet()}
@@ -3787,6 +3799,7 @@ document.addEventListener('submit',function(ev){
   if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});S.planOut=(sh.pcOut||[]).slice();save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;S.planOut=(sh.pcOut||[]).slice();delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
   if(sh.pt){var lkA=false;(sh.d.acc||[]).forEach(function(o){var df=accDef(o.id);if(df&&!itemOpen(df,sh.L||0))lkA=true});
     if(lkA)return;
+    if(sh.d.uname!=null){S.uname=String(sh.d.uname).trim().slice(0,20);S.unameAsked=1}
     S.pet={kind:sh.d.kind,theme:sh.d.theme||'',name:document.getElementById('p_name').value.trim().slice(0,20),head:'',face:'',hue:sh.d.hue||0,size:sh.d.size||'m',bgo:Math.round(sh.d.bgo==null?100:sh.d.bgo),bg:(sh.d.bg===3&&!(sh.bgImg||bgImg()))?1:sh.d.bg,accK:sh.d.kind,acc:(sh.d.acc||[]).slice(0,3).map(function(o){return {id:o.id,x:Math.round(o.x||0),y:Math.round(o.y||0),s:+(o.s||1).toFixed(2),r:Math.round(o.r||0)}})};
     if(sh.bgImg){try{localStorage.setItem(BGKEY,sh.bgImg)}catch(e){S.pet.bg=1;toast('Картинка не поместилась, оставила обычный фон')}}save();closeSheet();render();toast(petName()+' теперь с тобой!');return}
   if(document.getElementById('c_from')){
@@ -3870,6 +3883,7 @@ function autoFund(note){
   if(hit){d.acc=hit;d.fund=true}else if(d.fund){d.acc=defAcc();d.fund=false}
   if(sel)sel.value=d.acc;if(hint){hint.hidden=!d.fund;hint.textContent='Копилка найдена по заметке. Можно поменять.'}moreUpd();
 }
+document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target&&ev.target.id==='un_in'){ev.preventDefault();var ub=document.querySelector('[data-a=unameOk]');if(ub)ub.click();return}});
 document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target&&ev.target.id==='f_catq'){ev.preventDefault();var l=document.getElementById('f_catl'),f=l&&!l.hidden&&ev.target.value.trim()?l.querySelector('button[data-cv]:not(.add)'):null;if(f)catPick(f.dataset.cv);else ev.target.blur()}});
 document.addEventListener('focusin',function(ev){var t=ev.target;if(!t||t.id!=='f_catq')return;try{t.select()}catch(e){}catList('');setTimeout(function(){try{t.scrollIntoView({block:'start',behavior:'smooth'})}catch(e){}},300)});
 document.addEventListener('focusout',function(ev){var t=ev.target;if(!t||t.id!=='f_catq')return;setTimeout(function(){var l=document.getElementById('f_catl');if(document.activeElement===t)return;if(l)l.hidden=true;catShow()},180)});
@@ -3879,6 +3893,7 @@ document.addEventListener('toggle',function(ev){if(ev.target&&ev.target.id==='f_
 document.addEventListener('input',function(ev){
   if(ev.target.id==='h_q'){var was=histFiltered();hq=ev.target.value.trim();if(was!==histFiltered()){var pos=ev.target.selectionStart;render();var el=document.getElementById('h_q');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}else{var hl=document.getElementById('hlist');if(hl)hl.innerHTML=histList()}return}
   if(/^pc_/.test(ev.target.id)){planCalcOut();return}
+  if(ev.target.id==='pu_name'&&sh&&sh.d){sh.d.uname=ev.target.value;return}
   if(/^ob_(bal|lim|name)$/.test(ev.target.id)&&sh&&sh.onb){onbRead();onbLive();if(ev.target.id==='ob_lim'){var nb=document.querySelector('#ob_btns [data-a=onbNext]');if(nb)nb.textContent=num(sh.d.lim)>0?'Дальше':'Пропустить'}return}
   if(ev.target.id==='f_catq'){catList(ev.target.value);return}
   if(ev.target.id==='f_note')autoFund(ev.target.value);

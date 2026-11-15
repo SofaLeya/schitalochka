@@ -189,6 +189,8 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .pgoal{display:flex;flex-direction:column;gap:5px}.pgoal .fine{font-size:12px;opacity:.8}.prew{flex:none;color:var(--gold);font-weight:700;font-size:13px}
 .pst{background:rgba(255,255,255,.05);border-radius:14px;padding:10px 6px}.pst b{font-size:22px}.pst .fine{font-size:11.5px;line-height:1.25}
 .pwork{align-self:center;text-decoration:underline;opacity:.75;padding:4px 6px 14px}
+.herosay{display:block;margin-top:8px;opacity:.95}.optrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0}
+html.bigtext{zoom:1.14}
 .balrow{display:flex;align-items:center;gap:10px}.penb{transform:scaleX(-1);flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:inherit;font-size:17px;line-height:1;padding:0;cursor:pointer}
 .hero .ibtn{width:18px;height:18px;font-size:11px;border-color:currentColor;color:inherit;opacity:.85;vertical-align:middle}
 .hero .tipbox,.hero .tipbox.fine,.cheer .hero .tipbox.fine{background:var(--surface);color:var(--ink);opacity:1;margin-top:8px}.hero .tipbox b{color:inherit}
@@ -764,11 +766,12 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-15e';
+var APP_VER='2026-11-15f';
 /* ВАЖНО: APP_VER менять только когда меняется NEWS (иначе плашка «Обновилось» всплывёт заново из-за мелкой правки) */
-var NEWS=['Монстрик отзывается на нажатие. Меню наряда открывается кнопкой "сменить".',
- 'Фон за монстриком: любая сцена на выбор и ползунок прозрачности. Можно носить до трёх вещей и подгонять их размер и поворот.'];
-var NEWS_OLD=['Ночью монстрики спят в кроватках на боку под одеялом.',
+var NEWS=['В настройках появился блок "Вид": можно выключить монстрика и включить крупный текст.',
+ 'Поправить остаток теперь можно карандашиком рядом с суммой. Карточка "Прогресс" стала аккуратнее, а удаление планов и счетов можно отменить.'];
+var NEWS_OLD=['Монстрик отзывается на нажатие. Меню наряда открывается кнопкой "сменить".',
+ 'Фон за монстриком: любая сцена на выбор и ползунок прозрачности. Можно носить до трёх вещей и подгонять их размер и поворот.','Ночью монстрики спят в кроватках на боку под одеялом.',
  'Можно носить до трёх вещей сразу, ставить их пальцем куда хочешь, менять размер и поворот. Цветок стал пионом, кроватка сказочная. Любой фон можно выбрать сразу (солнце, дождь, снег и другие). Фон монстрика на выбор: погода, космос, своя картинка или без фона.',
  'Новые очки: маска шпиона. Закрытые наряды можно примерить заранее. Бантики, цветочки и монетки теперь висят на ушках и рожках.',
  'Монстриков Желтка, Кубика, Ёжика, Осьминожка и Призрачка убрали: у кого они были, вернулся Мохнатик.',
@@ -1738,6 +1741,7 @@ function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
   return (on?'<div class="mbgl" style="opacity:'+petBgOp()+'">'+bgHtml(petBgMode(),bgImg(),sc,bgTall())+'<i class="msc"></i></div>':'')+'<div class="mstage" style="height:'+h+'px;width:'+(px+6)+'px"><button class="mbox" data-a="petTap" aria-label="Погладить монстрика" style="width:'+px+'px;height:'+px+'px">'+monster(mood,px,null,lvl,act)+'</button></div>'}
 function monsterCard(me,net,dnum){
+  if(S.nopet)return '';
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
@@ -1803,7 +1807,7 @@ function viewHomeSimple(){
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.<br><br><b>Можно в день</b> - главное число: сколько можно тратить в день, чтобы денег хватило до ближайшего поступления. Обязательные платежи до этой даты уже вычтены, сегодняшний день тоже входит в расчёт.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Если в плане на день указаны обязательные платежи или редкие расходы, траты в этих категориях (аренда, связь, подписки, одежда и т. п.) сюда не входят: они уже вычтены из плана. Их видно в «Истории» и «Анализе».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button></div><div class="stats">'+statTile('Потрачено',money(lnet),'')+statTile('В среднем',money(lnet/dnum),planSub(),planBar(lnet/dnum))+'</div>'+'</div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
-  var recent='<div class="card"><h2>Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Нажми «+», чтобы добавить трату.</p>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button></div></div>';
+  var recent='<div class="card"><h2>Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Запиши первую трату, и тут появится история.</p><div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button></div></div>';
   return demo+oneNote()+hero+monsterCard(me,lnet,dnum)+tplCard()+progCard()+accountsCard()+recent;
 }
 function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+'</div>'}
@@ -1813,10 +1817,10 @@ function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast();
-  var hero='<div class="card hero"><span class="lbl">'+(S.accounts.length>1?'Свободные деньги на сегодня':'Баланс на сегодня')+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты не с основного счёта сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button></div>'+
+  var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на основном счёте. Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты не с основного счёта сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button></div>'+
    '<div class="stats">'+statTile('Можно',money(pd.val),pd.nextIn?'в день<br>до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день',null,'main')+
    statTile('В среднем',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
-   statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+'</div>';
+   statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+(pd.val>0&&pd.nextIn?'<span class="fine herosay">Если тратить до '+money(pd.val)+' в день, денег хватит до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7)+'.</span>':'')+'</div>';
   var main;
   if(fc.date){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократи необязательные траты или сверься с планом платежей.</span></div>';
@@ -1833,7 +1837,7 @@ function viewHome(){
     return '<div class="row"><div class="grow"><div class="t">'+esc(e.name)+'</div><div class="s">'+dlabel(e.date)+(dd===0?' · сегодня':dd===1?' · завтра':' · через '+dd+' дн.')+'</div></div><span class="amt '+(e.kind==='in'?'in':'out')+'">'+(e.kind==='in'?'+':'−')+money(e.amt)+'</span></div>';
   }).join('')+'</div>':'<p class="empty">Нет запланированных платежей и доходов. Добавь их на вкладке «Платежи».</p>';
   var upHtml='<div class="card">'+fhead('up','Ближайшее',null,up.length?esc(up[0].name)+' · '+dlabel(up[0].date):null)+(uiFold('up')?'':upBody)+'</div>';
-  var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и баланс ниже показаны для знакомства. Когда захочешь, очисти их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
+  var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и свободные деньги ниже показаны для знакомства. Когда захочешь, очисти их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var pend=pendingPayouts(),nudge=pend.length?'<div class="note info"><b>Разложить по плану</b><span>Выплат ждёт раскладки: '+pend.length+', всего '+money(pend.reduce(function(a,p){return a+p.sum},0))+' в копилки.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="tab" data-v="plan">Открыть</button></div></div>':'';
   return demo+oneNote()+hero+monsterCard(me,lifeNet(me),dnum)+nudge+tplCard()+progCard()+accountsCard()+main+upHtml;
 }
@@ -1950,7 +1954,7 @@ function histList(){
   var head='';
   if(flt){var e=sumNet(all,LK),i=0;all.forEach(function(x){if(x.type==='i'&&x.cat!=='refund'&&!x.skip)i+=x.amt});var sv=hd;hd={from:hfrom,to:hto,c:hc,acc:hacc,a:ha,sk:hsk};var lb=[];if(hfrom||hto)lb.push(hdLabel('per'));if(hc)lb.push(hdLabel('c'));if(hacc)lb.push(hdLabel('acc'));if(ha)lb.push(hdLabel('a'));if(hsk)lb.push(hdLabel('sk'));hd=sv;
   head=(lb.length?'<div style="display:flex;gap:6px;flex-wrap:wrap">'+lb.map(function(t){return '<span class="chip" style="font-size:12.5px;padding:4px 10px">'+esc(t)+'</span>'}).join('')+'</div>':'')+'<p class="fine" style="padding:0 2px;margin:0">Найдено: '+all.length+(e?' · расходы '+money(e):'')+(i?' · поступления '+money(i):'')+' · <button class="fine" data-a="hClear" style="text-decoration:underline">сбросить</button></p>'}
-  if(!mlist.length)return head+'<div class="card"><p class="empty">'+(flt?'Ничего не нашлось.':'Записей пока нет. Нажми «+», чтобы добавить первую.')+'</p></div>';
+  if(!mlist.length)return head+'<div class="card"><p class="empty">'+(flt?'Ничего не нашлось.':'Записей пока нет. Добавь первую, и она появится здесь.')+'</p>'+(flt?'':'<div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'</div>';
   var out=head;
   shown.forEach(function(m){
     var me=all.filter(function(x){return x.date.slice(0,7)===m&&!hid(x)}),a=m.split('-'),sp=sumNet(me,LK);
@@ -3306,7 +3310,7 @@ function settingsSheet(){
    '<form id="fm" class="f" style="gap:14px" autocomplete="off"></form>'+
    '<div class="f"><label>План трат на день</label><p class="fine">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'Пока не задан.')+'</p><button type="button" class="btn ghost" data-a="planOpen">Изменить план</button></div>'+
    '<div class="help f" style="gap:8px">'+det('Дни зарплаты'+(payDays().length?' · '+payDays().join(', '):''),'<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>')+'</div>'+
-   remBlock()+
+   viewBlock()+remBlock()+
    '<div class="help f" style="gap:8px">'+
     det('Регулярные траты'+(tpls().length?' · '+tpls().length:''),tplListHtml())+
     det('Мои категории'+(S.ccats.length?' · '+S.ccats.length:''),(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><span class="dot" style="background:'+c.color+'"></span><div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+(c.inc?' <span class="fine">· доход</span>':'')+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты или дохода.</p>')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Категория трат</button><button type="button" class="btn ghost" data-a="ccAddI">＋ Категория дохода</button>')+
@@ -3344,6 +3348,18 @@ function uiAsk(msg,o){o=o||{};return new Promise(function(res){
 })}
 function uiConfirm(msg,yes,no){return uiAsk(msg,{yes:yes,no:no})}
 function uiPrompt(msg,def){return uiAsk(msg,{input:true,def:def})}
+
+function undoSnap(sn,msg){toast(msg,false,function(){try{S=migrate(JSON.parse(sn));save();render();toast('Возвращено')}catch(e){}})}
+function icoHint(k,txt){try{var o=JSON.parse(localStorage.getItem('sch-ih')||'{}');if(o[k])return;o[k]=1;localStorage.setItem('sch-ih',JSON.stringify(o));setTimeout(function(){toast(txt)},350)}catch(e){}}
+function bigOn(){try{return !!localStorage.getItem('sch-big')}catch(e){return false}}
+function bigApply(){try{document.documentElement.classList.toggle('bigtext',bigOn())}catch(e){}}
+function viewBlock(){return '<div class="f"><label>Вид</label><div class="optrow"><span>Монстрик на главной</span><button type="button" class="btn sm ghost" data-a="optPet">'+(S.nopet?'Выключен':'Включён')+'</button></div><div class="optrow"><span>Крупный текст</span><button type="button" class="btn sm ghost" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div></div>'}
+function onbMaybe(){if(!S.demo||S.setup||document.querySelector('#ov .sheet'))return;
+  openSheet('<h3>Давай настроим за минуту</h3><p class="fine" style="margin:0">Три шага, и приложение считает под тебя.</p>'+
+   '<div class="f"><label for="ob_bal">1. Сколько сейчас денег на карте</label><input id="ob_bal" inputmode="decimal" placeholder="Например, 15000"></div>'+
+   '<div class="f"><label for="ob_lim">2. Сколько хочешь тратить в день</label><input id="ob_lim" inputmode="decimal" placeholder="Можно пропустить"><span class="fine">Потом план можно посчитать по доходам и платежам.</span></div>'+
+   '<p class="fine" style="margin:0"><b>3.</b> Нажми "+" внизу и запиши первую трату.</p>'+
+   '<div class="btns"><button type="button" class="btn" data-a="onbGo">Готово</button><button type="button" class="btn ghost" data-a="onbSkip">Сначала посмотрю примеры</button></div>')}
 function toast(m,bad,undo){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}
   t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent='';var sp=document.createElement('span');sp.textContent=(bad?'✕ ':'✓ ')+m;t.appendChild(sp);
   if(undo){var ub=document.createElement('button');ub.type='button';ub.textContent='Отменить';ub.style.cssText='margin-left:12px;background:rgba(255,255,255,.25);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:8px 14px;min-height:36px';ub.onclick=function(){clearTimeout(t._h);t.style.display='none';undo()};t.appendChild(ub)}
@@ -3421,7 +3437,7 @@ document.addEventListener('click',function(ev){
   else if(a==='newPlan'&&k==='x'){sh={id:null,k:'x',d:{name:'',amt:'',mon:0,cat:'gift'}};rareSheet()}
   else if(a==='editPlan'&&k==='x'){var rx=rareList().filter(function(e){return e.id===id})[0];if(rx){sh={id:id,k:'x',d:{name:rx.name,amt:rx.amt,mon:rx.mon||0,cat:rx.cat||'other'}};rareSheet()}}
   else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||''}};planSheet()}}
-  else if(a==='delPlan'){if(sh.k==='x')S.rare=rareList().filter(function(e){return e.id!==sh.id});else if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id});save();closeSheet();render()}
+  else if(a==='delPlan'){var _sn=JSON.stringify(S);if(sh.k==='x')S.rare=rareList().filter(function(e){return e.id!==sh.id});else if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id});save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='toggle'){
     var ym=/^\d{4}-\d\d$/.test(v||'')?v:T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
     var f=isR?'rid':'iid',curM=ym===T.slice(0,7),eDate=curM?T:itemDate(k,item,ym);
@@ -3461,10 +3477,16 @@ document.addEventListener('click',function(ev){
   else if(a==='skipP'){S.skips.push(id+'|'+k);save();render()}
   else if(a==='newRule'){if(!S.planFrom){S.planFrom=T}sh={ru:true,id:null,d:{name:'',amt:'',day:'',acc:(S.accounts.filter(function(x){return x.type!=='main'})[0]||{}).id||''}};if(!S.accounts.some(function(x){return x.type!=='main'})){sh=null;return}ruleSheet()}
   else if(a==='editRule'){var ru=S.rules.filter(function(x){return x.id===id})[0];if(ru){sh={ru:true,id:id,d:{name:ru.name,amt:ru.amt,day:ru.day,acc:ru.acc}};ruleSheet()}}
-  else if(a==='delRule'){S.rules=S.rules.filter(function(x){return x.id!==sh.id});save();closeSheet();render()}
+  else if(a==='delRule'){var _sn=JSON.stringify(S);S.rules=S.rules.filter(function(x){return x.id!==sh.id});save();closeSheet();render();undoSnap(_sn,'Правило удалено')}
   else if(a==='recon'){sh={rc:true};reconSheet()}
   else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
-  else if(a==='settings'){sh={confirm:false};settingsSheet()}
+  else if(a==='onbSkip'){S.setup=1;save();closeSheet()}
+  else if(a==='onbGo'){var ob=num((document.getElementById('ob_bal')||{}).value),ol=num((document.getElementById('ob_lim')||{}).value);
+    S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
+    var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om&&isFinite(ob))addAdj(om,ob-accBal(om));if(ol>0)S.dayLimit=ol;S.setup=1;save();closeSheet();render();toast('Готово. Нажми "+" и запиши первую трату')}
+  else if(a==='optPet'){S.nopet=!S.nopet;save();render();settingsSheet()}
+  else if(a==='optBig'){var bg=!bigOn();try{localStorage.setItem('sch-big',bg?'1':'')}catch(e){}bigApply();settingsSheet()}
+  else if(a==='settings'){icoHint('set','Настройки');sh={confirm:false};settingsSheet()}
   else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){sh={sp:true,id:sx.id};
     openSheet('<h3>Сколько вернули?</h3><p class="fine">'+esc(sx.note||(CMAP[sx.cat]||CMAP.other).name)+' · трата '+money(sx.amt)+', ждали '+money(sx.split)+'</p><div class="f"><label for="f_spgot">Пришло, ₽</label><input id="f_spgot" inputmode="decimal" value="'+String(sx.split).replace('.',',')+'"><span class="fine">Можно больше или меньше, чем ждали.</span></div><p class="fine" id="f_sperr" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="splitSave">Записать</button></div>')}}
   else if(a==='splitSave'){var sz=sh&&S.entries.filter(function(e){return e.id===sh.id})[0],gv=num(document.getElementById('f_spgot').value);
@@ -3540,7 +3562,7 @@ document.addEventListener('click',function(ev){
   else if(a==='ccAdd'){uiPrompt('Название новой категории').then(function(n1){if(n1&&newCat(n1)){settingsSheet();toast('Категория добавлена')}})}
   else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){uiPrompt('Новое название',c1.name).then(function(n2){if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}})}}
   else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2)uiConfirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».').then(function(y){if(!y)return;S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat=c2.inc?'other_in':'other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()})}
-  else if(a==='help'){sh={hp:true};helpSheet()}
+  else if(a==='help'){icoHint('help','Помощь: как пользоваться');sh={hp:true};helpSheet()}
   else if(a==='copyPrompt'){var ta=document.getElementById('h_prompt');var done=function(){toast('Запрос скопирован')};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}else{ta.select();document.execCommand('copy');done()}}catch(e){toast('Не получилось, выдели текст вручную',true)}}
   else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
   else if(a==='payPut'){var ppx=payPraise();if(!ppx)return;var ptg=payTarget();
@@ -3569,11 +3591,11 @@ document.addEventListener('click',function(ev){
   else if(a==='newAcc'){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet()}
   else if(a==='newDebt'){sh={ac:true,id:null,d:{name:'',type:'debt',start:''}};accSheet()}
   else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{goal:ac.goal?String(ac.goal):'',monthly:ac.monthly?String(ac.monthly):'',name:ac.name,type:ac.type,start:String(Math.round((ac.type==='debt'?Math.abs(accBal(ac)):accBal(ac))*100)/100)}};accSheet()}}
-  else if(a==='delAcc'){var rest=S.accounts.filter(function(x){return x.id!==sh.id});if(!rest.some(function(x){return x.type==='main'}))return showErr('Должны остаться свободные деньги.');S.accounts=rest;save();closeSheet();render()}
+  else if(a==='delAcc'){var rest=S.accounts.filter(function(x){return x.id!==sh.id});if(!rest.some(function(x){return x.type==='main'}))return showErr('Должны остаться свободные деньги.');var _sn=JSON.stringify(S);S.accounts=rest;save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='newTransfer'){sh={id:null,d:newDraft('t')};tDefaults(sh.d);entrySheet()}
   else if(a==='newDeposit'||a==='newWithdraw'){var fd=S.accounts.filter(function(x){return x.type==='save'||x.type==='other'})[0];if(!fd){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
     var dd=newDraft('t');if(a==='newDeposit'){dd.from=defAcc();dd.to=fd.id}else{dd.from=fd.id;dd.to=defAcc()}sh={id:null,d:dd};entrySheet()}
-  else if(a==='clearDemo'){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;save();render()}
+  else if(a==='clearDemo'){var _sn=JSON.stringify(S);S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;save();render();undoSnap(_sn,'Примеры убраны')}
   else if(a==='copyBackup'){
     var ta=document.getElementById('s_out'),m9=document.getElementById('s_msg0');
     var ok=function(t){markBackup();m9.textContent='Скопировано'+(t.indexOf('SCH1:')===0?' (сжатая копия, '+Math.ceil(t.length/1000)+' тыс. знаков)':'')+'. Вставь в «Избранное» в Телеграме.'+(t.length>4000?' Телеграм разобьёт её на '+Math.ceil(t.length/4000)+' сообщения — при восстановлении скопируй их все вместе.':'');m9.hidden=false};
@@ -4083,7 +4105,7 @@ if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast('Ян�
 snapTake('day');
 try{if(window.TGBK)TGBK.init({app:'schitalochka',title:'считалОчка',accent:'#6a45e8',file:function(d){return 'schitalochka-'+d+'.json'},data:function(){return S.demo||!realCount()?'':JSON.stringify(S)}})}catch(e){}
 if(!S.onb&&(realCount()>0||S.accounts.length>1||S.pet)){S.onb=1;saveLocal()}
-render();try{remSync()}catch(e){}try{if(remApk()&&remGet().on&&!AndroidApp.notificationsAllowed())AndroidApp.askNotifications()}catch(e){}try{apkCheck()}catch(e){}
+bigApply();render();try{onbMaybe()}catch(e){}try{remSync()}catch(e){}try{if(remApk()&&remGet().on&&!AndroidApp.notificationsAllowed())AndroidApp.askNotifications()}catch(e){}try{apkCheck()}catch(e){}
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}
   if(q){try{history.replaceState(null,'',location.pathname)}catch(e){}
     if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}

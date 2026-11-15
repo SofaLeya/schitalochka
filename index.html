@@ -31,6 +31,7 @@ h1,h2,h3,p{margin:0}
 .top h1{font-size:20px;font-weight:800;letter-spacing:-.01em}
 .ico{width:40px;height:40px;border-radius:12px;background:var(--surface);display:grid;place-items:center;color:var(--muted)}
 .ico svg{width:20px;height:20px}
+.ico{flex:none}.top h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top.haspet h1{font-size:19px}.top.haspet{gap:6px}
 .card{background:var(--surface);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .card h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .hero{background:var(--accent);color:var(--accent-ink);gap:6px}
@@ -191,6 +192,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .pwork{align-self:center;text-decoration:underline;opacity:.75;padding:4px 6px 14px}
 .herosay{display:block;margin-top:8px;opacity:.95}.optrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0}
 html.bigtext{zoom:1.14}
+.ico.petb svg{width:27px;height:27px}.ico.petb{background:var(--accent);color:var(--accent-ink,#fff);box-shadow:0 0 0 2px rgba(255,255,255,.4),0 0 14px color-mix(in srgb,var(--accent) 75%,transparent)}
 .balrow{display:flex;align-items:center;gap:10px}.penb{transform:scaleX(-1);flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:inherit;font-size:17px;line-height:1;padding:0;cursor:pointer}
 .hero .ibtn{width:18px;height:18px;font-size:11px;border-color:currentColor;color:inherit;opacity:.85;vertical-align:middle}
 .hero .tipbox,.hero .tipbox.fine,.cheer .hero .tipbox.fine{background:var(--surface);color:var(--ink);opacity:1;margin-top:8px}.hero .tipbox b{color:inherit}
@@ -3004,7 +3006,7 @@ function viewPlan(){
 function modeSwitch(){
   var tip='<p style="margin:0"><b>Простой</b> - записываешь траты и видишь, сколько потрачено и укладываешься ли в план на день. Хватает большинству.</p><p style="margin:6px 0 0"><b>Полный</b> - для планирования от зарплаты до зарплаты. Добавляет:</p><ul style="margin:4px 0 0;padding-left:18px"><li>вкладку «Платежи»: зарплата и обязательные платежи по дням;</li><li>«Доступно в день» до зарплаты с учётом будущих платежей;</li><li>раскладку зарплаты по копилкам одной кнопкой;</li><li>тип траты (обязательная, осознанная, импульсивная) и «Финансовое здоровье».</li></ul><p style="margin:6px 0 0">Переключаться можно когда угодно, данные не теряются.</p>';
   return '<div class="tiprow" style="margin:-4px 0 4px"><div class="seg" style="flex:1" role="group" aria-label="Режим приложения"><button type="button" data-a="setMode" data-v="simple" aria-pressed="'+(S.simple?'true':'false')+'" class="'+(S.simple?'on':'')+'">Простой режим</button><button type="button" data-a="setMode" data-v="full" aria-pressed="'+(S.simple?'false':'true')+'" class="'+(S.simple?'':'on')+'">Полный режим</button></div>'+tipBtn('mode')+'</div>'+tipBox('mode',tip)}
-function petBtn(){return S.nopet?'<button class="ico" data-a="petShow" aria-label="Показать монстрика"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4c4.4 0 7.5 3 7.5 7.2 0 3.9-2.8 7.3-7.5 7.3s-7.5-3.4-7.5-7.3C4.5 7 7.600 4 12 4z"/><circle cx="12" cy="11" r="2.4"/><path d="M8 3.200L9.500 6M16 3.200L14.500 6"/></svg></button>':''}
+function petBtn(){return S.nopet?'<button class="ico petb" data-a="petShow" aria-label="Вернуть монстрика" title="Вернуть монстрика"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9L7 3.5L10 7Q12 6.600 14 7L17 3.5L19 9Q21 11 20.500 14.500Q19.500 20 12 20Q4.500 20 3.500 14.500Q3 11 5 9Z" fill="currentColor"/><circle cx="12" cy="12" r="3.600" fill="#fff"/><circle cx="12" cy="12.300" r="1.700" fill="#2b1a3f"/><path d="M9.500 16.500h2l-1 2zM12.500 16.500h2l-1 2z" fill="#fff"/></svg></button>':''}
 function topBtns(){return '<span style="margin-left:auto"></span>'+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button>'}
 function render(){
   syncCats();
@@ -3014,7 +3016,7 @@ function render(){
   if(tab==='game')tab='home';
   /* пока рисуется экран, данные не меняются: план считаем один раз, а не на каждую запись (иначе с годом истории главная тормозит) */
   PI_ON=1;PI_C=null;var v;try{v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan()}finally{PI_ON=0;PI_C=null}
-  if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
+  if(tab==='home')v='<div class="top'+(S.nopet?' haspet':'')+'"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!ydHidden()?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
@@ -3485,7 +3487,7 @@ document.addEventListener('click',function(ev){
   else if(a==='onbGo'){var ob=num((document.getElementById('ob_bal')||{}).value),ol=num((document.getElementById('ob_lim')||{}).value);
     S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
     var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om&&isFinite(ob))addAdj(om,ob-accBal(om));if(ol>0)S.dayLimit=ol;S.setup=1;save();closeSheet();render();toast('Готово. Нажми "+" и запиши первую трату')}
-  else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Монстрик скрыт. Вернуть - кнопка вверху',false,function(){S.nopet=false;save();render()})}
+  else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Скрыто. Вернуть можно яркой кнопкой вверху, рядом с "?"',false,function(){S.nopet=false;save();render()})}
   else if(a==='petShow'){S.nopet=false;save();render()}
   else if(a==='optBig'){var bg=!bigOn();try{localStorage.setItem('sch-big',bg?'1':'')}catch(e){}bigApply();settingsSheet()}
   else if(a==='settings'){icoHint('set','Настройки');sh={confirm:false};settingsSheet()}

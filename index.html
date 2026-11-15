@@ -392,10 +392,11 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .mbox.rx5{animation:rxdance 1s ease-in-out}.mbox.rx6{animation:rxgig .7s linear}.mbox.rx7{animation:rxtall .8s ease-in-out}.mbox.rx8{animation:rxdbl .9s ease-in-out}.mbox.rx9{animation:rxhug 1.3s ease-in-out}.mbox.rx10{animation:rxflip 1.5s cubic-bezier(.3,.1,.3,1);transform-origin:50% 60%}
 .fl2{position:absolute;inset:0}.fl2 .fs{position:absolute;inset:0;animation:flspr 1.5s linear forwards}.fl2 .fb{position:absolute;inset:0;opacity:0;animation:flball 1.5s linear forwards}
 .fl2 .fb svg,.fl2 .fs svg{display:block;width:100%;height:100%}
-.fl2 .roll{animation:flroll .62s linear 2 .3s}.fl2 .sw{transform-origin:70px 76px;animation:flsw .62s linear 2 .3s}
+.fl2 .roll{animation:flroll .62s linear 2 .3s}.fl2 .sw{transform-origin:70px 76px;animation:flsw .62s linear 2 .3s}.fl2 .ears{transform-origin:70px 76px;animation:flears .62s linear 2 .3s}
 @keyframes flspr{0%,19%{opacity:1}21%,77%{opacity:0}79%,100%{opacity:1}}
 @keyframes flball{0%,19%{opacity:0}21%,77%{opacity:1}79%,100%{opacity:0}}
 @keyframes flroll{from{transform:translateY(0)}to{transform:translateY(-104px)}}
+@keyframes flears{0%,100%{transform:scaleY(1)}12.5%,87.5%{transform:scaleY(.71)}25%,75%{transform:scaleY(0)}37.5%,62.5%{transform:scaleY(-.71)}50%{transform:scaleY(-1)}}
 @keyframes flsw{from{transform:rotate(0)}to{transform:rotate(-360deg)}}
 @keyframes rxflip{0%{transform:translateY(0) scale(1,1)}
 14%{transform:translateY(5px) scale(1.14,.8)}
@@ -2076,6 +2077,23 @@ var PET_SND={fluff:'Мрр!',puff:'Пуф!',slime:'Блюп!',rat:'Пи-пи!',m
 var PET_BODY={puff:'#ff6fae',slime:'#34d3a0',rat:'#8b94a2',fluff:'#8f6bff',mouse:'#f5dcb6',frog:'#7bd85a',duck:'#ffd84d',cat:'#ffa45c',straw:'#e3213a',cher:'#cc1632',skel:'#f3efe6',skelf:'#f1eef8'};
 /* сальто как в мультиках: монстрик сворачивается в пушистый шарик, шарик крутится назад
    (мордочка уезжает вверх за макушку и выныривает снизу), потом разворачивается обратно */
+/* рожки/ушки на мячике: сверху, за шариком; при кувырке уходят за спину и выглядывают снизу */
+function ballTop(k){var W='#fff',I=INK;
+  function sh(tag,a,fill){return '<'+tag+' '+a+' fill="'+W+'" stroke="'+W+'" stroke-width="9" stroke-linejoin="round"/><'+tag+' '+a+' fill="'+fill+'" stroke="'+I+'" stroke-width="3.5" stroke-linejoin="round"/>'}
+  function pair(f){return f(1)+f(-1)}
+  function mx(x){return function(sg){return 70+sg*(x-70)}}
+  if(k==='fluff')return pair(function(g){var X=mx(0);return sh('path','d="M'+(70-g*24)+' 44 Q'+(70-g*36)+' 20 '+(70-g*24)+' 4 Q'+(70-g*18)+' 24 '+(70-g*6)+' 38Z"','#f3e2b8')});
+  if(k==='puff')return pair(function(g){return sh('path','d="M'+(70-g*24)+' 44 L'+(70-g*34)+' 16 L'+(70-g*8)+' 37Z"','#ffd166')});
+  if(k==='cat')return pair(function(g){return sh('path','d="M'+(70-g*28)+' 48 L'+(70-g*32)+' 14 L'+(70-g*6)+' 38Z"','#ffa45c')+'<path d="M'+(70-g*25)+' 42 L'+(70-g*28)+' 22 L'+(70-g*13)+' 38Z" fill="#ffc2c8"/>'});
+  if(k==='rat')return pair(function(g){return sh('ellipse','cx="'+(70-g*30)+'" cy="34" rx="15" ry="16"','#8b94a2')+'<ellipse cx="'+(70-g*30)+'" cy="34" rx="8" ry="9" fill="#f6b6c4"/>'});
+  if(k==='mouse')return pair(function(g){return sh('circle','cx="'+(70-g*32)+'" cy="34" r="17"','#f5dcb6')+'<circle cx="'+(70-g*32)+'" cy="34" r="9" fill="#ff9fb6"/>'});
+  if(k==='frog')return pair(function(g){return sh('circle','cx="'+(70-g*22)+'" cy="38" r="13"','#7bd85a')});
+  if(k==='duck')return sh('path','d="M66 38 Q60 22 70 16 Q74 26 80 22 Q80 32 74 38Z"','#ffd84d');
+  if(k==='slime')return sh('path','d="M70 38 Q66 26 70 16"','none')+sh('circle','cx="70" cy="13" r="6"','#ffd166');
+  if(k==='straw')return sh('path','d="M48 42 L56 26 L64 36 L70 20 L76 36 L84 26 L92 42Z"','#4cc46a');
+  if(k==='cher')return sh('path','d="M70 38 Q72 22 84 14"','none')+sh('path','d="M80 18 Q92 8 100 18 Q90 24 80 18Z"','#4cc46a');
+  if(k==='skelf')return [44,56,70,84,96].map(function(x,i){return sh('circle','cx="'+x+'" cy="'+(i%4?32:38)+'" r="7"','#9b1b30')}).join('');
+  return ''}
 function pet3d(px,lv){
   var k=petKind(),col=PET_BODY[k]||'#8f6bff',one=(k==='fluff'||k==='slime'),sk=(k==='skel'||k==='skelf');
   var face=function(y){var e=one?'<path d="M60 '+(y-4)+' Q70 '+(y-14)+' 80 '+(y-4)+'" stroke="'+INK+'" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
@@ -2084,9 +2102,9 @@ function pet3d(px,lv){
       (sk?'':'<ellipse cx="70" cy="'+(y+34)+'" rx="22" ry="12" fill="#fff" opacity=".2"/>')+paw(28,y+8,-30)+paw(112,y+8,30)+paw(40,y+32,-60)+paw(100,y+32,60)};
   var paw=function(x,y,r){return '<ellipse cx="'+x+'" cy="'+y+'" rx="10" ry="7.5" transform="rotate('+r+' '+x+' '+y+')" fill="'+col+'" stroke="'+INK+'" stroke-width="3.5"/><ellipse cx="'+(x-2)+'" cy="'+(y-2.5)+'" rx="4" ry="2" fill="#fff" opacity=".35"/>'};
   var gid='flg'+Date.now();
-  var ball='<svg viewBox="0 0 140 140"><defs><radialGradient id="'+gid+'" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient><clipPath id="'+gid+'c"><ellipse cx="70" cy="76" rx="54" ry="40"/></clipPath></defs>'+
+  var ball='<svg viewBox="0 0 140 140" style="overflow:visible"><defs><radialGradient id="'+gid+'" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient><clipPath id="'+gid+'c"><ellipse cx="70" cy="76" rx="54" ry="40"/></clipPath></defs>'+
     '<g class="sw"><path d="M18 70 A54 54 0 0 1 70 22" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/><path d="M122 82 A54 54 0 0 1 70 130" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/></g>'+
-    '<circle cx="70" cy="76" r="46" fill="#fff"/><circle cx="70" cy="76" r="41" fill="'+col+'" stroke="'+INK+'" stroke-width="4"/>'+
+    '<g class="ears">'+ballTop(k)+'</g><circle cx="70" cy="76" r="46" fill="#fff"/><circle cx="70" cy="76" r="41" fill="'+col+'" stroke="'+INK+'" stroke-width="4"/>'+
     '<circle cx="70" cy="76" r="40" fill="url(#'+gid+')"/>'+
     '<g clip-path="url(#'+gid+'c)"><g class="roll">'+face(80)+face(184)+'</g></g></svg>';
   return '<div class="fl2"><div class="fs">'+monster('joy',px,null,lv,'')+'</div><div class="fb">'+ball+'</div></div>'}

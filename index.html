@@ -1863,6 +1863,7 @@ function fhead(k,title,sum,note){var shut=uiFold(k);
 function fcard(k,title,sum,note,body,foot){return '<div class="card">'+fhead(k,title,sum,note)+(uiFold(k)?'':body)+(foot||'')+'</div>'}
 function accountsCard(){
   var funds=S.accounts.filter(function(a){return a.type==='save'||a.type==='other'}),debts=S.accounts.filter(function(a){return a.type==='debt'});
+  if(!funds.length&&!debts.length)return '<div class="card"><h2>Копилки и долги</h2><p class="fine" style="margin:0">Пока нет. Копилка помогает откладывать на цель, долг - следить, кому и сколько ещё вернуть.</p><div class="btns"><button class="btn ghost sm" data-a="newAcc">Новая копилка</button><button class="btn ghost sm" data-a="newDebt">Новый долг</button></div></div>';
   var fs=0,ds=0;funds.forEach(function(a){fs+=accBal(a)});debts.forEach(function(a){ds+=accBal(a)});
   function row(a,many){var b=accBal(a);
     return '<button class="row" data-a="editAcc" data-id="'+a.id+'" data-acc="'+a.id+'">'+(many?'<span class="drag" aria-label="Перетащить">⠿</span>':'')+'<span class="dot" style="background:'+ACOL[a.type]+'"></span><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+ATYPES[a.type]+(a.type==='debt'&&a.start<0?' · погашено '+money(Math.max(0,b-a.start))+' из '+money(-a.start):'')+'</div>'+(a.type==='debt'&&a.start<0?'<div class="bar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,(b-a.start)/-a.start*100))+'%;background:var(--in)"></i></div>':'')+(a.type==='save'?goalLine(a):'')+'</div><span class="amt'+(b<0?' out':'')+'">'+money(b)+'</span></button>';
@@ -3357,6 +3358,7 @@ function bigOn(){try{return !!localStorage.getItem('sch-big')}catch(e){return fa
 function bigApply(){try{document.documentElement.classList.toggle('bigtext',bigOn())}catch(e){}}
 function viewBlock(){return '<div class="f"><label>Вид</label><div class="optrow"><span>Крупный текст</span><button type="button" class="btn sm ghost" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div></div>'}
 function onbMaybe(){if(!S.demo||S.setup||document.querySelector('#ov .sheet'))return;
+  if(!S.seenVer){S.seenVer=APP_VER;saveLocal()}
   openSheet('<h3>Давай настроим за минуту</h3><p class="fine" style="margin:0">Три шага, и приложение считает под тебя.</p>'+
    '<div class="f"><label for="ob_bal">1. Сколько сейчас денег на карте</label><input id="ob_bal" inputmode="decimal" placeholder="Например, 15000"></div>'+
    '<div class="f"><label for="ob_lim">2. Сколько хочешь тратить в день</label><input id="ob_lim" inputmode="decimal" placeholder="Можно пропустить"><span class="fine">Потом план можно посчитать по доходам и платежам.</span></div>'+

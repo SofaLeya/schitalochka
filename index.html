@@ -2222,7 +2222,7 @@ function reviewCard(){
         var ds=pd.map(function(x){return payDateIn(ym,x)}).filter(function(d,i,a){return d<=T&&a.indexOf(d)===i}).sort();
         if(!pd.length)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед каждой зарплатой, укажи дни зарплаты в настройках.</span>';
         if(!ds.length)return '';
-        return '<div style="border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px"><span class="fine" style="font-size:12px">Осталось перед зарплатой</span>'+
+        return '<div style="border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px"><span class="fine" style="font-size:12px">Перед зарплатой оставалось</span>'+
           ds.map(function(d){var v=balanceBefore(d);return '<div style="display:flex;justify-content:space-between;gap:8px"><span>'+dlabel(d)+'</span><b style="color:'+(v>=0?'var(--ink)':'var(--out)')+'">'+money(v)+'</b></div>'}).join('')+'</div>'})()+
       tipBox('rvbal','Сколько было на основном счёте в начале месяца и сколько стало в конце. Это не то же самое, что «меньше плана»: остаток зависит ещё от того, сколько пришло, сколько ушло в копилки и на платежи. Считается назад от сегодняшнего остатка по всем записям, в том числе загруженным из выписки. Если какой-то траты или поступления не хватает в записях, цифра на начало месяца сдвинется на эту сумму.')+'</div>'})();
   /* 2. категории */
@@ -2964,7 +2964,7 @@ function viewAn(){
   var catTip='Траты на жизнь со свободных денег, после вычета возвратов. Платежи и траты из копилок вынесены в отдельное меню ниже. '+'Процент - какая доля всех трат на жизнь за месяц пришлась на категорию, полоска показывает то же. Если у категории есть лимит («План по категориям»), вместо процента видно «из суммы лимита». '+(hasP?'Стрелка - насколько больше или меньше, чем в прошлом месяце'+(isCur?' к этому же числу':'')+'. ':'')+'Нажми на категорию, чтобы открыть эти траты в «Истории».';
   return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div>'+reviewCard()+
    
-   lifeCard(me,n)+dayCard+
+   (dayLimit()>0&&vym<=T.slice(0,7)?'':lifeCard(me,n))+dayCard+
    '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats',catTip)+catHtml+'</div>'+
    habitsCard(me,upto)+monthsCard()+outCard(me)+
    '<div class="card" style="padding:10px 12px;gap:8px"><div class="row"><h2 class="grow" style="display:flex;align-items:center;gap:8px">Выгрузка '+tipBtn('ex')+'</h2><button class="btn sm" style="flex:none" data-a="export">Для ИИ</button><button class="btn ghost sm" style="flex:none" data-a="csvOpen">CSV</button></div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'</div>';
@@ -3161,11 +3161,16 @@ function viewPlan(){
      (S.recur.length?sorted(S.recur,'r').map(function(r){return planRow('r',r,ym,1)}).join(''):'<p class="empty">Добавь аренду, связь, подписки.</p>'),'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button>')+
    fcard('inc','Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
      (S.incomes.length?sorted(S.incomes,'i').map(function(r){return planRow('i',r,ym,1)}).join(''):'<p class="empty">Добавь даты, когда приходят деньги: от них считается «до зарплаты».</p>'),'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button>')+
-   rareCard+climCard()+rulesCard()+
+   planMore(rareCard+climCard()+rulesCard()+
    fcard('p3','План на 3 месяца',null,'сколько останется сверху','<div class="sum3"><span class="h">Месяц</span><span class="h r">Приход</span><span class="h r">Уходит</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine" style="margin:0">* '+MONTHS[+cym.split('-')[1]-1]+': траты на жизнь по факту за прошедшие дни и по плану на оставшиеся, отмеченные платежи и доходы - по факту.</p>'+(rareN.length?'<p class="fine" style="margin:0">Редкие траты: '+rareN.join(', ')+'. Они оплачиваются из резерва, который копится в плане.</p>':'')+'<div class="tiprow" style="justify-content:flex-end"><span class="fine">Как считается</span>'+tipBtn('p3')+'</div>'+tipBox('p3','В рублях. «Уходит» - платежи со свободных денег, раскладка по копилкам, траты на жизнь по плану ('+money(lim3)+' в день, в среднем 30,4 дня в месяце) и резерв на редкие траты ('+money(rM)+' в месяц). Платежи из копилки (например, «Платежи») оплачиваются тем, что в ней лежит и докладывается по раскладке; сюда попадёт только нехватка, если её не хватит. Если доход в этом месяце уже отмечен, берётся сколько пришло на самом деле. «Остаётся» - сколько будет сверху, если жить по плану. Красное - в этом месяце денег не хватит.'))+
-   fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>');
+   fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>'));
 }
 
+/* «Платежи → План»: редко нужное прячем в один свёрнутый блок; сверху короткая строка, что там уже настроено */
+var planMoreOpen=false;
+function planMore(inner){
+  var on=[];if((S.rare||[]).length)on.push('редкие траты');if(Object.keys(S.catLim||{}).length)on.push('лимиты');if((S.rules||[]).length)on.push('раскладка');
+  return '<div class="card" style="padding:12px 14px"><button type="button" class="row" data-a="planMore" aria-expanded="'+planMoreOpen+'" style="background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer"><div class="grow"><h2 style="margin:0">Ещё планирование</h2><div class="fine" style="margin-top:2px">'+(on.length?'Настроено: '+on.join(', '):'редкие траты, лимиты, раскладка, план на 3 месяца, файл')+'</div></div><span style="font-size:18px;transform:rotate('+(planMoreOpen?180:0)+'deg);transition:transform .2s">⌄</span></button></div>'+(planMoreOpen?inner:'')}
 function modeSwitch(){
   var tip='<p style="margin:0"><b>Простой</b> - записываешь траты и видишь, сколько потрачено и укладываешься ли в план на день. Хватает большинству.</p><p style="margin:6px 0 0"><b>Полный</b> - для планирования от зарплаты до зарплаты. Добавляет:</p><ul style="margin:4px 0 0;padding-left:18px"><li>вкладку «Платежи»: зарплата и обязательные платежи по дням;</li><li>«Доступно в день» до зарплаты с учётом будущих платежей;</li><li>раскладку зарплаты по копилкам одной кнопкой;</li><li>тип траты (обязательная, осознанная, импульсивная) и «Финансовое здоровье».</li></ul><p style="margin:6px 0 0">Переключаться можно когда угодно, данные не теряются.</p>';
   return '<div class="tiprow" style="margin:-4px 0 4px"><div class="seg" style="flex:1" role="group" aria-label="Режим приложения"><button type="button" data-a="setMode" data-v="simple" aria-pressed="'+(S.simple?'true':'false')+'" class="'+(S.simple?'on':'')+'">Простой режим</button><button type="button" data-a="setMode" data-v="full" aria-pressed="'+(S.simple?'false':'true')+'" class="'+(S.simple?'':'on')+'">Полный режим</button></div>'+tipBtn('mode')+'</div>'+tipBox('mode',tip)}
@@ -3645,6 +3650,7 @@ document.addEventListener('click',function(ev){
   else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
   else if(a==='onbSkip'){S.setup=1;S.onb=1;save();closeSheet();applyPetTheme()}
   else if(a==='onbGo'){onbFinish()}
+  else if(a==='planMore'){planMoreOpen=!planMoreOpen;render()}
   else if(a==='tipOff'){if(v==='sub'&&id){S.subNo=(S.subNo||[]).concat([id]);save();render();toast('Хорошо, про эту трату больше не скажу')}else{S.tipOff=Object.assign({},S.tipOff||{});S.tipOff[v]=1;save();render();toast('Хорошо, такие подсказки больше не покажу')}}
   else if(a==='tipSub'){var tl=tipsNow().filter(function(x){return x.t==='sub'})[0];if(tl){var c0=tl.sub;S.recur.push({id:uid(),name:c0.name,amt:c0.amt,day:Math.min(28,c0.day),cat:c0.cat});save();render();toast('Добавлено в платежи: '+c0.name)}}
   else if(a==='tipGo'){vym=T.slice(0,7);if(v==='cat'||v==='small'){hq='';hacc='';hsk='';hd=null;hfo=false;hf='e';hc=v==='cat'?(id||''):'';ha=v==='small'?'lt300':'';var tcm=vym.split('-');hfrom=vym+'-01';hto=vym+'-'+p2(dim(+tcm[0],+tcm[1]-1));tab='hist'}else tab='an';if(!NAV.tab){NAV.tab=true;navPush('tab')}window.scrollTo(0,0);render()}
@@ -3688,7 +3694,7 @@ document.addEventListener('click',function(ev){
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
   else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
   else if(a==='splitDrop'){var sy=S.entries.filter(function(e){return e.id===id})[0];if(sy){sy.splitDone='no';save();render()}}
-  else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';ptab='p';uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
+  else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';ptab='p';planMoreOpen=true;uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
   else if(a==='climEdit'){sh={clim:true,cat:v||''};climSheet()}
   else if(a==='climStep'){var ci=document.getElementById('cl_v');if(ci){var cv=num(ci.value);ci.value=Math.max(0,Math.round((isFinite(cv)?cv:0)+(+v)))||''}}
   else if(a==='climSave'){climSave(v)}

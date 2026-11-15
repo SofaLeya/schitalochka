@@ -7,8 +7,11 @@ async function start(page, errs) {
     page.on('pageerror', e => errs.push(String(e)));
   }
   await page.goto('/index.html');
+  await page.click('[data-a=onbNext]');
   await page.fill('#ob_bal', '20000');
+  await page.click('[data-a=onbNext]');
   await page.fill('#ob_lim', '1500');
+  await page.click('[data-a=onbNext]');
   await page.click('[data-a=onbGo]');
   await expect(page.locator('.hero .big')).toContainText('20');
 }
@@ -33,7 +36,7 @@ test('приложение открывается без ошибок в кон�
 
 test('новичок видит онбординг, примеры можно пропустить', async ({ page }) => {
   await page.goto('/index.html');
-  await expect(page.locator('#ob_bal')).toBeVisible();
+  await expect(page.locator('#ob_mon')).toBeVisible();
   await page.click('[data-a=onbSkip]');
   await expect(page.locator('#ov .sheet')).toBeHidden();
   await expect(page.getByText('Это примеры')).toBeVisible();
@@ -44,7 +47,7 @@ test('онбординг: баланс и план попадают на гла�
   expect(await heroNumber(page)).toBe(20000);
   await expect(page.getByText('Это примеры')).toHaveCount(0);
   await page.reload();
-  await expect(page.locator('#ob_bal')).toHaveCount(0); // второй раз не показывается
+  await expect(page.locator('#ob_mon')).toHaveCount(0); // второй раз не показывается
   expect(await heroNumber(page)).toBe(20000);
 });
 
@@ -119,4 +122,28 @@ test('настройки открываются, крупный текст вк�
 test('нет копилок и долгов - одна компактная карточка', async ({ page }) => {
   await start(page);
   await expect(page.getByRole('heading', { name: 'Копилки и долги' })).toBeVisible();
+});
+
+test('знакомство с монстриком: реагирует на ввод, выбранный монстрик и имя сохраняются', async ({ page }) => {
+  const errs = [];
+  page.on('pageerror', e => errs.push(String(e)));
+  await page.goto('/index.html');
+  await expect(page.locator('#ob_mon .onbpic svg')).toBeVisible();
+  await page.click('[data-a=onbNext]');
+  await page.fill('#ob_bal', '10000');
+  await expect(page.locator('#ob_mon .bub')).toContainText('10');
+  await page.click('[data-a=onbNext]');
+  await expect(page.locator('#ob_btns [data-a=onbNext]')).toHaveText('Пропустить');
+  await page.fill('#ob_lim', '1000');
+  await expect(page.locator('#ob_mon .bub')).toContainText('10 дней');
+  await page.click('[data-a=onbNext]');
+  await page.click('[data-a=onbPet][data-v=cat]');
+  await expect(page.locator('#ob_mon .bub')).toContainText('Котик');
+  await page.fill('#ob_name', 'Барсик');
+  await page.click('[data-a=onbGo]');
+  await expect(page.locator('.card.monster')).toContainText('Барсик');
+  await expect(page.locator('html')).toHaveAttribute('data-pet', 'cat');
+  await page.reload();
+  await expect(page.locator('.card.monster')).toContainText('Барсик');
+  expect(errs).toEqual([]);
 });

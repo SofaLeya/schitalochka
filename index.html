@@ -303,6 +303,11 @@ html.bigtext{zoom:1.14}
 .card.monster.big .mt .btns{align-self:center!important}}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
 @media (prefers-reduced-motion:no-preference){.monster .mbox>svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster .mbox>svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
+.onbdots{display:flex;gap:6px;justify-content:center}.onbdots span{width:8px;height:8px;border-radius:99px;background:var(--line);transition:width .2s}.onbdots span.done{background:var(--accent)}.onbdots span.on{width:22px;background:var(--accent)}
+.onbh{margin:0;text-align:center}
+.onbm{display:flex;gap:10px;align-items:center}.onbpic{flex:none;width:92px;height:92px}.onbm .bub{position:relative;flex:1;background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14.5px;line-height:1.35}.onbm .bub::before{content:'';position:absolute;left:-7px;top:50%;margin-top:-7px;border:7px solid transparent;border-left:0;border-right-color:var(--surface2)}
+.mgrid.onbgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.onbgrid .mopt{padding:6px 2px;gap:2px}.onbmini{width:52px;height:52px;display:block;margin:0 auto}
+@media (prefers-reduced-motion:no-preference){.onbpic>svg{animation:bob 2.6s ease-in-out infinite}.onbm .bub{animation:onbpop .25s ease-out}@keyframes onbpop{from{transform:scale(.94);opacity:.4}to{transform:none;opacity:1}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -1783,6 +1788,7 @@ function monsterCard(me,net,dnum){
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', побольше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
   }
+  else if(!td.length&&!ns&&!S.entries.some(function(x){return !x.demo})){mood='joy';msg=pk(['Привет, я '+petName()+'! Жду первую трату: нажми "+" внизу.','Я '+petName()+', будем знакомы! Начнём с первой записи - кнопка "+" внизу.'])}
   else if(!td.length&&!ns){mood='think';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было - отметь.','Пока пусто. Если что-то тратили - внеси, а если нет - отметь день без трат.']);nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''}
   else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
   else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
@@ -2714,26 +2720,38 @@ function clmvSave(scope){
   toast(money(v)+': '+CMAP[f].name+' → '+CMAP[t].name);
 }
 /* ---------- знакомство ---------- */
+/* знакомство: монстрик сам ведёт по шагам и реагирует на ввод */
+var ONB_T=['Привет!','Деньги на карте','План на день','Твой монстрик'];
+function onbSay(){var d=sh.d,st=sh.step,b=num(d.bal),l=num(d.lim),m=MONS.filter(function(x){return x.id===d.kind})[0]||MONS[0];
+  if(st===1)return ['joy','Привет! Я монстрик. Ты записываешь траты, а я считаю, сколько можно тратить в день, и подбадриваю. Всё хранится только в этом телефоне.'];
+  if(st===2)return b>0?['happy','Запомнил: '+money(b)+'. От этой суммы и буду считать.']:['think','Сколько сейчас денег на карте? Только на жизнь, без копилок. Потом можно поправить.'];
+  if(st===3){if(!(l>0))return ['think','Сколько хочешь тратить в день? Не знаешь - оставь пустым, потом посчитаем по доходам и платежам.'];
+    if(b>0){var dd=Math.floor(b/l);return dd<3?['worried','По '+money(l)+' в день денег на карте хватит всего на '+dd+' '+plw(dd,'день','дня','дней')+'. Может, чуть меньше?']:['happy','По '+money(l)+' в день. Денег на карте хватит примерно на '+dd+' '+plw(dd,'день','дня','дней')+'.']}
+    return ['happy','По '+money(l)+' в день - это около '+money(Math.round(l*30.4/100)*100)+' в месяц.']}
+  var nm=String(d.name||'').trim();
+  if(nm)return ['joy','Мне нравится! Теперь я '+nm+'.'];
+  if(d.picked)return ['joy','Я теперь '+m.name+'! Будем дружить. Можно ещё дать мне имя.'];
+  return ['happy','Последний шаг: выбери, кто будет рядом. Поменять можно в любой момент.']}
+function onbMon(){var w=onbSay();return '<div class="onbpic" data-m="'+w[0]+'">'+monster(w[0],92,sh.d.kind,0,'',{acc:[]})+'</div><div class="bub">'+esc(w[1])+'</div>'}
+function onbLive(){var e=document.getElementById('ob_mon');if(!e)return;var w=onbSay(),pic=e.querySelector('.onbpic'),bb=e.querySelector('.bub');if(!pic||!bb){e.innerHTML=onbMon();return}
+  if(pic.getAttribute('data-m')!==w[0]){pic.setAttribute('data-m',w[0]);pic.innerHTML=monster(w[0],92,sh.d.kind,0,'',{acc:[]})}bb.textContent=w[1]}
 function onbSheet(){
-  var d=sh.d,st=sh.step,dots='<div style="display:flex;gap:6px;justify-content:center">'+[1,2,3].map(function(i){return '<span style="width:'+(i===st?22:8)+'px;height:8px;border-radius:99px;background:'+(i<=st?'var(--accent)':'var(--line)')+'"></span>'}).join('')+'</div>';
+  var d=sh.d,st=sh.step,n=ONB_T.length,dots='<div class="onbdots" aria-label="Шаг '+st+' из '+n+'">'+ONB_T.map(function(t,i){return '<span'+(i+1===st?' class="on"':i+1<st?' class="done"':'')+'></span>'}).join('')+'</div>';
   var body='';
-  if(st===1)body='<h3>Привет! Это считалОчка</h3><p>Записывай траты, а приложение подскажет, сколько можно тратить в день, и покажет, куда уходят деньги. Всё хранится только в этом телефоне.</p><div class="f"><label for="ob_bal">Сколько сейчас денег на карте, ₽</label><input id="ob_bal" inputmode="decimal" value="'+esc(d.bal)+'" placeholder="Например, 25000"><span class="fine">Деньги на жизнь, без копилок. Потом можно поправить.</span></div>';
-  else if(st===2){var c=d.pc||{};body='<h3>Сколько можно тратить в день</h3><p class="fine">Посчитаем план: доход минус обязательное и отложенное. Если не хочется считать сейчас, пропусти шаг.</p>'+
-    [['pc_inc','Доход в месяц, ₽','inc'],['pc_fix','Обязательные платежи в месяц, ₽','fixed'],['pc_sav','Откладывать в месяц, ₽','save'],['pc_irr','Редкие расходы в среднем за месяц, ₽','irr']].map(function(f){return '<div class="f"><label for="'+f[0]+'">'+f[1]+'</label><input id="'+f[0]+'" inputmode="decimal" value="'+(c[f[2]]||'')+'" placeholder="0"></div>'}).join('')+'<div id="pc_out" class="note info"></div>'}
-  else body='<h3>Выбери монстрика</h3><p class="fine">Он будет подсказывать, как идут дела. Поменять можно в любой момент.</p><div class="mgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+monsVisible(d.kind).map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" style="padding:8px 4px" data-a="onbPet" data-v="'+m.id+'"><span style="width:64px;height:64px;display:block">'+monster('happy',64,m.id)+'</span><span class="fine" style="font-weight:600">'+m.name+'</span></button>'}).join('')+'</div><div class="f"><label for="ob_name">Как его зовут</label><input id="ob_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Например, Копейка"></div>';
-  openSheet(dots+body+'<div class="btns">'+(st>1?'<button type="button" class="btn ghost" data-a="onbBack">Назад</button>':'<button type="button" class="btn ghost" data-a="onbSkip">Пропустить</button>')+(st===2?'<button type="button" class="btn ghost" data-a="onbNext" data-v="skip">Позже</button>':'')+'<button type="button" class="btn" data-a="onbNext">'+(st===3?'Готово':'Дальше')+'</button></div>');
-  if(st===2)planCalcOut();
-}
+  if(st===2)body='<div class="f"><label for="ob_bal">Денег на карте, ₽</label><input id="ob_bal" inputmode="decimal" value="'+esc(d.bal)+'" placeholder="Например, 15000"></div>';
+  else if(st===3)body='<div class="f"><label for="ob_lim">Тратить в день, ₽</label><input id="ob_lim" inputmode="decimal" value="'+esc(d.lim)+'" placeholder="Можно пропустить"></div>';
+  else if(st===4)body='<div class="mgrid onbgrid">'+monsVisible(d.kind).map(function(m){return '<button type="button" class="mopt'+(d.kind===m.id?' on':'')+'" data-a="onbPet" data-v="'+m.id+'" aria-pressed="'+(d.kind===m.id)+'"><span class="onbmini">'+monster('happy',52,m.id,0,'',{acc:[]})+'</span><span class="fine">'+m.name+'</span></button>'}).join('')+'</div><div class="f"><label for="ob_name">Имя монстрика</label><input id="ob_name" maxlength="20" value="'+esc(d.name)+'" placeholder="Копейка"></div>';
+  var btn=st===1?'<button type="button" class="btn ghost" data-a="onbSkip">Сначала посмотрю примеры</button><button type="button" class="btn" data-a="onbNext">Привет! Дальше</button>'
+    :'<button type="button" class="btn ghost" data-a="onbBack">Назад</button>'+(st<n?'<button type="button" class="btn" data-a="onbNext">'+(st===3&&!(num(d.lim)>0)?'Пропустить':'Дальше')+'</button>':'<button type="button" class="btn" data-a="onbGo">Начать</button>');
+  openSheet(dots+'<h3 class="onbh">'+ONB_T[st-1]+'</h3><div class="onbm" id="ob_mon">'+onbMon()+'</div>'+body+'<div class="btns" id="ob_btns">'+btn+'</div>');
+  if(st===4){try{document.documentElement.setAttribute('data-pet',d.kind);paintBars()}catch(e){}}
+  var f=document.querySelector('#ov .sheet input');if(f&&st<4)setTimeout(function(){try{f.focus()}catch(e){}},250)}
 function onbRead(){var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:null};
-  if(sh.step===1&&g('ob_bal')!==null)d.bal=g('ob_bal');
-  if(sh.step===2&&g('pc_inc')!==null)d.pc=planCalcRead();
-  if(sh.step===3&&g('ob_name')!==null)d.name=g('ob_name')}
-function onbFinish(){var d=sh.d;
-  S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});
-  var m=S.accounts.filter(function(a){return a.type==='main'})[0];if(m){delete m.demoStart;var bv=num(d.bal);m.start=bv>0?bv:0}dropDemoAccs();S.start=0;S.demo=false;
-  if(d.pc&&d.pc.inc>0){S.planCalc=d.pc;delete S.dayLimit}S.planAsked=1;
-  S.pet={kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)};S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Записывай первую трату кнопкой «+»');
-}
+  if(g('ob_bal')!==null)d.bal=g('ob_bal');if(g('ob_lim')!==null)d.lim=g('ob_lim');if(g('ob_name')!==null)d.name=g('ob_name')}
+function onbFinish(){onbRead();var d=sh.d,ob=num(d.bal),ol=num(d.lim);
+  S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
+  var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om){delete om.demoStart;if(isFinite(ob))addAdj(om,ob-accBal(om))}if(ol>0)S.dayLimit=ol;
+  S.pet=Object.assign({},S.pet||{},{kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)});S.setup=1;S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Нажми "+" и запиши первую трату')}
 /* меню «Платежи и из копилок»: траты месяца, которые не входят в траты на жизнь (раскрывается по нажатию) */
 function outCard(me){
   var inLife={};life(me).forEach(function(x){inLife[x.id]=1});
@@ -3359,11 +3377,7 @@ function bigApply(){try{document.documentElement.classList.toggle('bigtext',bigO
 function viewBlock(){return '<div class="f"><label>Вид</label><div class="optrow"><span>Крупный текст</span><button type="button" class="btn sm ghost" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div></div>'}
 function onbMaybe(){if(!S.demo||S.setup||document.querySelector('#ov .sheet'))return;
   if(!S.seenVer){S.seenVer=APP_VER;saveLocal()}
-  openSheet('<h3>Давай настроим за минуту</h3><p class="fine" style="margin:0">Три шага, и приложение считает под тебя.</p>'+
-   '<div class="f"><label for="ob_bal">1. Сколько сейчас денег на карте</label><input id="ob_bal" inputmode="decimal" placeholder="Например, 15000"></div>'+
-   '<div class="f"><label for="ob_lim">2. Сколько хочешь тратить в день</label><input id="ob_lim" inputmode="decimal" placeholder="Можно пропустить"><span class="fine">Потом план можно посчитать по доходам и платежам.</span></div>'+
-   '<p class="fine" style="margin:0"><b>3.</b> Нажми "+" внизу и запиши первую трату.</p>'+
-   '<div class="btns"><button type="button" class="btn" data-a="onbGo">Готово</button><button type="button" class="btn ghost" data-a="onbSkip">Сначала посмотрю примеры</button></div>')}
+  sh={onb:true,step:1,d:{bal:'',lim:'',kind:petKind(),name:''}};onbSheet()}
 function toast(m,bad,undo){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}
   t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent='';var sp=document.createElement('span');sp.textContent=(bad?'✕ ':'✓ ')+m;t.appendChild(sp);
   if(undo){var ub=document.createElement('button');ub.type='button';ub.textContent='Отменить';ub.style.cssText='margin-left:12px;background:rgba(255,255,255,.25);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:8px 14px;min-height:36px';ub.onclick=function(){clearTimeout(t._h);t.style.display='none';undo()};t.appendChild(ub)}
@@ -3484,10 +3498,11 @@ document.addEventListener('click',function(ev){
   else if(a==='delRule'){var _sn=JSON.stringify(S);S.rules=S.rules.filter(function(x){return x.id!==sh.id});save();closeSheet();render();undoSnap(_sn,'Правило удалено')}
   else if(a==='recon'){sh={rc:true};reconSheet()}
   else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
-  else if(a==='onbSkip'){S.setup=1;save();closeSheet()}
-  else if(a==='onbGo'){var ob=num((document.getElementById('ob_bal')||{}).value),ol=num((document.getElementById('ob_lim')||{}).value);
-    S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;
-    var om=S.accounts.filter(function(x){return x.type==='main'})[0];if(om&&isFinite(ob))addAdj(om,ob-accBal(om));if(ol>0)S.dayLimit=ol;S.setup=1;save();closeSheet();render();toast('Готово. Нажми "+" и запиши первую трату')}
+  else if(a==='onbSkip'){S.setup=1;S.onb=1;save();closeSheet();applyPetTheme()}
+  else if(a==='onbGo'){onbFinish()}
+  else if(a==='onbNext'){onbRead();sh.step++;onbSheet()}
+  else if(a==='onbBack'){onbRead();sh.step--;onbSheet()}
+  else if(a==='onbPet'){onbRead();sh.d.kind=v;sh.d.picked=1;onbSheet()}
   else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Скрыто. Вернуть можно яркой кнопкой вверху, рядом с "?"',false,function(){S.nopet=false;save();render()})}
   else if(a==='petShow'){S.nopet=false;save();render()}
   else if(a==='optBig'){var bg=!bigOn();try{localStorage.setItem('sch-big',bg?'1':'')}catch(e){}bigApply();settingsSheet()}
@@ -3529,10 +3544,6 @@ document.addEventListener('click',function(ev){
   else if(a==='climSave'){climSave(v)}
   else if(a==='climMove'){sh={clmv:true};clmvSheet()}
   else if(a==='climMoveSave'){clmvSave(v)}
-  else if(a==='onbNext'){onbRead();if(sh.step===2&&v==='skip')sh.d.pc=null;if(sh.step===3)onbFinish();else{sh.step++;onbSheet()}}
-  else if(a==='onbBack'){onbRead();sh.step--;onbSheet()}
-  else if(a==='onbSkip'){S.onb=1;S.seenVer=APP_VER;saveLocal();closeSheet()}
-  else if(a==='onbPet'){onbRead();sh.d.kind=v;onbSheet()}
   else if(a==='repeatEntry'&&sh&&sh.id){var src=S.entries.filter(function(e){return e.id===sh.id})[0];if(src){var cp={id:uid(),type:src.type,amt:src.amt,cat:src.cat,date:petDay(),note:src.note||'',cls:src.cls||'',clsSet:!!src.clsSet};if(src.type==='t'){cp.from=src.from;cp.to=src.to}else if(src.acc&&accById(src.acc))cp.acc=src.acc;if(src.skip)cp.skip=true;S.entries.push(cp);save();closeSheet();render();toast('Повторено: '+money(cp.amt)+(cp.note?' · '+cp.note:''))}}
   else if(a==='csvOpen'){var t1=new Date();sh={csv:true};csvSheet()}
   else if(a==='csvGo'){csvGo()}
@@ -3868,6 +3879,7 @@ document.addEventListener('toggle',function(ev){if(ev.target&&ev.target.id==='f_
 document.addEventListener('input',function(ev){
   if(ev.target.id==='h_q'){var was=histFiltered();hq=ev.target.value.trim();if(was!==histFiltered()){var pos=ev.target.selectionStart;render();var el=document.getElementById('h_q');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}else{var hl=document.getElementById('hlist');if(hl)hl.innerHTML=histList()}return}
   if(/^pc_/.test(ev.target.id)){planCalcOut();return}
+  if(/^ob_(bal|lim|name)$/.test(ev.target.id)&&sh&&sh.onb){onbRead();onbLive();if(ev.target.id==='ob_lim'){var nb=document.querySelector('#ob_btns [data-a=onbNext]');if(nb)nb.textContent=num(sh.d.lim)>0?'Дальше':'Пропустить'}return}
   if(ev.target.id==='f_catq'){catList(ev.target.value);return}
   if(ev.target.id==='f_note')autoFund(ev.target.value);
   if(ev.target.id!=='f_note'||!sh||!sh.d||sh.d.manual||sh.d.type==='t')return;
@@ -4113,8 +4125,7 @@ if(!S.onb&&(realCount()>0||S.accounts.length>1||S.pet)){S.onb=1;saveLocal()}
 bigApply();render();try{onbMaybe()}catch(e){}try{remSync()}catch(e){}try{if(remApk()&&remGet().on&&!AndroidApp.notificationsAllowed())AndroidApp.askNotifications()}catch(e){}try{apkCheck()}catch(e){}
 (function(){var q='';try{q=new URLSearchParams(location.search).get('new')||''}catch(e){}
   if(q){try{history.replaceState(null,'',location.pathname)}catch(e){}
-    if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}
-  if(!S.onb){sh={onb:true,step:1,d:{bal:'',pc:null,kind:'fluff',name:''}};onbSheet()}})();
+    if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}})();
 })();
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script>

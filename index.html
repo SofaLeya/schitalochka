@@ -240,8 +240,8 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .card.monster{flex-direction:row;align-items:flex-start;gap:12px;position:relative;overflow:hidden}
 .card.monster>*{position:relative;z-index:1}
 .card.monster>.mbgl{position:absolute;inset:0;z-index:0}
-.mbgl .msc{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,8,28,0) 20%,rgba(15,8,28,.6))}
-.card.monster.big .mbgl .msc{background:linear-gradient(180deg,rgba(15,8,28,0) 35%,rgba(15,8,28,.6))}
+.mbgl .msc{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,8,28,0) 30%,rgba(15,8,28,.42))}
+.card.monster.big .mbgl .msc{background:linear-gradient(180deg,rgba(15,8,28,0) 40%,rgba(15,8,28,.42))}
 .card.monster.hasbg .bub{background:none;padding:0}
 .card.monster.hasbg .mt b,.card.monster.hasbg .mt .fine,.card.monster.hasbg .mt button.fine,.card.monster.hasbg .bub,.card.monster.hasbg .bub .fine{color:#fff;-webkit-text-stroke:0;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .card.monster.hasbg .mt button{-webkit-text-stroke:0;text-shadow:none;color:#fff;text-decoration:none!important;background:rgba(18,8,40,.42);border:1px solid rgba(255,255,255,.38);border-radius:10px;padding:4px 10px;font-size:12.5px;font-weight:600;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.25)}
@@ -294,7 +294,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .card.monster.big .mt .fine{text-align:center}
 .card.monster.big .mt .btns{align-self:center!important}}
 .monster .bub{background:var(--surface2);border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
-@media (prefers-reduced-motion:no-preference){.monster svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
+@media (prefers-reduced-motion:no-preference){.monster .mbox>svg{animation:bob 2.6s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}.monster .mbox>svg.lying{animation:none}.lyb{animation:lyb 3.6s ease-in-out infinite}@keyframes lyb{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,1.07)}}.snb{transform-box:fill-box;transform-origin:0% 50%;animation:snb 3.6s ease-in-out infinite}@keyframes snb{0%,100%{transform:scale(.3)}50%{transform:scale(1)}}.zzz{animation:zzzf 3.6s ease-in-out infinite}@keyframes zzzf{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -1252,19 +1252,19 @@ function bgSvg(sc,tall){var X=tall?80:50,Y=tall?26:28;
   h+='<defs><linearGradient id="bg-'+sc+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+G[0]+'"/><stop offset="1" stop-color="'+G[1]+'"/></linearGradient></defs><rect y="-30" width="300" height="230" fill="url(#bg-'+sc+')"/>';
   if(sc==='night'){
     [[22,38,1.4],[60,78,1],[95,32,1.6],[130,64,1.1],[160,28,1.3],[190,88,1],[255,32,1.5],[275,76,1.2],[40,118,1],[110,106,1.2],[205,48,1.1],[285,120,1],[150,124,1.3],[70,134,1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+((n*.43)%3).toFixed(2)+'s"/>'});
-    h+='<path transform="translate('+X+' '+(Y-2)+') scale(.8) translate(-262 -45)" d="M258 30a17 17 0 1 0 15 30a13 13 0 1 1 -15 -30Z" fill="#fff3b0"/>'}
+    h+='<path transform="translate('+X+' '+(Y-2)+') scale(1.2) translate(-262 -45)" d="M258 30a17 17 0 1 0 15 30a13 13 0 1 1 -15 -30Z" fill="#fff3b0"/>'}
   else if(sc==='space'){
     [[18,30,1.2],[44,110,1],[70,22,1.5],[96,70,1],[120,130,1.3],[150,40,1],[176,108,1.4],[205,18,1],[238,92,1.2],[262,40,1.5],[285,120,1],[30,76,1.1],[140,90,.9],[190,140,1.1],[270,72,1],[56,146,1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+((n*.37)%3).toFixed(2)+'s"/>'});
-    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><g transform="translate('+X+' '+(Y+2)+') scale(.6) translate(-258 -36)"><ellipse cx="258" cy="36" rx="30" ry="7" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 258 36)"/><circle cx="258" cy="36" r="18" fill="url(#bg-pl)"/><path d="M229 43Q258 56 287 30" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 258 36)"/></g><circle cx="'+(tall?222:104)+'" cy="'+(tall?34:24)+'" r="6.5" fill="#9fb4ff"/><circle cx="'+(tall?220:102)+'" cy="'+(tall?32:22)+'" r="2.2" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
+    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><g transform="translate('+X+' '+(Y+2)+') scale(.95) translate(-258 -36)"><ellipse cx="258" cy="36" rx="30" ry="7" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 258 36)"/><circle cx="258" cy="36" r="18" fill="url(#bg-pl)"/><path d="M229 43Q258 56 287 30" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 258 36)"/></g><circle cx="'+(tall?222:104)+'" cy="'+(tall?34:24)+'" r="9" fill="#9fb4ff"/><circle cx="'+(tall?220:102)+'" cy="'+(tall?32:22)+'" r="2.2" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
   else if(sc==='dusk'){
     h+='<circle cx="215" cy="150" r="52" fill="#ffd27a" opacity=".22"/><circle cx="215" cy="150" r="34" fill="#ffd27a" opacity=".9"/>';
     [[40,30,1.2],[100,22,1],[160,40,1.3],[260,26,1.1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+(n*.7)+'s"/>'});
     h+=cl(30,92,1,'#ffc2c9',.55,2)+cl(150,70,.8,'#ffc2c9',.5,6)}
   else if(sc==='sun'){
     h+='<g class="bgr" style="transform-box:view-box;transform-origin:'+X+'px '+Y+'px">';
-    for(i=0;i<10;i++){var a=i*Math.PI/5;h+='<line x1="'+(X+Math.cos(a)*15).toFixed(1)+'" y1="'+(Y+Math.sin(a)*15).toFixed(1)+'" x2="'+(X+Math.cos(a)*22).toFixed(1)+'" y2="'+(Y+Math.sin(a)*22).toFixed(1)+'" stroke="#ffd84a" stroke-width="3" stroke-linecap="round"/>'}
-    h+='</g><circle cx="'+X+'" cy="'+Y+'" r="11.5" fill="#ffd84a"/>'+cl(30,96,1,'#fff',.9,3)+cl(130,64,.8,'#fff',.85,7)}
-  else if(sc==='cloud'){h+=cl(20,50,1.1,'#fff',.8,1)+cl(120,96,1.3,'#fff',.7,5)+cl(210,56,.9,'#fff',.85,8)}
+    for(i=0;i<10;i++){var a=i*Math.PI/5;h+='<line x1="'+(X+Math.cos(a)*21).toFixed(1)+'" y1="'+(Y+Math.sin(a)*21).toFixed(1)+'" x2="'+(X+Math.cos(a)*31).toFixed(1)+'" y2="'+(Y+Math.sin(a)*31).toFixed(1)+'" stroke="#ffd84a" stroke-width="4" stroke-linecap="round"/>'}
+    h+='</g><circle cx="'+X+'" cy="'+Y+'" r="16" fill="#ffd84a"/>'+cl(30,110,1.4,'#fff',.95,3)+cl(150,70,1.1,'#fff',.9,7)}
+  else if(sc==='cloud'){h+=cl(15,40,1.5,'#fff',.9,1)+cl(110,100,1.7,'#fff',.85,5)+cl(200,50,1.3,'#fff',.9,8)}
   else if(sc==='rain'){
     h+=cl(30,34,1.3,'#98a3bd',.95,2)+cl(150,26,1.5,'#8792ad',.95,6)+cl(240,40,1.1,'#98a3bd',.95,9);
     for(i=0;i<20;i++){x=(i*15+(i%3)*4)%300;h+='<path class="bgd" d="M'+x+' 0l-3 9" stroke="#d3e5ff" stroke-width="1.6" stroke-linecap="round" opacity=".8" style="animation-delay:-'+((i*.137)%.9).toFixed(2)+'s"/>'}}
@@ -1593,7 +1593,7 @@ function monster(mood,size,kind,lvl,act,look){
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3.6"/>'}).join('')+[[94,41,3.2],[89,47,2]].map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="'+INK+'" stroke-width="3"/>'}).join('');
     cc+=cl.map(function(c){return '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+(c[2]-1.8)+'" fill="#fff"/>'}).join('');
     s+='<g class="zzz">'+cc+'<text x="115" y="30" font-size="15" font-weight="900" text-anchor="middle" font-family="sans-serif" style="fill:'+INK+'">Zzz</text></g>'}
-  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" data-mood="'+mood+'" class="'+(mood==='hungry'?'lying':'')+'" style="display:block;max-width:100%"><g class="trk">'+s+'</g></svg>';
+  return '<svg viewBox="0 0 140 140" width="'+size+'" height="'+size+'" role="img" aria-label="Монстрик '+esc(petName())+'" data-mood="'+mood+'" class="'+(mood==='hungry'?'lying':'')+'" style="display:block;max-width:100%;overflow:visible"><g class="trk">'+s+'</g></svg>';
 }
 function pet(L,mood,size){return monster(mood,size,null,L)}
 /* ---------- редкие трюки монстрика на главной: раз в полминуты-минуту, не во сне ---------- */

@@ -240,7 +240,7 @@ button.fine{position:relative}button.fine::after{content:'';position:absolute;in
 .card.monster{flex-direction:row;align-items:flex-start;gap:12px;position:relative;overflow:hidden}
 .card.monster>*{position:relative;z-index:1}
 .card.monster>.mbgl{position:absolute;inset:0;z-index:0}
-.mbgl .msc{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,8,28,0) 30%,rgba(15,8,28,.42))}
+.mbgl .msc{position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,8,28,0) 30%,rgba(15,8,28,.26))}
 .card.monster.big .mbgl .msc{background:linear-gradient(180deg,rgba(15,8,28,0) 40%,rgba(15,8,28,.42))}
 .card.monster.hasbg .bub{background:none;padding:0}
 .card.monster.hasbg .mt b,.card.monster.hasbg .mt .fine,.card.monster.hasbg .mt button.fine,.card.monster.hasbg .bub,.card.monster.hasbg .bub .fine{color:#fff;-webkit-text-stroke:0;text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -1246,7 +1246,7 @@ function bgScene(mood,hr){
   if(mood==='sad'||mood==='worried')return 'rain';
   if(hr>=19)return 'dusk';
   return (mood==='joy'||mood==='happy')?'sun':'cloud'}
-function bgSvg(sc,tall){var X=tall?80:50,Y=tall?26:28;
+function bgSvg(sc,tall){var X=tall?80:255,Y=tall?26:58;
   var G={space:['#07041a','#2a1458'],night:['#12122e','#2b2760'],dusk:['#3a2a6a','#ffa56b'],sun:['#5aa9ff','#c4e6ff'],cloud:['#7d8db3','#c1cde4'],rain:['#3e4a68','#6d7a97'],snow:['#34476f','#9db9dc']}[sc]||['#333','#666'],i,x,h='';
   function cl(x,y,k,c,o,dl){return '<g class="bgc" style="animation-delay:-'+dl+'s" opacity="'+o+'"><g transform="translate('+x+' '+y+') scale('+k+')" fill="'+c+'"><circle cx="0" cy="0" r="12"/><circle cx="14" cy="-6" r="15"/><circle cx="30" cy="0" r="12"/><rect x="-2" y="0" width="34" height="12" rx="6"/></g></g>'}
   h+='<defs><linearGradient id="bg-'+sc+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+G[0]+'"/><stop offset="1" stop-color="'+G[1]+'"/></linearGradient></defs><rect y="-30" width="300" height="230" fill="url(#bg-'+sc+')"/>';
@@ -1255,7 +1255,7 @@ function bgSvg(sc,tall){var X=tall?80:50,Y=tall?26:28;
     h+='<path transform="translate('+X+' '+(Y-2)+') scale(1.2) translate(-262 -45)" d="M258 30a17 17 0 1 0 15 30a13 13 0 1 1 -15 -30Z" fill="#fff3b0"/>'}
   else if(sc==='space'){
     [[18,30,1.2],[44,110,1],[70,22,1.5],[96,70,1],[120,130,1.3],[150,40,1],[176,108,1.4],[205,18,1],[238,92,1.2],[262,40,1.5],[285,120,1],[30,76,1.1],[140,90,.9],[190,140,1.1],[270,72,1],[56,146,1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+((n*.37)%3).toFixed(2)+'s"/>'});
-    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><g transform="translate('+X+' '+(Y+2)+') scale(.95) translate(-258 -36)"><ellipse cx="258" cy="36" rx="30" ry="7" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 258 36)"/><circle cx="258" cy="36" r="18" fill="url(#bg-pl)"/><path d="M229 43Q258 56 287 30" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 258 36)"/></g><circle cx="'+(tall?222:104)+'" cy="'+(tall?34:24)+'" r="9" fill="#9fb4ff"/><circle cx="'+(tall?220:102)+'" cy="'+(tall?32:22)+'" r="2.2" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
+    h+='<defs><radialGradient id="bg-pl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb86b"/><stop offset="1" stop-color="#c2410c"/></radialGradient></defs><g transform="translate('+X+' '+(Y+2)+') scale(.95) translate(-258 -36)"><ellipse cx="258" cy="36" rx="30" ry="7" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".7" transform="rotate(-18 258 36)"/><circle cx="258" cy="36" r="18" fill="url(#bg-pl)"/><path d="M229 43Q258 56 287 30" fill="none" stroke="#f6d7a8" stroke-width="3" opacity=".85" transform="rotate(-18 258 36)"/></g><circle cx="'+(tall?222:196)+'" cy="'+(tall?34:52)+'" r="9" fill="#9fb4ff"/><circle cx="'+(tall?220:194)+'" cy="'+(tall?32:50)+'" r="2.2" fill="#c9d6ff"/><g class="bgm"><path d="M0 0L-26 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>'}
   else if(sc==='dusk'){
     h+='<circle cx="215" cy="150" r="52" fill="#ffd27a" opacity=".22"/><circle cx="215" cy="150" r="34" fill="#ffd27a" opacity=".9"/>';
     [[40,30,1.2],[100,22,1],[160,40,1.3],[260,26,1.1]].forEach(function(p,n){h+='<circle class="bgs" cx="'+p[0]+'" cy="'+p[1]+'" r="'+p[2]+'" fill="#fff" style="animation-delay:-'+(n*.7)+'s"/>'});
@@ -1263,8 +1263,8 @@ function bgSvg(sc,tall){var X=tall?80:50,Y=tall?26:28;
   else if(sc==='sun'){
     h+='<g class="bgr" style="transform-box:view-box;transform-origin:'+X+'px '+Y+'px">';
     for(i=0;i<10;i++){var a=i*Math.PI/5;h+='<line x1="'+(X+Math.cos(a)*21).toFixed(1)+'" y1="'+(Y+Math.sin(a)*21).toFixed(1)+'" x2="'+(X+Math.cos(a)*31).toFixed(1)+'" y2="'+(Y+Math.sin(a)*31).toFixed(1)+'" stroke="#ffd84a" stroke-width="4" stroke-linecap="round"/>'}
-    h+='</g><circle cx="'+X+'" cy="'+Y+'" r="16" fill="#ffd84a"/>'+cl(30,110,1.4,'#fff',.95,3)+cl(150,70,1.1,'#fff',.9,7)}
-  else if(sc==='cloud'){h+=cl(15,40,1.5,'#fff',.9,1)+cl(110,100,1.7,'#fff',.85,5)+cl(200,50,1.3,'#fff',.9,8)}
+    h+='</g><circle cx="'+X+'" cy="'+Y+'" r="16" fill="#ffd84a"/>'+cl(175,112,1.4,'#fff',.95,3)+cl(110,42,1,'#fff',.9,7)}
+  else if(sc==='cloud'){h+=cl(120,36,1.5,'#fff',.9,1)+cl(180,112,1.7,'#fff',.85,5)+cl(230,66,1.2,'#fff',.9,8)}
   else if(sc==='rain'){
     h+=cl(30,34,1.3,'#98a3bd',.95,2)+cl(150,26,1.5,'#8792ad',.95,6)+cl(240,40,1.1,'#98a3bd',.95,9);
     for(i=0;i<20;i++){x=(i*15+(i%3)*4)%300;h+='<path class="bgd" d="M'+x+' 0l-3 9" stroke="#d3e5ff" stroke-width="1.6" stroke-linecap="round" opacity=".8" style="animation-delay:-'+((i*.137)%.9).toFixed(2)+'s"/>'}}

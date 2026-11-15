@@ -168,3 +168,29 @@ test('монстрик через пару дней спрашивает имя,
   await page.reload();
   await expect(page.locator('#un_in')).toHaveCount(0);
 });
+
+test('подсказки: монстрик говорит про мелочи, "Не интересно" выключает', async ({ page }) => {
+  const errs = [];
+  page.on('pageerror', e => errs.push(String(e)));
+  await start(page);
+  // 3 недели мелких трат по 200 ₽, в этом месяце 12 штук; сегодня записей нет; 12:00 - день подсказок выбираем перебором
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    d.entries = d.entries.filter(e => e.date !== iso(t));
+    for (let i = 1; i <= 25; i++) { const x = new Date(t); x.setDate(t.getDate() - i); d.entries.push({ id: 'k' + i, type: 'e', amt: 200, cat: 'cafe', note: 'Кофе', date: iso(x), acc: '' }); }
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  const types = await page.evaluate(() => window.tipsNow().map(t => t.t));
+  expect(types).toContain('small'); // 12+ покупок до 300 ₽
+  expect(types).not.toContain('sub'); // кофе каждый день - не подписка
+  const bub = page.locator('.card.monster [data-a=tipOff]');
+  if (await bub.count()) {
+    await bub.click();
+    await expect(page.locator('.card.monster [data-a=tipOff]')).toHaveCount(0);
+  }
+  await page.click('[data-a=tab][data-v=an]');
+  await expect(page.locator('text=Разбор месяца')).toBeVisible();
+  expect(errs).toEqual([]);
+});

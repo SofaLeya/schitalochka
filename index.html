@@ -1816,7 +1816,8 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(splitBub()||(pp?'':nameAsk())||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
+  var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:monTip(PD,td,hr);if(tb)mood=tb.mood;
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'<span class="fine">'+(lim?'План '+money(lim)+' в день':'План не задан')+' · <button class="fine" data-a="planOpen" style="text-decoration:underline">'+(lim?'изменить':'задать')+'</button></span>'+'</div></div>'+planAsk();
 }
 function oneNote(){return apkNote()||newsNote()||backupNote()||''}
 function viewHomeSimple(){
@@ -2004,7 +2005,68 @@ function viewHist(){
   return '<div class="top"><h1>История</h1>'+topBtns()+'</div>'+sr+fp+seg+'<div id="hlist" style="display:flex;flex-direction:column;gap:14px">'+histList()+'</div>';
 }
 
+/* ---------- подсказки по тратам: прогноз до зарплаты, категория изменилась, мелочи, подписки ----------
+   считаются только по записям в телефоне; монстрик говорит одну не чаще раза в два дня, пока за день нет записей */
+function tipsNow(){
+  if(S.demo)return [];
+  var real=S.entries.filter(function(x){return !x.demo}),first=real.reduce(function(m,x){return !m||x.date<m?x.date:m},'');
+  if(!first||diffDays(first,T)<14)return []; // мало данных - выводы будут случайными
+  var out=[],ym=T.slice(0,7),d=parseInt(T.slice(8),10),LK=refLinks(),nsM={};(S.noSpend||[]).forEach(function(x){nsM[x]=1});
+  function ex0(m,upto){return life(S.entries.filter(function(x){return !x.demo&&!x.skip&&(x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&x.date.slice(0,7)===m&&(!upto||parseInt(x.date.slice(8),10)<=upto)}))}
+  /* 1. прогноз до зарплаты по темпу последних двух недель */
+  (function(){var nd=nextPayDates(1)[0],pd=null;
+    if(!nd&&!S.simple&&(S.incomes||[]).length){try{pd=perDay();nd=pd.nextIn}catch(e){}}
+    if(!nd||nd<=T)return;var days=Math.max(1,diffDays(T,nd)),sumP=0,kn=0;
+    for(var i=1;i<=14;i++){var dd=iso(addDays(parse(T),-i)),n=dayNet(dd);if(!n.n&&!nsM[dd])continue;sumP+=Math.max(0,n.v);kn++}
+    if(kn<7)return;var pace=sumP/kn,avail;
+    if(!S.simple&&(S.incomes||[]).length){try{pd=pd||perDay();avail=pd.nextIn===nd?pd.val*pd.days:balance()+Math.max(0,dayNet(T).v)}catch(e){avail=balance()}}
+    else avail=balance()+Math.max(0,dayNet(T).v);
+    if(!(avail>0))return; // деньги уже в минусе - это и так видно на главной
+    var left=avail-pace*days,dw=days+' '+plw(days,'день','дня','дней');
+    if(left<0&&-left>=300)out.push({t:'fc',mood:'worried',text:'До зарплаты '+dw+'. Если тратить как сейчас (около '+money(pace)+' в день), не хватит примерно '+money(-left)+'. Чтобы дотянуть - до '+money(Math.max(0,avail/days))+' в день.'});
+    else if(left>=1000&&left>=avail*0.1)out.push({t:'fc',mood:'happy',text:'До зарплаты '+dw+'. Если тратить как сейчас, останется около '+money(left)+' - можно будет отложить в копилку.'})})();
+  /* 2. категория выросла или упала к обычному (среднее прошлых месяцев к этому же числу) */
+  if(d>=7){var prev=[];for(var k=1;k<=6&&prev.length<3;k++){var pm=nextYM(ym,-k);if(ex0(pm).some(function(x){return x.type==='e'}))prev.push(pm)}
+    if(prev.length){var cur=netByCat(ex0(ym)),base={};
+      prev.forEach(function(m){var c=netByCat(ex0(m,d));Object.keys(c).forEach(function(kk){base[kk]=(base[kk]||0)+c[kk]/prev.length})});
+      var ch=Object.keys(cur).concat(Object.keys(base)).filter(function(kk,i,a){return a.indexOf(kk)===i}).map(function(kk){var c=cur[kk]||0,b=base[kk]||0;return {k:kk,c:c,b:b,df:c-b}}).filter(function(x){return x.k!=='other'&&CMAP[x.k]});
+      var up=ch.filter(function(x){return x.b>0&&x.df>=1000&&x.df/x.b>=0.3}).sort(function(p,q){return q.df-p.df})[0];
+      var dn=ch.filter(function(x){return x.b>0&&-x.df>=700&&-x.df/x.b>=0.3}).sort(function(p,q){return p.df-q.df})[0];
+      var cn=function(kk){return (CMAP[kk]||CMAP.other).name};
+      if(up)out.push({t:'cat',mood:'think',cat:up.k,text:'"'+cn(up.k)+'": уже '+money(up.c)+', а обычно к этому числу '+money(up.b)+'. Вернуться к обычному - это около '+money(up.df)+' в плюс.'});
+      if(dn)out.push({t:'cat',mood:'joy',cat:dn.k,text:'"'+cn(dn.k)+'": на '+money(-dn.df)+' меньше, чем обычно к этому числу. Так держать!'})}}
+  /* 3. мелочи до 300 ₽ */
+  var lst=ex0(ym).filter(function(x){return x.type==='e'}),sm=lst.filter(function(x){return x.amt<300}),smS=sm.reduce(function(a,x){return a+netOf(x,LK)},0),all=lst.reduce(function(a,x){return a+netOf(x,LK)},0);
+  if(sm.length>=10&&smS>=1500&&all>0&&smS/all>=0.1)out.push({t:'small',mood:'think',text:'С начала месяца '+sm.length+' '+plw(sm.length,'покупка','покупки','покупок')+' до 300 ₽ - вместе '+money(smS)+', это '+Math.round(smS/all*100)+'% трат на жизнь. Мелочи незаметно складываются.'});
+  /* 4. похоже на подписку */
+  var no=S.subNo||[],rc=regCands(ym).filter(function(c){return no.indexOf(norm(c.name))<0})[0];
+  if(rc)out.push({t:'sub',mood:'think',sub:rc,text:S.simple?'Похоже на подписку: "'+rc.name+'", около '+money(rc.amt)+' каждый месяц. Проверь, нужна ли она ещё.':'Похоже на регулярный платёж: "'+rc.name+'", около '+money(rc.amt)+' каждый месяц. Добавь его в «Платежи» - план станет честнее.'});
+  return out}
+try{window.tipsNow=function(){return tipsNow()}}catch(e){}
+function monTip(PD,td,hr){
+  if(td.length||hr<10||hr>=21||(hsh(PD+'tip')%2))return null;
+  var off=S.tipOff||{},l=tipsNow().filter(function(x){return !off[x.t]});if(!l.length)return null;
+  var t=l[hsh(PD+'tp')%l.length],go=t.t==='sub'?(S.simple?'':'<button class="btn sm" data-a="tipSub">В платежи</button>'):'<button class="btn sm" data-a="tipGo" data-v="'+t.t+'"'+(t.cat?' data-id="'+t.cat+'"':'')+'>Подробнее</button>';
+  t.html='<div class="bub">'+esc(t.text)+'<div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">'+go+'<button class="fine" data-a="tipOff" data-v="'+t.t+'" data-id="'+(t.sub?esc(norm(t.sub.name)):'')+'" style="text-decoration:underline">'+(t.t==='sub'?'Это не подписка':'Не интересно')+'</button></div></div>';
+  return t}
 /* ---------- разбор месяца ---------- */
+/* похоже на регулярные платежи: одно и то же название и сумма в 2+ месяцах, а в «Платежах» нет */
+function regCands(ym){var out=[];
+  var grp={},months=[ym,nextYM(ym,-1),nextYM(ym,-2),nextYM(ym,-3)];
+  S.entries.forEach(function(x){if(x.type!=='e'||x.demo||x.rid||!x.note||months.indexOf(x.date.slice(0,7))<0)return;var kk=norm(x.note);(grp[kk]=grp[kk]||[]).push(x)});
+  var planned=(S.recur||[]).map(function(r){return norm(r.name)});
+  Object.keys(grp).forEach(function(kk){
+    var g=grp[kk],ms={};g.forEach(function(x){ms[x.date.slice(0,7)]=1});
+    if(Object.keys(ms).length<2||g.length>Object.keys(ms).length*2)return;
+    if(!(ms[ym]||ms[nextYM(ym,-1)]))return;
+    if(planned.some(function(p){return p&&(p===kk||kk.indexOf(p)>=0||p.indexOf(kk)>=0)}))return;
+    var am=g.map(function(x){return x.amt}).sort(function(p,q){return p-q}),med=am[Math.floor(am.length/2)];
+    if(med<100||am.some(function(v){return Math.abs(v-med)>med*0.15}))return;
+    var last=g.slice().sort(function(p,q){return p.date<q.date?1:-1})[0];
+    out.push({name:last.note,amt:Math.round(med),day:parseInt(last.date.slice(8),10),cat:last.cat});
+  });
+  return out.sort(function(p,q){return q.amt-p.amt})}
+
 var rvCands=[];
 function reviewCard(){
   var ym=vym,curYM=T.slice(0,7);if(ym>curYM)return '';
@@ -2097,21 +2159,7 @@ function reviewCard(){
     H+='<div class="fine" style="font-weight:700;margin-top:4px">Необычно крупные траты</div><div class="list">'+odd.map(function(x){return '<div class="row"><span class="dot" style="background:'+ccol(x.cat)+'"></span><div class="grow"><div class="t">'+esc(x.note||cname(x.cat))+'</div><div class="s">'+esc(cname(x.cat))+' · '+dlabel(x.date)+'</div></div><span class="amt out">'+money(nv(x))+'</span></div>'}).join('')+'</div>';
   }
   /* 4. регулярные, но не в плане */
-  rvCands=[];
-  var grp={},months=[ym,nextYM(ym,-1),nextYM(ym,-2),nextYM(ym,-3)];
-  S.entries.forEach(function(x){if(x.type!=='e'||x.demo||x.rid||!x.note||months.indexOf(x.date.slice(0,7))<0)return;var kk=norm(x.note);(grp[kk]=grp[kk]||[]).push(x)});
-  var planned=(S.recur||[]).map(function(r){return norm(r.name)});
-  Object.keys(grp).forEach(function(kk){
-    var g=grp[kk],ms={};g.forEach(function(x){ms[x.date.slice(0,7)]=1});
-    if(Object.keys(ms).length<2||g.length>Object.keys(ms).length*2)return;
-    if(!(ms[ym]||ms[nextYM(ym,-1)]))return;
-    if(planned.some(function(p){return p&&(p===kk||kk.indexOf(p)>=0||p.indexOf(kk)>=0)}))return;
-    var am=g.map(function(x){return x.amt}).sort(function(p,q){return p-q}),med=am[Math.floor(am.length/2)];
-    if(med<100||am.some(function(v){return Math.abs(v-med)>med*0.15}))return;
-    var last=g.slice().sort(function(p,q){return p.date<q.date?1:-1})[0];
-    rvCands.push({name:last.note,amt:Math.round(med),day:parseInt(last.date.slice(8),10),cat:last.cat});
-  });
-  rvCands.sort(function(p,q){return q.amt-p.amt});rvCands=rvCands.slice(0,3);
+  rvCands=regCands(ym).slice(0,3);
   if(rvCands.length){
     H+='<div class="fine" style="font-weight:700;margin-top:4px">Похоже на регулярные платежи</div><div class="list">'+rvCands.map(function(c,i){return '<div class="row"><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">около '+money(c.amt)+' каждый месяц, примерно '+c.day+'-го</div></div>'+(S.simple?'':'<button class="btn ghost sm" style="flex:none" data-a="rvAddRec" data-id="'+i+'">В платежи</button>')+'</div>'}).join('')+'</div>';
   }
@@ -2135,6 +2183,7 @@ function reviewCard(){
   if(!S.simple){var imp=totN(list.filter(function(x){return x.cls==='imp'}));
     if(spent>0&&imp/spent>0.15)tips.push('Импульсивные покупки - '+pct(Math.min(1,imp/spent))+' трат на жизнь. Попробуй правило суток: хочешь что-то незапланированное — подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
+  if(cur)tipsNow().forEach(function(t){if(t.t==='fc')tips.unshift(t.text);else if(t.t==='small')tips.push(t.text)});
   if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
   if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
   H+='<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Как считается</span>'+tipBtn('rv')+'</div>'+tipBox('rv','Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).');
@@ -3510,6 +3559,9 @@ document.addEventListener('click',function(ev){
   else if(a==='fixBal'){var fa=accById(id);if(fa){addAdj(fa,parseFloat(k));save();reconSheet();render()}}
   else if(a==='onbSkip'){S.setup=1;S.onb=1;save();closeSheet();applyPetTheme()}
   else if(a==='onbGo'){onbFinish()}
+  else if(a==='tipOff'){if(v==='sub'&&id){S.subNo=(S.subNo||[]).concat([id]);save();render();toast('Хорошо, про эту трату больше не скажу')}else{S.tipOff=Object.assign({},S.tipOff||{});S.tipOff[v]=1;save();render();toast('Хорошо, такие подсказки больше не покажу')}}
+  else if(a==='tipSub'){var tl=tipsNow().filter(function(x){return x.t==='sub'})[0];if(tl){var c0=tl.sub;S.recur.push({id:uid(),name:c0.name,amt:c0.amt,day:Math.min(28,c0.day),cat:c0.cat});save();render();toast('Добавлено в платежи: '+c0.name)}}
+  else if(a==='tipGo'){vym=T.slice(0,7);if(v==='cat'||v==='small'){hq='';hacc='';hsk='';hd=null;hfo=false;hf='e';hc=v==='cat'?(id||''):'';ha=v==='small'?'lt300':'';var tcm=vym.split('-');hfrom=vym+'-01';hto=vym+'-'+p2(dim(+tcm[0],+tcm[1]-1));tab='hist'}else tab='an';if(!NAV.tab){NAV.tab=true;navPush('tab')}window.scrollTo(0,0);render()}
   else if(a==='unameOk'){var ui=document.getElementById('un_in'),un=ui?ui.value.trim().slice(0,20):'';if(!un){if(ui)ui.focus();return}S.uname=un;S.unameAsked=1;save();render();toast('Приятно познакомиться, '+un+'!')}
   else if(a==='unameNo'){S.unameAsked=1;save();render();toast('Хорошо! Если передумаешь, имя можно указать в меню монстрика "сменить"')}
   else if(a==='onbNext'){onbRead();sh.step++;onbSheet()}

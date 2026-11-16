@@ -355,3 +355,86 @@ test('валюта: курс подтягивается из интернета'
   await page.click('[data-a=curOpen]');
   await expect(page.locator('#ov')).toContainText('курс из интернета');
 });
+
+test('валюта: трата в евро с рублёвой карты, с суммой списания по банку', async ({ page }) => {
+  const errs = [];
+  await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { eur: 0.01 } }) }));
+  await start(page, errs);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '20');
+  await page.selectOption('#f_cur', 'EUR');
+  await expect(page.locator('#f_fx')).toContainText('≈ 2 000 ₽');
+  await page.fill('#f_note', 'Пятёрочка Рим');
+  await page.fill('#f_chg', '2100');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  expect(await heroNumber(page)).toBe(17900);
+  // без суммы списания - по курсу
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '5');
+  await page.selectOption('#f_cur', 'EUR');
+  await page.fill('#f_note', 'Пятёрочка кофе');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  expect(await heroNumber(page)).toBe(17400);
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  const r = page.locator('.row:has-text("Пятёрочка Рим")');
+  await expect(r).toContainText('20 €');
+  await expect(r).toContainText('≈ 2 100 ₽');
+  // правка сохраняет валюту и сумму списания
+  await r.click();
+  await expect(page.locator('#f_cur')).toHaveValue('EUR');
+  await expect(page.locator('#f_chg')).toHaveValue('2100');
+  expect(errs).toEqual([]);
+});
+
+// поддельный Google Диск в памяти: хватает для проверки синхронизации
+function fakeDrive() {
+  const files = {}; let n = 0;
+  const handler = async route => {
+    const req = route.request(), url = new URL(req.url()), m = req.method();
+    const json = o => route.fulfill({ contentType: 'application/json', body: JSON.stringify(o) });
+    const id = (url.pathname.match(/files\/([^/]+)/) || [])[1];
+    if (m === 'GET' && !id) {
+      const q = url.searchParams.get('q') || '';
+      let list = Object.values(files).filter(f => !f.trashed);
+      const nm = q.match(/name='([^']*)'/), par = q.match(/'([^']*)' in parents/), cont = q.match(/name contains '([^']*)'/);
+      if (nm) list = list.filter(f => f.name === nm[1]);
+      if (cont) list = list.filter(f => f.name.includes(cont[1]));
+      if (par) list = list.filter(f => (f.parents || []).includes(par[1]));
+      if (q.includes('folder')) list = list.filter(f => f.folder);
+      return json({ files: list.map(f => ({ id: f.id, name: f.name, version: String(f.version), modifiedTime: 't' + f.version })) });
+    }
+    if (m === 'GET' && id) return route.fulfill({ contentType: 'application/json', body: files[id].body });
+    if (m === 'POST' && url.pathname.endsWith('/copy')) { const b = JSON.parse(req.postData()); const f = { id: 'f' + (++n), name: b.name, parents: b.parents, body: files[id].body, version: 1 }; files[f.id] = f; return json({ id: f.id }); }
+    if (m === 'POST' && url.pathname.includes('/upload/')) {
+      const pd = req.postData(); const parts = pd.split(/--sch\d+/);
+      const meta = JSON.parse(parts[1].split('\r\n\r\n')[1]); const body = parts[2].split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, '');
+      const f = { id: 'f' + (++n), name: meta.name, parents: meta.parents, body, version: 1 }; files[f.id] = f; return json({ id: f.id });
+    }
+    if (m === 'POST') { const b = JSON.parse(req.postData()); const f = { id: 'f' + (++n), name: b.name, folder: true, version: 1 }; files[f.id] = f; return json({ id: f.id }); }
+    if (m === 'PATCH') { files[id].body = req.postData(); files[id].version++; return json({ id }); }
+    if (m === 'DELETE') { delete files[id]; return route.fulfill({ status: 204, body: '' }); }
+    return route.fulfill({ status: 400, body: '' });
+  };
+  return { files, handler };
+}
+
+test('Google Диск: данные уходят в облако и приходят на второе устройство', async ({ browser }) => {
+  const drive = fakeDrive();
+  const conn = JSON.stringify({ tok: 'x', exp: Date.now() + 3600e3, prov: 'gd', dev: 'A' });
+  const a = await (await browser.newContext()).newPage();
+  await a.route(/googleapis\.com/, drive.handler);
+  await start(a);
+  await a.evaluate(c => { localStorage.setItem('yd-sync', c) }, conn);
+  await a.reload();
+  await addExpense(a, 500, 'Пятёрочка');
+  await expect.poll(() => Object.values(drive.files).some(f => f.name === 'schitalochka.json' && f.body.includes('Пятёрочка')), { timeout: 10000 }).toBe(true);
+  const b = await (await browser.newContext()).newPage();
+  await b.route(/googleapis\.com/, drive.handler);
+  await b.goto('/index.html');
+  await b.evaluate(c => { localStorage.setItem('yd-sync', c.replace('"A"', '"B"')) }, conn);
+  await b.reload();
+  await expect.poll(async () => (await b.locator('.hero .big').innerText()).replace(/\D/g, ''), { timeout: 10000 }).toBe('19500');
+  await expect(b.locator('#syncbtn')).toContainText('Диск');
+});

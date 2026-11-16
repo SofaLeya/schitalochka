@@ -318,7 +318,8 @@ html.bigtext{zoom:1.14}
 .seg.st4 button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 2px 7px;font-size:12.5px;line-height:1.1;white-space:nowrap}
 .sti{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 16px/1 system-ui,sans-serif;color:var(--sc);background:color-mix(in srgb,var(--sc) 18%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--sc) 55%,transparent)}
 .seg.st4 button.on .sti{color:#fff;background:var(--sc);box-shadow:none}
-.amtrow{display:flex;gap:8px;align-items:stretch}.amtrow .amount{flex:1;min-width:0}.plusbtn{flex:none;width:52px;padding:0;font-size:24px;font-weight:700}.plusbtn.sm{width:40px;font-size:20px}
+.amtrow{display:flex;gap:8px;align-items:stretch}.amtrow .amount{flex:1;min-width:0}
+.amtrow .curpick{flex:none;width:92px!important;min-width:0;padding:0 22px 0 10px;font-weight:800;font-size:15px;text-overflow:ellipsis;background-position:right 6px center}.plusbtn{flex:none;width:52px;padding:0;font-size:24px;font-weight:700}.plusbtn.sm{width:40px;font-size:20px}
 .parts{display:flex;flex-direction:column;gap:8px;background:var(--surface2);border-radius:14px;padding:12px}
 .prow2{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line)}.prow{display:flex;gap:6px;align-items:center}.prow select{flex:1;min-width:0}.prow input{flex:1;min-width:0;width:0}.addsum{flex:none;white-space:nowrap;font-size:13px;line-height:1.15;padding:6px 10px}.amtrow .addsum{width:auto;font-size:12.5px}.pdel{flex:none;width:32px;height:32px;border-radius:50%;background:none;border:0;color:inherit;opacity:.7;font-size:16px}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
@@ -568,8 +569,9 @@ function rateInfo(c){ // сколько основной валюты за 1 е�
   return {v:(CUR[c]?CUR[c][2]:1)/(CUR[b]?CUR[b][2]:1),src:'rough'}}
 function rateOf(c){return rateInfo(c).v}
 function rateTxt(c){var v=rateOf(c),b=baseCur(),q=1;if(v<0.1){q=100;v*=100}var d=v<1?4:v<100?2:0;return q+' '+sym(c)+' = '+(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toLocaleString('ru-RU').replace(/[\s\u202f]/g,' ')+' '+sym(b)}
-function rtFetch(force){
-  var b=baseCur();if(!fxCurs().length)return;
+function rtNeeded(){return fxCurs().length>0||S.entries.some(function(x){return x.oc&&x.oc!==baseCur()})}
+function rtFetch(force,need){
+  var b=baseCur();if(!force&&!need&&!rtNeeded())return;
   if(!force&&RT&&RT.base===b&&RT.day===T)return;
   if(rtFetch.busy)return;rtFetch.busy=1;var lb=b.toLowerCase();
   // два зеркала одного источника: берём то, где курс свежее (CDN иногда отдаёт старую версию)
@@ -580,7 +582,7 @@ function rtFetch(force){
       if(j&&j[lb]&&(!best||String(j.date)>String(best.date)))best=j}).catch(function(){}).then(function(){if(--left)return;rtFetch.busy=0;
       if(!best){if(force&&typeof toast==='function')toast('Курс не загрузился. Проверь интернет или впиши свой курс.',true);return}
       RT={base:b,day:T,date:best.date||T,r:best[lb]};try{localStorage.setItem('sch-rates',JSON.stringify(RT))}catch(e){}
-      if(force&&typeof toast==='function')toast('Курс обновлён');if(typeof render==='function')render();
+      if(force&&typeof toast==='function')toast('Курс обновлён');if(typeof render==='function')render();try{fxHint()}catch(e){}
       if(force&&sh&&sh.cur&&document.getElementById('s_cur'))curSheet()})})}
 function curOpts(sel){return Object.keys(CUR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+CUR[k][0]+' · '+CUR[k][1]+'</option>'}).join('')}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -793,6 +795,7 @@ function addAdj(a,dlt){dlt=Math.round(dlt*100)/100;if(Math.abs(dlt)<0.005)return
 function natOf(x,a){ // сумма записи в валюте счёта a
   if(!isFx(a))return x.amt;
   if(x.type==='t'){var v=x.from===a.id?x.fa:x.ta;if(v>0)return v}
+  else if(x.ca>0)return x.ca;
   else if(x.oc===a.cur&&x.oa>0)return x.oa;
   return x.amt/rateOf(a.cur)}
 function accBalN(a){ // остаток в валюте самого счёта
@@ -874,9 +877,9 @@ function applyPayout(day,ym){
 }
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-16b';
+var APP_VER='2026-11-16c';
 /* «Что нового»: только 2-3 свежих коротких пункта; старое - под «Что было раньше», устаревшее удаляем; версию меняем только при настоящих новостях */
-var NEWS=['💱 Валюты: можно выбрать свою основную, а карте или копилке дать другую - пересчёт по курсу из интернета. Настройки → «Валюта».',
+var NEWS=['💱 Валюты: своя основная, карты и копилки в других валютах, а трату можно записать в любой валюте (например, евро в поездке). Настройки → «Валюта».',
  '👾 Монстрик по-разному отзывается на нажатие и умеет сальто, а если подержать палец - обнимашки.',
  '💡 Иногда он подсказывает, где можно сэкономить: прогноз до зарплаты, мелочи, похожее на подписки.'];
 var NEWS_OLD=['У категорий появились картинки, а запись, «История», настройки и помощь стали проще.','«Анализ» без повторов, а редкие настройки плана свёрнуты в «Платежи → План → Ещё планирование».',
@@ -902,7 +905,7 @@ function apkNote(){
     if(!lt||lt<=apkCur()||skip>=lt)return '';
     var ok=apkBkOk(),dl='https://github.com/sofaleya/schitalochka/releases/latest/download/schitalochka.apk',
     bk=ok?'<span class="fine">1. Копия данных есть ✓</span>':'<span class="fine">1. Сначала сохрани копию данных, на всякий случай.</span>',
-    b1=ok?'':(ydOn()&&YD.st!=='err'?'<button class="btn sm" data-a="apkBk">Сохранить в Яндекс Диск</button>':'<button class="btn sm" data-a="apkBk">Сохранить копию файлом</button>'),
+    b1=ok?'':(ydOn()&&YD.st!=='err'?'<button class="btn sm" data-a="apkBk">Сохранить в '+cloudName()+'</button>':'<button class="btn sm" data-a="apkBk">Сохранить копию файлом</button>'),
     b2=ok?'<a class="btn sm" data-a="apkDl" href="'+dl+'" style="text-decoration:none;text-align:center">2. Скачать новую версию</a>':'<button class="btn sm ghost" disabled style="opacity:.5">2. Скачать новую версию</button>',
     b3=ok?'':'<button class="btn sm ghost" data-a="apkHave">Копия уже есть</button>',
     hint=APKN.dl?'<span class="fine">Открой скачанный файл и нажми «Установить». Старое приложение удалять не нужно: новое встанет поверх, данные сохранятся.</span>':'<span class="fine">Старое удалять не нужно: новое встанет поверх.'+(typeof AndroidApp!=='undefined'&&typeof AndroidApp.setReminder==='function'?'':' В новой версии есть вечернее напоминание.')+'</span>';
@@ -3398,7 +3401,7 @@ function entrySheet(){
   openSheet('<h3>'+(sh.id?'Запись':'Новая запись')+'</h3>'+
    '<div class="seg st4">'+segs+'</div>'+
    '<form id="fm" class="f ent" style="gap:10px" autocomplete="off">'+
-   '<div class="f"><div class="amtrow"><input id="f_amt" class="amount" aria-label="Сумма, '+sym(cc)+'" inputmode="decimal" placeholder="0 '+sym(cc)+'" value="'+esc(d.amt||'')+'">'+(isT?'':'<button type="button" class="btn ghost addsum" data-a="amtPlus" data-v="f_amt" aria-label="Прибавить ещё сумму">+ ещё<br>сумма</button>')+'</div><span class="fine" id="f_amtsum" hidden></span><span class="fine" id="f_fx" hidden></span>'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
+   '<div class="f"><div class="amtrow"><input id="f_amt" class="amount" aria-label="Сумма, '+sym(cc)+'" inputmode="decimal" placeholder="0 '+sym(cc)+'" value="'+esc(d.amt||'')+'">'+(isT?'':curPick(d))+''+(isT?'':'<button type="button" class="btn ghost addsum" data-a="amtPlus" data-v="f_amt" aria-label="Прибавить ещё сумму">+ ещё<br>сумма</button>')+'</div><span class="fine" id="f_amtsum" hidden></span><span class="fine" id="f_fx" hidden></span>'+(!isT&&cc!==entAccCur(d)?'<div class="f" style="margin-top:6px"><label for="f_chg">'+(isE?'Списали с карты':'Пришло на карту')+', '+sym(entAccCur(d))+'</label><input id="f_chg" inputmode="decimal" value="'+esc(d.chg||'')+'" placeholder="по курсу"><span class="fine">Если знаешь точную сумму по банку - впиши, иначе посчитаю по курсу.</span></div>':'')+''+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+
    '<div class="f"><label>Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'" hidden><div class="seg" id="f_dseg">'+dSeg+'</div></div>'+
@@ -3411,10 +3414,17 @@ function entrySheet(){
   setTimeout(partsLive,0);setTimeout(fxHint,0);
 }
 function accCur(a){return isFx(a)?a.cur:baseCur()}
-function entCur(d){ // в какой валюте вводится сумма записи
+function entAccCur(d){ // валюта счёта, с которого платят / куда приходит
   if(d.type==='t')return accCur(accById(d.from));
   if(d.type==='e')return accCur(accById(d.acc||defAcc()));
   return baseCur()}
+function entCur(d){ // в какой валюте вводится сумма записи: можно платить с рублёвой карты в евро
+  if(d.type!=='t'&&d.cur&&CUR[d.cur])return d.cur;
+  return entAccCur(d)}
+function needNat(d,tot){ // сколько уйдёт со счёта в его валюте
+  var ec=entCur(d),ac=entAccCur(d);if(ec===ac)return tot;var c=sumAmt(d.chg);if(c>0)return c;return tot*rateOf(ec)/rateOf(ac)}
+function curPick(d){var ac=entAccCur(d),ec=entCur(d),b=baseCur(),seen={},ks=[ac,b].concat(Object.keys(CUR)).filter(function(k){if(seen[k])return false;seen[k]=1;return true});
+  return '<select id="f_cur" class="curpick" aria-label="Валюта суммы">'+ks.map(function(k){return '<option value="'+k+'"'+(k===ec?' selected':'')+'>'+CUR[k][0]+(CUR[k][0]===k?'':' '+k)+'</option>'}).join('')+'</select>'}
 function fxHint(){ // подсказка «≈ сколько в основной валюте» под суммой
   var el=document.getElementById('f_fx'),fa=document.getElementById('f_amt');if(!el||!fa||!sh||!sh.d)return;
   var d=sh.d,acc=document.getElementById('f_acc');if(acc&&d.type==='e')d.acc=acc.value;
@@ -3422,6 +3432,8 @@ function fxHint(){ // подсказка «≈ сколько в основно�
   fa.placeholder='0 '+sym(cc);fa.setAttribute('aria-label','Сумма, '+sym(cc));
   if(a2){var tc=accCur(accById(d.to));a2.placeholder=v>0?String(Math.round(v*rateOf(cc)/rateOf(tc)*100)/100):'по курсу';
     el.textContent='Курс: '+rateTxt(cc!==b?cc:tc);el.hidden=false;return}
+  var ch=document.getElementById('f_chg'),ac=entAccCur(d);
+  if(ch){var cv=v*rateOf(cc)/rateOf(ac);ch.placeholder=v>0?'по курсу ≈ '+(cv>=100?Math.round(cv):Math.round(cv*100)/100):'по курсу'}
   if(cc===b){el.hidden=true;return}
   el.textContent='Сумма в '+sym(cc)+(v>0?' ≈ '+money(v*rateOf(cc)):'')+' · курс '+rateTxt(cc);el.hidden=false}
 /* один чек - несколько категорий: части уходят в свои категории, остаток остаётся в основной */
@@ -3448,7 +3460,7 @@ function partsLive(){
   r.textContent=!(tot>0)?'Сначала впиши общую сумму сверху.':rest<0?'Части больше общей суммы на '+money(-rest)+'.':'В «'+(mn?mn.name:'основную категорию')+'» останется '+money(rest)+'.'}
 function readEntry(){
   var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};
-  d.amt=g('f_amt');if(document.getElementById('f_amt2'))d.amt2=g('f_amt2');d.cat=g('f_cat')||d.cat;d.date=g('f_date')||d.date;d.note=g('f_note');partsRead(d);
+  d.amt=g('f_amt');if(document.getElementById('f_amt2'))d.amt2=g('f_amt2');if(document.getElementById('f_cur')&&d.curSet)d.cur=g('f_cur');d.chg=document.getElementById('f_chg')?g('f_chg'):'';d.cat=g('f_cat')||d.cat;d.date=g('f_date')||d.date;d.note=g('f_note');partsRead(d);
   var fm=document.getElementById('f_mode');if(fm){d.skip=fm.value!=='own';d.nobal=fm.value==='other'}
   var sp=document.getElementById('f_split');if(sp){d.split=sp.checked;d.splitAmt=g('f_splitamt')}
   d.acc=g('f_acc')||d.acc;d.from=g('f_from')||d.from;d.to=g('f_to')||d.to;var ff=document.getElementById('f_for');if(ff)d.for=ff.value;return d;
@@ -3644,12 +3656,12 @@ function settingsSheet(){
    grp('Данные')+
    '<div class="help f" style="gap:8px">'+
     det('☁️ Копии и синхронизация',
-      '<p class="fine" style="margin:0">Лучше всего Яндекс Диск: копии делаются сами. Нет облака - скачай файл на устройство.</p>'+
-      det('Синхронизация: Яндекс Диск'+(ydOn()?' ✅':''),'<div id="yd_box">'+ydPanel()+'</div>')+
+      '<p class="fine" style="margin:0">Лучше всего облако (Яндекс Диск или Google Диск): копии делаются сами. Нет облака - скачай файл на устройство.</p>'+
+      det('Синхронизация: '+(ydOn()?cloudName()+' ✅':'Яндекс Диск'+(GD.cid?' или Google Диск':'')),'<div id="yd_box">'+ydPanel()+'</div>')+
       det('Скачать файл на устройство',bkHtml)+
       '<div style="display:flex;align-items:center;gap:12px"><span class="fine" style="flex:1">Есть ещё автокопии в браузере и копии в Телеграм - нажми на звёздочку.</span><button type="button" class="ibtn" style="width:40px;height:40px;border-color:var(--accent);color:var(--accent);font:700 30px/1 Arial,sans-serif;padding-top:10px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё способы">*</button></div>'+
       tipBox('bk','<div class="f" style="gap:10px">'+det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
-        det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+'</div>'),ydOn()?'Яндекс Диск подключён':(S.lastBackup?'последний файл '+dlabel(S.lastBackup):'копий ещё нет'))+
+        det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+'</div>'),ydOn()?cloudName()+' подключён':(S.lastBackup?'последний файл '+dlabel(S.lastBackup):'копий ещё нет'))+
     det('📥 Загрузить данные',
       det('Траты из таблицы','<p class="fine" style="margin:0">Своя таблица Excel (.xlsx, .xls) или CSV: нужны хотя бы дата и сумма. Покажу, что получилось, и дам всё проверить перед добавлением.</p><input id="s_xl" type="file" accept=".xlsx,.xls,.csv,.txt"><p class="fine" id="s_xlmsg" hidden></p>')+
       det('Выписка из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+
@@ -3761,7 +3773,7 @@ document.addEventListener('click',function(ev){
   else if(a==='hClear'){hq='';ha='';hc='';hacc='';hsk='';hfrom='';hto='';hd=null;hfo=false;render()}
   else if(a==='hPer'){if(!hd)hd={};var tp=petDay(),ymp=tp.slice(0,7);if(v==='m0'){hd.from=ymp+'-01';hd.to=tp}else if(v==='m1'){var pm=nextYM(ymp,-1),pa=pm.split('-');hd.from=pm+'-01';hd.to=pm+'-'+p2(dim(+pa[0],+pa[1]-1))}else if(v==='d7'){hd.from=iso(addDays(parse(tp),-6));hd.to=tp}else if(v==='d30'){hd.from=iso(addDays(parse(tp),-29));hd.to=tp}else{hd.from='';hd.to=''}var f1=document.getElementById('h_from'),f2=document.getElementById('h_to');if(f1)f1.value=hd.from;if(f2)f2.value=hd.to;hdSync()}
   else if(a==='newEntry'){sh={id:null,d:newDraft('e')};entrySheet()}
-  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,amt:x.type==='t'?Math.round(natOf(x,accById(x.from))*100)/100:Math.round(natOf(x,accById(accOf(x)))*100)/100,amt2:x.type==='t'?String(Math.round(natOf(x,accById(x.to))*100)/100):'',cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(Math.round(x.split/(x.oc&&x.oa>0?x.amt/x.oa:1)*100)/100):'',for:x.for==='none'?'':x.for||(x.type==='i'&&x.cat==='refund'?(refLinks().linked[x.id]||''):''),forManual:x.for==='none'}};entrySheet()}}
+  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x){sh={id:id,d:{type:x.type,cur:x.type!=='t'&&x.oc&&CUR[x.oc]?x.oc:'',curSet:!!(x.type!=='t'&&x.oc&&CUR[x.oc]),chg:x.ca>0?String(x.ca):'',amt:x.type==='t'?Math.round(natOf(x,accById(x.from))*100)/100:x.oc&&x.oa>0?x.oa:Math.round(natOf(x,accById(accOf(x)))*100)/100,amt2:x.type==='t'?String(Math.round(natOf(x,accById(x.to))*100)/100):'',cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(Math.round(x.split/(x.oc&&x.oa>0?x.amt/x.oa:1)*100)/100):'',for:x.for==='none'?'':x.for||(x.type==='i'&&x.cat==='refund'?(refLinks().linked[x.id]||''):''),forManual:x.for==='none'}};entrySheet()}}
   else if(a==='stype'){var d=readEntry(),ref=v==='r',tv=ref?'i':v,curR=d.type==='i'&&d.cat==='refund';if(d.type!==tv||ref!==curR){d.type=tv;d.cat='';if(tv==='i')d.acc=defAcc();d.manual=false;d.auto=false;if(ref){d.cat='refund';d.manual=true}else if(tv==='t')tDefaults(d);else{var g=guess(d.note,tv);if(g&&!(tv==='i'&&g==='refund')){d.cat=g;d.auto=true}}}entrySheet()}
   else if(a==='quick'){var dq=readEntry(),qq=(sh.q||[])[+b.dataset.i];if(qq){dq.note=qq.note;dq.cat=qq.cat;dq.manual=true;dq.auto=false;if(!(num(dq.amt)>0))dq.amt=qq.amt;if(dq.type==='e'){dq.cls=qq.cls||dq.cls;dq.clsManual=true}if(qq.acc&&accById(qq.acc))dq.acc=qq.acc;entrySheet()}}
   else if(a==='sdate'){var fi=document.getElementById('f_date');if(fi){if(v==='o')dpOpen(fi);else{fi.value=v==='t'?T:iso(addDays(parse(T),-1));fi.dispatchEvent(new Event('change',{bubbles:true}))}}}
@@ -3845,6 +3857,8 @@ document.addEventListener('click',function(ev){
     if(sz){gv=Math.round(gv*100)/100;var rid=uid();S.entries.push({id:rid,type:'i',amt:gv,cat:'refund',date:petDay(),note:'Возврат: '+(sz.note||(CMAP[sz.cat]||CMAP.other).name),acc:defAcc()});sz.splitDone=rid;save();closeSheet();render();toast('Возврат записан: '+money(gv))}}
   else if(a==='snapBack'){var sx=snaps()[+v];if(sx)uiConfirm('Вернуть данные на '+dlabel(sx.d)+'? Текущие данные сохранятся отдельным снимком, их тоже можно будет вернуть.').then(function(y){if(!y)return;snapTake('pre',true);try{var so=JSON.parse(sx.raw);S=migrate(so);save();closeSheet();render();toast('Данные возвращены на '+dlabel(sx.d))}catch(e){toast('Не получилось',true)}})}
   else if(a==='ydIn'){ydLogin()}
+  else if(a==='gdIn'){gdLogin(false)}
+  else if(a==='gdRe'){gdLogin(true)}
   else if(a==='ydHide'){try{localStorage.setItem('sch-ydhide','1')}catch(e){}render();toast('Подключить можно позже в настройках')}
   else if(a==='ydNow'){ydSync()}
   else if(a==='ydTap'){ydTap()}
@@ -4162,22 +4176,26 @@ document.addEventListener('submit',function(ev){
     else if(!d.cat)return showErr('Выбери категорию.');
     if(!d.date)return showErr('Укажи дату.');
     if(d.type==='i')d.acc=defAcc();
-    if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=natOf(e,sa)})}if(accBalN(sa)+had<n+pUsed-0.005)return showErr('В «'+sa.name+'» только '+mon(accBalN(sa)+had,accCur(sa))+'. Выбери другой источник или сначала положи туда деньги.')}}
+    if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=natOf(e,sa)})}if(accBalN(sa)+had<needNat(d,n+pUsed)-0.005)return showErr('В «'+sa.name+'» только '+mon(accBalN(sa)+had,accCur(sa))+'. Выбери другой источник или сначала положи туда деньги.')}}
     var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip,nobal:!!d.nobal};
     if(d.type==='i'&&d.cat==='refund'){if(d.for)rec.for=d.for;else if(d.forManual)rec.for='none'}
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     /* другая валюта: вводили в валюте счёта, храним в основной + исходную сумму */
-    var fxR=1,fxC=baseCur(),old1=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;
+    var fxR=1,caR=0,fxC=baseCur(),old1=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;
     if(d.type==='t'){var fA=accById(d.from),tA=accById(d.to),fC=accCur(fA),tC=accCur(tA),bc=baseCur();
       if(fC!==tC||fC!==bc){var n2=fC!==tC?sumAmt(d.amt2):n;if(!(n2>0))n2=Math.round(n*rateOf(fC)/rateOf(tC)*100)/100;
         if(isFx(fA))rec.fa=n;if(isFx(tA))rec.ta=n2;fxC=fC;
         rec.amt=fC===bc?n:tC===bc?n2:Math.round(n*rateOf(fC)*100)/100}}
-    else{var xa=accById(rec.acc);if(isFx(xa)){fxC=xa.cur;fxR=old1&&old1.oc===xa.cur&&old1.oa>0&&old1.amt>0?old1.amt/old1.oa:rateOf(xa.cur);
-      rec.oc=xa.cur;rec.oa=n;rec.amt=Math.round(n*fxR*100)/100;if(rec.split)rec.split=Math.round(rec.split*fxR*100)/100}}
+    else{var xa=accById(rec.acc),ac=accCur(xa),ec=d.cur&&CUR[d.cur]?d.cur:ac,bc2=baseCur(),tot=n+pUsed;
+      if(ec!==bc2||ac!==bc2){var chg=ec!==ac?sumAmt(d.chg):NaN;
+        if(chg>0){caR=chg/tot;fxR=chg*rateOf(ac)/tot}
+        else fxR=old1&&old1.oc===ec&&old1.oa>0&&old1.amt>0&&!old1.ca?old1.amt/old1.oa:rateOf(ec);
+        fxC=ec;rec.oc=ec;rec.oa=n;rec.amt=Math.round(n*fxR*100)/100;if(caR)rec.ca=Math.round(n*caR*100)/100;
+        if(rec.split)rec.split=Math.round(rec.split*fxR*100)/100}}
     var gid=null;if(parts.length){var old0=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;gid=(old0&&old0.grp)||uid();rec.grp=gid}
-    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for','oa','oc','fa','ta'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
+    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for','oa','oc','fa','ta','ca'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec);if(d.payLeft)S.payNote={d:T,st:'put'}}
-    var extraIds=parts.map(function(pt){var r2={id:uid(),grp:gid,type:'e',amt:pt.amt,cat:pt.cat,date:rec.date,note:rec.note,cls:NEEDC[pt.cat]?'need':(rec.cls||'need'),clsSet:false,acc:rec.acc,skip:rec.skip,nobal:rec.nobal};if(rec.oc){r2.oc=rec.oc;r2.oa=pt.amt;r2.amt=Math.round(pt.amt*fxR*100)/100}S.entries.push(r2);learn(r2);return r2.id});
+    var extraIds=parts.map(function(pt){var r2={id:uid(),grp:gid,type:'e',amt:pt.amt,cat:pt.cat,date:rec.date,note:rec.note,cls:NEEDC[pt.cat]?'need':(rec.cls||'need'),clsSet:false,acc:rec.acc,skip:rec.skip,nobal:rec.nobal};if(rec.oc){r2.oc=rec.oc;r2.oa=pt.amt;r2.amt=Math.round(pt.amt*fxR*100)/100;if(caR)r2.ca=Math.round(pt.amt*caR*100)/100}S.entries.push(r2);learn(r2);return r2.id});
     var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);
     vym=rec.date.slice(0,7);
@@ -4258,10 +4276,11 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='h_sk'){if(hd)hd.sk=ev.target.value;hdSync();return}
   if(ev.target.id==='a_type'&&sh&&sh.ac){readAcc();accSheet();return}
   if(ev.target.id==='a_cur'&&sh&&sh.ac){readAcc();accSheet();return}
+  if(ev.target.id==='f_cur'&&sh&&sh.d){sh.d.curSet=true;readEntry();entrySheet();rtFetch(false,true);return}
   if(ev.target.id==='s_cur'&&CUR[ev.target.value]&&ev.target.value!==baseCur()){S.cur=ev.target.value;if(S.mrate)S.mrate={};save();try{TCOIN=TCOIN.replace(/>[^<]*<\/text>/,'>'+coinS()+'</text>')}catch(e){}render();curSheet();rtFetch(true);toast('Основная валюта: '+CUR[S.cur][1]);return}
   if(ev.target.id==='ob_cur'&&CUR[ev.target.value]){S.cur=ev.target.value;save();onbRead();onbSheet();return}
   if((ev.target.id==='f_from'||ev.target.id==='f_to')&&sh&&sh.d&&sh.d.type==='t'){readEntry();entrySheet();return}
-  if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true;moreUpd()}
+  if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true;moreUpd();if(document.getElementById('f_cur')){readEntry();entrySheet();return}}
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var el0=ev.target;el0.value=sh.d.cat||'';uiPrompt('Название новой категории',t0).then(function(nm0){if(!sh||!sh.d)return;var nid0=nm0?newCat(nm0,sh.d.type==='i'):null;if(q0)q0.value='';el0.innerHTML=opts(catPool(),nid0||sh.d.cat)+NEWCAT;if(nid0){el0.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{el0.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;catShow()});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var el1=ev.target;el1.value=sh.d.cat||'';uiPrompt('Название новой категории').then(function(nm){if(!sh||!sh.d)return;var nid=nm?newCat(nm,sh.d.type==='i'):null;el1.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){el1.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{el1.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;catShow()});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
@@ -4294,7 +4313,8 @@ function syncLabel(){if(!DB&&ydOn())return ydLabel();return syncState==='ok'?'с
 function syncBtnHtml(){ // подпись кнопки в шапке: что делает и когда в последний раз получилось
   if(!ydOn())return '';
   var m=ydGet(),at=m.at?new Date(m.at):null,when=at?(iso(at)===iso(new Date())?p2(at.getHours())+':'+p2(at.getMinutes()):dlabel(iso(at))):'';
-  if(YD.st==='wait'||(YD.st!=='err'&&ydDirty(m)))return '<b>Синхронизирую…</b><span>с Яндекс Диском</span>';
+  if(gdExpired()||YD.st==='exp')return '<b>↻ Войти</b><span>в Google Диск</span>';
+  if(YD.st==='wait'||(YD.st!=='err'&&ydDirty(m)))return '<b>Синхронизирую…</b><span>с '+(gdOn()?'Google':'Яндекс')+' Диском</span>';
   if(YD.st==='err')return '<b>↻ Повторить</b><span>нет связи с Диском</span>';
   return '<b>↻ Обновить</b><span>Диск <em>✓</em>'+(when?' · '+when:'')+'</span>'}
 function renderBadge(){var bt=document.getElementById('syncbtn');if(bt){var l=syncBtnHtml();bt.innerHTML=l;if(bt.parentNode)bt.parentNode.hidden=!l}var e=document.getElementById('syncb');if(e&&!e.hidden)e.textContent=syncLabel()}
@@ -4336,21 +4356,57 @@ function ydDirty(m){m=m||ydGet();return (m.chg||0)>(m.sent||0)}
 // ответ Яндекса после входа приходит в адресе страницы (#access_token=…)
 (function(){var h=location.hash||'';if(h.indexOf('access_token=')<0&&h.indexOf('error=')<0)return;
   var q=new URLSearchParams(h.slice(1));try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
-  if(q.get('access_token')){var m=ydGet();ydSet({tok:q.get('access_token'),exp:Date.now()+(+q.get('expires_in')||31536000)*1000,dev:m.dev||uid()});YD.justIn=true}
-  else YD.msg='Яндекс не дал доступ'+(q.get('error')==='access_denied'?': вход отменён':' ('+(q.get('error_description')||q.get('error'))+')');})();
+  var st=q.get('state')||'',pv=/^gd/.test(st)?'gd':'yd',silent=st==='gds';
+  if(q.get('access_token')){var m=ydGet();if(m.tok&&(m.prov||'yd')!==pv){m={dev:m.dev};try{localStorage.setItem(YD.key,JSON.stringify(m))}catch(e){}}
+    ydSet({tok:q.get('access_token'),exp:Date.now()+(+q.get('expires_in')||31536000)*1000,dev:m.dev||uid(),prov:pv});YD.justIn=!silent}
+  else if(silent){ydSet({exp:0});YD.msg='Войди в Google ещё раз'}
+  else YD.msg=(pv==='gd'?'Google':'Яндекс')+' не дал доступ'+(q.get('error')==='access_denied'?': вход отменён':' ('+(q.get('error_description')||q.get('error'))+')');})();
+/* ---------- Google Диск: то же самое, что Яндекс, только хранилище другое ----------
+   Папка «считалОчка» в Google Диске пользователя. Доступ drive.file: приложение видит только свои файлы.
+   Вход Google живёт час; потом при открытии приложение тихо (без вопросов) берёт новый вход. */
+var GD={cid:'',scope:'https://www.googleapis.com/auth/drive.file',api:'https://www.googleapis.com/drive/v3/files',up:'https://www.googleapis.com/upload/drive/v3/files',folder:'считалОчка',file:'schitalochka.json'};
+function gdOn(){return ydGet().prov==='gd'}
+function gdExpired(){var m=ydGet();return m.prov==='gd'&&!!m.tok&&!(m.exp>Date.now()+60000)}
+function gdLogin(silent){if(!GD.cid)return;YD.leaving=true;try{sessionStorage.setItem('gd-try',String(Date.now()))}catch(e){}
+  location.href='https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id='+encodeURIComponent(GD.cid)+'&redirect_uri='+encodeURIComponent(YD.redir)+'&scope='+encodeURIComponent(GD.scope)+'&include_granted_scopes=true&state='+(silent?'gds':'gd')+'&prompt='+(silent?'none':'select_account')}
+function gdReq(method,url,body,ctype){var o={method:method,headers:{Authorization:'Bearer '+ydGet().tok}};if(body!=null){o.body=body;if(ctype)o.headers['Content-Type']=ctype}
+  return fetch(url,o).then(function(r){if(r.status===401){ydSet({exp:0});YD.msg='Вход в Google устарел';throw {code:401}}return r})}
+function gdQ(v){return "'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'"}
+async function gdFolder(){var m=ydGet();if(m.fid)return m.fid;
+  var r=await gdReq('GET',GD.api+'?spaces=drive&fields=files(id)&q='+encodeURIComponent('name='+gdQ(GD.folder)+" and mimeType='application/vnd.google-apps.folder' and trashed=false")).then(function(r){return ydOk(r).json()});
+  var id=r.files&&r.files[0]&&r.files[0].id;
+  if(!id){var c=await gdReq('POST',GD.api+'?fields=id',JSON.stringify({name:GD.folder,mimeType:'application/vnd.google-apps.folder'}),'application/json').then(function(r){return ydOk(r).json()});id=c.id}
+  ydSet({fid:id});return id}
+async function gdFind(name){var fid=await gdFolder();
+  var r=await gdReq('GET',GD.api+'?spaces=drive&orderBy=modifiedTime desc&fields=files(id,name,version,modifiedTime)&q='+encodeURIComponent('name='+gdQ(name)+' and '+gdQ(fid)+' in parents and trashed=false')).then(function(r){return ydOk(r).json()});
+  return (r.files&&r.files[0])||null}
+async function gdMeta(){var f=await gdFind(GD.file);return f?{modified:f.version+'|'+f.modifiedTime,id:f.id}:null}
+async function gdDownload(){var f=await gdFind(GD.file);if(!f)throw {code:404};
+  var t=await gdReq('GET',GD.api+'/'+f.id+'?alt=media').then(function(r){return ydOk(r).text()});try{return JSON.parse(t)}catch(e){throw {code:'bad'}}}
+async function gdUpload(path,text){var name=path===YD.file?GD.file:String(path).split('/').pop(),f=await gdFind(name);
+  if(f)return gdReq('PATCH',GD.up+'/'+f.id+'?uploadType=media',text,'application/json').then(ydOk);
+  var fid=await gdFolder(),bd='sch'+Date.now(),body='--'+bd+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name:name,parents:[fid]})+'\r\n--'+bd+'\r\nContent-Type: application/json\r\n\r\n'+text+'\r\n--'+bd+'--';
+  return gdReq('POST',GD.up+'?uploadType=multipart',body,'multipart/related; boundary='+bd).then(ydOk)}
+async function gdDaily(day){var f=await gdFind(GD.file);if(!f)return;var fid=await gdFolder(),nm='schitalochka-'+day+'.json';
+  if(!(await gdFind(nm)))await gdReq('POST',GD.api+'/'+f.id+'/copy',JSON.stringify({name:nm,parents:[fid]}),'application/json').then(ydOk);
+  var r=await gdReq('GET',GD.api+'?spaces=drive&orderBy=name&pageSize=200&fields=files(id,name)&q='+encodeURIComponent("name contains 'schitalochka-' and "+gdQ(fid)+' in parents and trashed=false')).then(function(r){return ydOk(r).json()});
+  var it=(r.files||[]).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)}).sort(function(a,b){return a.name<b.name?-1:1});
+  for(var i=0;i<it.length-14;i++){try{await gdReq('DELETE',GD.api+'/'+it[i].id)}catch(e){}}}
+function cloudName(){return gdOn()?'Google Диск':'Яндекс Диск'}
 function ydLogin(){YD.leaving=true;location.href='https://oauth.yandex.ru/authorize?response_type=token&client_id='+YD.cid+'&redirect_uri='+encodeURIComponent(YD.redir)}
 function ydErr(e){if(e&&e.code)return e.code==='bad'?'файл в Диске повреждён':'код '+e.code;
-  return 'нет связи с Яндексом'+(e&&e.message?' ('+e.message+')':'')}
+  return 'нет связи с '+(gdOn()?'Google':'Яндексом')+(e&&e.message?' ('+e.message+')':'')}
 function ydReq(method,url){var o={method:method,headers:{Authorization:'OAuth '+ydGet().tok}};
   return fetch(url,o).then(function(r){if(r.status===401){ydSet({tok:undefined,mod:undefined});YD.msg='Вход в Яндекс устарел, войди заново';throw {code:401}}return r})}
 function ydOk(r){if(!r.ok)throw {code:r.status};return r}
-function ydMeta(path){return ydReq('GET',YD.api+'?fields=modified,name,path&path='+encodeURIComponent(path||YD.file)).then(function(r){if(r.status===404)return null;return ydOk(r).json()})}
-function ydDownload(){return ydReq('GET',YD.api+'/download?path='+encodeURIComponent(YD.file)).then(function(r){return ydOk(r).json()})
+function ydMeta(path){if(gdOn())return gdMeta();return ydReq('GET',YD.api+'?fields=modified,name,path&path='+encodeURIComponent(path||YD.file)).then(function(r){if(r.status===404)return null;return ydOk(r).json()})}
+function ydDownload(){if(gdOn())return gdDownload();return ydReq('GET',YD.api+'/download?path='+encodeURIComponent(YD.file)).then(function(r){return ydOk(r).json()})
   .then(function(j){return fetch(j.href,{credentials:'omit',referrerPolicy:'no-referrer'})}).then(function(r){return ydOk(r).text()}).then(function(t){try{return JSON.parse(t)}catch(e){throw {code:'bad'}}})}
-function ydUpload(path,text){return ydReq('GET',YD.api+'/upload?overwrite=true&path='+encodeURIComponent(path)).then(function(r){return ydOk(r).json()})
+function ydUpload(path,text){if(gdOn())return gdUpload(path,text);return ydReq('GET',YD.api+'/upload?overwrite=true&path='+encodeURIComponent(path)).then(function(r){return ydOk(r).json()})
   .then(function(j){return fetch(j.href,{method:'PUT',body:new Blob([text],{type:'application/json'})})}).then(ydOk)}
-function ydDir(){return ydReq('PUT',YD.api+'?path='+encodeURIComponent(YD.dir)).then(function(r){if(r.status!==409)ydOk(r)})}
+function ydDir(){if(gdOn())return gdFolder();return ydReq('PUT',YD.api+'?path='+encodeURIComponent(YD.dir)).then(function(r){if(r.status!==409)ydOk(r)})}
 async function ydDaily(day){ // копия дня + чистка старше 14 копий
+  if(gdOn())return gdDaily(day);
   await ydDir();
   await ydReq('POST',YD.api+'/copy?overwrite=true&from='+encodeURIComponent(YD.file)+'&path='+encodeURIComponent(YD.dir+'/schitalochka-'+day+'.json')).then(ydOk);
   var r=await ydReq('GET',YD.api+'?limit=200&sort=name&fields=_embedded.items.name,_embedded.items.path&path='+encodeURIComponent(YD.dir)).then(function(r){return ydOk(r).json()});
@@ -4393,6 +4449,7 @@ function ydAdopt(r,mod){snapTake('pre',true);S=migrate(r.data);S.demo=false;save
   if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
 async function ydSync(){
   if(!ydOn())return;if(YD.busy){YD.again=true;return}
+  if(gdExpired()){YD.st='exp';ydBadge();return}
   YD.busy=true;YD.st='wait';ydBadge();
   try{
     var m=ydGet(),meta=await ydMeta();
@@ -4402,7 +4459,7 @@ async function ydSync(){
       if(same){ydSet({mod:meta.modified});ydBaseSet(r.data)}
       else if(!m.mod&&!ydEmpty()){ // первое подключение, и данные есть и тут, и в Диске
         var cnt=r.data.entries.filter(function(e){return !e.demo}).length;
-        if(await uiConfirm('В Яндекс Диске уже есть данные считалОчки ('+cnt+' записей). Какие оставить на этом устройстве?\n\nЕсли оставить эти, версия из Диска сохранится в папке «Копии».','Взять из Диска','Оставить эти')){ydAdopt(r,meta.modified)}
+        if(await uiConfirm('В '+(gdOn()?'Google Диске':'Яндекс Диске')+' уже есть данные считалОчки ('+cnt+' записей). Какие оставить на этом устройстве?\n\nЕсли оставить эти, версия из Диска сохранится в папке «Копии».','Взять из Диска','Оставить эти')){ydAdopt(r,meta.modified)}
         else{await ydDir();await ydUpload(YD.dir+'/до-подключения-'+iso(new Date())+'.json',JSON.stringify(r));ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data)}
       }
       else if(ydEmpty())ydAdopt(r,meta.modified);
@@ -4433,25 +4490,25 @@ async function ydSync(){
   if(YD.again){YD.again=false;setTimeout(ydSync,300)}
 }
 function ydTap(){ // одна кнопка в шапке: забрать новое из Диска и отправить своё
-  if(!ydOn())return;if(YD.busy){toast('Уже синхронизирую…');return}
+  if(!ydOn())return;if(gdExpired()){gdLogin(true);return}if(YD.busy){toast('Уже синхронизирую…');return}
   toast('Синхронизирую…');
-  Promise.resolve(ydSync()).then(function(){if(YD.st==='ok')toast('Готово, всё синхронизировано с Диском');else toast('Не получилось: '+(YD.msg||'нет связи с Яндексом'),true)})}
+  Promise.resolve(ydSync()).then(function(){if(YD.st==='ok')toast('Готово, всё синхронизировано с Диском');else toast('Не получилось: '+(YD.msg||ydErr()),true)})}
 function ydChanged(){if(!ydOn())return;ydSet({chg:Date.now()});clearTimeout(YD.t);YD.t=setTimeout(ydSync,1000)}
-function ydLabel(){if(!ydOn())return '';if(YD.st!=='err'&&YD.st!=='wait'&&ydDirty())return 'синхронизация…';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':''}
+function ydLabel(){if(!ydOn())return '';if(YD.st!=='err'&&YD.st!=='wait'&&ydDirty())return 'синхронизация…';return YD.st==='ok'?'Диск ✓':YD.st==='wait'?'синхронизация…':YD.st==='err'?'нет связи с Диском':YD.st==='exp'?'войди в Google':''}
 function ydPanel(){var m=ydGet(),h='';
   if(!m.tok){
-    h='<p class="fine" style="margin:0">Данные будут лежать в твоём Яндекс Диске, в папке «Приложения/считалОчка», и сами появятся на другом телефоне или компьютере. Приложение видит только эту папку.</p>'+
+    h='<p class="fine" style="margin:0">Данные будут лежать в твоём облаке и сами появятся на другом телефоне или компьютере. Приложение видит только свою папку: в Яндекс Диске «Приложения/считалОчка», в Google Диске «считалОчка».</p>'+
       (YD.msg?'<p class="fine" style="margin:6px 0 0;color:var(--out)">'+esc(YD.msg)+'</p>':'')+
-      '<div class="btns" style="margin-top:8px"><button type="button" class="btn sm" data-a="ydIn">Войти через Яндекс</button></div>';
+      '<div class="btns" style="margin-top:8px"><button type="button" class="btn sm" data-a="ydIn">Войти через Яндекс</button>'+(GD.cid?'<button type="button" class="btn sm" data-a="gdIn">Войти через Google</button>':'')+'</div>';
   }else{
     var at=m.at?new Date(m.at):null;
-    h='<p class="fine" style="margin:0">'+(YD.st==='wait'?'Синхронизирую…':YD.st==='err'?'<span style="color:var(--out)">Не получилось: '+esc(YD.msg)+'</span>':'Подключено'+(at?'. Последняя синхронизация: '+(iso(at)===iso(new Date())?'сегодня':dlabel(iso(at)))+' в '+p2(at.getHours())+':'+p2(at.getMinutes()):''))+'</p>'+
-      '<p class="fine" style="margin:4px 0 0">Копии за последние 14 дней лежат там же, в папке «Копии».</p>'+
+    h='<p class="fine" style="margin:0"><b>'+cloudName()+'</b> · '+(gdExpired()||YD.st==='exp'?'<span style="color:var(--out)">вход в Google истёк</span> <button type="button" class="btn sm" data-a="gdRe">Войти снова</button>':YD.st==='wait'?'Синхронизирую…':YD.st==='err'?'<span style="color:var(--out)">Не получилось: '+esc(YD.msg)+'</span>':'Подключено'+(at?'. Последняя синхронизация: '+(iso(at)===iso(new Date())?'сегодня':dlabel(iso(at)))+' в '+p2(at.getHours())+':'+p2(at.getMinutes()):''))+'</p>'+
+      '<p class="fine" style="margin:4px 0 0">'+(gdOn()?'Копии за последние 14 дней лежат там же, в папке «считалОчка».':'Копии за последние 14 дней лежат там же, в папке «Копии».')+'</p>'+
       '<div class="btns" style="margin-top:8px"><button type="button" class="btn ghost sm" data-a="ydNow">Синхронизировать сейчас</button><button type="button" class="btn ghost sm" data-a="ydOut">Отключить</button></div>';
   }
   return h}
 function ydBadge(){renderBadge();var b=document.getElementById('yd_box');if(b)b.innerHTML=ydPanel()}
-function ydOut(){uiConfirm('Отключить Яндекс Диск на этом устройстве? Данные останутся и тут, и в Диске.','Отключить').then(function(y){if(y)ydOut2()})}
+function ydOut(){uiConfirm('Отключить '+cloudName()+' на этом устройстве? Данные останутся и тут, и в Диске.','Отключить').then(function(y){if(y)ydOut2()})}
 function ydOut2(){
   var d=ydGet().dev;try{localStorage.removeItem(YD.key)}catch(e){}ydSet({dev:d});YD.st='off';YD.msg='';ydBadge()}
 document.addEventListener('visibilitychange',function(){if(!ydOn())return;
@@ -4480,7 +4537,9 @@ window.addEventListener('pagehide',function(){if(ydOn()&&ydDirty()&&!YD.busy){cl
 window.addEventListener('beforeunload',function(e){if(!YD.leaving&&ydOn()&&YD.st!=='err'&&(ydDirty()||YD.busy)){clearTimeout(YD.t);if(!YD.busy)ydSync();e.preventDefault();e.returnValue=''}});
 setInterval(function(){if(ydOn()&&!YD.busy&&document.visibilityState==='visible')ydSync()},60000); // открыто долго - раз в минуту проверяем, не появилось ли новое
 window.addEventListener('storage',function(e){if(e.key===YD.key){var was=YD.st==='off';if(ydOn()&&was)ydSync();else ydBadge()}});
-if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast('Яндекс Диск подключён')},600)}
+if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast(cloudName()+' подключён')},600)}
+/* Google даёт вход на час: при открытии приложения тихо берём новый (не чаще раза в 10 минут) */
+try{if(GD.cid&&gdExpired()&&document.visibilityState==='visible'){var gt0=+sessionStorage.getItem('gd-try')||0;if(Date.now()-gt0>600000)setTimeout(function(){if(!(sh&&document.getElementById('ov')&&!document.getElementById('ov').hidden))gdLogin(true)},700)}}catch(e){}
 
 snapTake('day');
 try{if(window.TGBK)TGBK.init({app:'schitalochka',title:'считалОчка',accent:'#6a45e8',file:function(d){return 'schitalochka-'+d+'.json'},data:function(){return S.demo||!realCount()?'':JSON.stringify(S)}})}catch(e){}

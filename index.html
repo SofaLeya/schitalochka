@@ -2164,7 +2164,7 @@ function reviewCard(){
   var list=ex(ym),gross=tot(list),ret=rfn(ym),spent=Math.max(0,gross-ret),outSum=ex0(ym).filter(function(x){return x.type==='e'}).reduce(function(a,x){return a+x.amt},0)-gross;
   var LK=refLinks();function nv(x){return netOf(x,LK)}function totN(l){return l.reduce(function(s,x){return s+nv(x)},0)}
   var prev=[];for(var k=1;k<=6&&prev.length<3;k++){var pm=nextYM(ym,-k);if(ex(pm).length)prev.push(pm)}
-  var H='<div class="card"><h2>Разбор месяца</h2>';
+  var H='<div class="card"><h2>🔍 Разбор месяца</h2>';
   if(!list.length&&!prev.length)return H+'<p class="empty">Появится, когда будут записи трат.</p></div>';
   /* крупные и необычные траты - по сумме после возвратов */
   var big=list.filter(function(x){var v=nv(x);return v>=3000&&v>=spent*0.15}),bigSum=totN(big);
@@ -2204,14 +2204,14 @@ function reviewCard(){
   else det.push('Сравнение с обычным появится, когда накопится хотя бы один прошлый месяц с записями.');
   if(outSum>0)det.push('Платежи, редкие траты и траты из копилок ('+money(outSum)+') сюда не входят.');
   det.push('Всё после вычета возвратов.');
-  H+='<div class="note '+cls+'" style="gap:6px"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="fine" style="font-size:13px">'+(cur?'Прогноз на месяц':'Итог месяца')+'</span>'+tipBtn('rvtop')+'</div>'+
+  H+='<div class="note '+cls+'" style="gap:6px"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="fine" style="font-size:13px">'+(cur?'🔮 Прогноз на месяц':'🏁 Итог месяца')+'</span>'+tipBtn('rvtop')+'</div>'+
     '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:26px;line-height:1.1">'+(cur?'≈ ':'')+money(ref0)+'</b>'+(chip?'<span style="font-weight:700;font-size:14px;color:'+chipCol+'">'+chip+'</span>':'')+'</div>'+
     bar+tipBox('rvtop',det.join(' '))+
     '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
   (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
     var mg=MONTHS_G[+ym.slice(5,7)-1],cell=function(l,v){return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="fine" style="font-size:12px">'+l+'</span><b style="font-size:16px">'+money(v)+'</b></div>'};
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
-      '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;white-space:nowrap">Свободные деньги</b><span style="text-align:right;line-height:1.15"><b style="font-size:16px;color:'+(dd>=0?'var(--in)':'inherit')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b><br><span class="fine" style="font-size:11.5px">за месяц</span></span>'+tipBtn('rvbal')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;white-space:nowrap">💳 Свободные деньги</b><span style="text-align:right;line-height:1.15"><b style="font-size:16px;color:'+(dd>=0?'var(--in)':'inherit')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b><br><span class="fine" style="font-size:11.5px">за месяц</span></span>'+tipBtn('rvbal')+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+(function(){var pd=payDays();if(!pd.length)(S.incomes||[]).forEach(function(r){var x=Math.round(+r.day);if(x>=1&&x<=31&&pd.indexOf(x)<0)pd.push(x)});
         var ds=pd.map(function(x){return payDateIn(ym,x)}).filter(function(d,i,a){return d<=T&&a.indexOf(d)===i}).sort();
         if(!pd.length)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед каждой зарплатой, укажи дни зарплаты в настройках.</span>';
@@ -2225,7 +2225,7 @@ function reviewCard(){
   var up=ch.filter(function(x){return x.df>=1000&&(x.b===0||x.df/x.b>=0.3)}).sort(function(p,q){return q.df-p.df}).slice(0,3);
   var down=ch.filter(function(x){return x.df<=-1000&&x.b>0&&-x.df/x.b>=0.3}).sort(function(p,q){return p.df-q.df}).slice(0,2);
   if(prev.length&&(up.length||down.length)){
-    H+='<div class="fine" style="font-weight:700;margin-top:4px">Больше или меньше обычного</div><div class="list">'+
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">↕️ Больше или меньше обычного</div><div class="list">'+
       up.concat(down).map(function(x){return '<div class="row">'+cdot(CMAP[x.k]||CMAP.other)+'<div class="grow"><div class="t">'+esc(cname(x.k))+'</div><div class="s">'+money(x.c)+' · обычно '+money(x.b)+'</div></div><span class="amt '+(x.df>0?'out':'in')+'">'+(x.df>0?'+':'−')+money(Math.abs(x.df))+'</span></div>'}).join('')+'</div>';
   }
   /* 3. необычные траты */
@@ -2241,7 +2241,7 @@ function reviewCard(){
   /* 4. регулярные, но не в плане */
   rvCands=regCands(ym).slice(0,3);
   if(rvCands.length){
-    H+='<div class="fine" style="font-weight:700;margin-top:4px">Похоже на регулярные платежи</div><div class="list">'+rvCands.map(function(c,i){return '<div class="row"><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">около '+money(c.amt)+' каждый месяц, примерно '+c.day+'-го</div></div>'+(S.simple?'':'<button class="btn ghost sm" style="flex:none" data-a="rvAddRec" data-id="'+i+'">В платежи</button>')+'</div>'}).join('')+'</div>';
+    H+='<div class="fine" style="font-weight:700;margin-top:4px">🔁 Похоже на регулярные платежи</div><div class="list">'+rvCands.map(function(c,i){return '<div class="row"><div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">около '+money(c.amt)+' каждый месяц, примерно '+c.day+'-го</div></div>'+(S.simple?'':'<button class="btn ghost sm" style="flex:none" data-a="rvAddRec" data-id="'+i+'">В платежи</button>')+'</div>'}).join('')+'</div>';
   }
   /* 5. копилки */
   /* копилка на платежи - не накопления, как в прогрессе */
@@ -2261,11 +2261,11 @@ function reviewCard(){
   if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
     tips.push('Кафе и доставка — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
   if(!S.simple){var imp=totN(list.filter(function(x){return x.cls==='imp'}));
-    if(spent>0&&imp/spent>0.15)tips.push('Спонтанные покупки - '+pct(Math.min(1,imp/spent))+' трат на жизнь. Попробуй правило суток: хочешь что-то незапланированное — подожди день.')}
+    if(spent>0&&imp/spent>0.15)tips.push('Спонтанные покупки - '+pct(Math.min(1,imp/spent))+' трат на жизнь. Попробуй правило суток: хочешь что-то незапланированное - подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
   if(cur)tipsNow().forEach(function(t){if(t.t==='fc')tips.unshift(t.text);else if(t.t==='small')tips.push(t.text)});
   if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
-  if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
+  if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">💡 Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
   H+='<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Как считается</span>'+tipBtn('rv')+'</div>'+tipBox('rv','Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).');
   return H+'</div>';
 }
@@ -2913,10 +2913,10 @@ function lifeCard(me,n){
     var perTxt=pdN&&pdN.nextIn&&(S.incomes||[]).length?'. До зарплаты ('+pdN.nextIn.slice(8)+'.'+pdN.nextIn.slice(5,7)+') можно до '+money(pdN.val)+' в день, как на главной':', это '+money(rest/left)+' в день до конца месяца';
     note=rest>=0?(cur&&left>0?'В плане. Осталось '+money(rest)+perTxt:'В плане. Осталось '+money(rest)):'Выше плана на '+money(-rest);
     bar='<div class="bar"><i style="width:'+Math.min(100,r*100)+'%;background:'+(r>1?'var(--out)':r>0.85?'var(--warn)':'var(--in)')+'"></i></div>';
-    return '<div class="card"><div class="tiprow"><h2>Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Сравниваются с планом на месяц ('+money(lim)+' в день × '+n+' дн.).')+
+    return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Сравниваются с планом на месяц ('+money(lim)+' в день × '+n+' дн.).')+
       '<div class="note '+cls+'">'+head+'<span class="fine">'+note+'</span></div>'+bar+
       '<div class="row"><div class="grow fine">Пришло за месяц</div><span class="amt in">'+money(incR)+'</span></div></div>'}
-  return '<div class="card"><div class="tiprow"><h2>Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Задай план трат на день, и здесь появится сравнение с ним.')+
+  return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Задай план трат на день, и здесь появится сравнение с ним.')+
     '<div class="note info"><b>'+money(lnet)+'</b><span class="fine">'+(dd?'В день: '+money(lnet/dd):'')+'</span></div>'+
     '<div class="row"><div class="grow fine">Пришло за месяц</div><span class="amt in">'+money(incR)+'</span></div></div>'}
 function viewAn(){
@@ -2944,7 +2944,7 @@ function viewAn(){
   if(lim>0)svg+='<line x1="0" x2="'+W+'" y1="'+ly.toFixed(1)+'" y2="'+ly.toFixed(1)+'" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="'+W+'" y="'+(ly-3).toFixed(1)+'" font-size="9" text-anchor="end" fill="var(--warn)">план '+Math.round(lim).toLocaleString('ru-RU')+' ₽</text>';
   per.forEach(function(v,i){if(i+1>upto)return;svg+='<rect data-a="dayHist" data-v="'+vym+'-'+p2(i+1)+'" x="'+(i*bw).toFixed(1)+'" y="0" width="'+bw.toFixed(1)+'" height="'+H+'" fill="transparent" style="cursor:pointer"/>'});
   var dsum=upto?(lim>0?'<span style="color:var(--in)">в плане '+cnt.good+'</span> · <span style="color:var(--out)">выше '+cnt.over+'</span> · ':'с тратами '+cnt.good+' · ')+'<span style="color:var(--gold)">★ без трат '+cnt.nospend+'</span>'+(cnt.unknown?' · без записей '+cnt.unknown:''):'';
-  var dayCard='<div class="card"><div class="tiprow"><h2>Траты на жизнь по дням</h2>'+tipBtn('days')+'</div>'+tipBox('days','Нажми на столбик, чтобы открыть записи за этот день. '+(lim>0?'Зелёный - день в плане, красный - выше плана, пунктир - план на день. ':'')+'★ - день без трат. Дни без записей не считаются ни хорошими, ни плохими.')+
+  var dayCard='<div class="card"><div class="tiprow"><h2>📆 Траты по дням</h2>'+tipBtn('days')+'</div>'+tipBox('days','Нажми на столбик, чтобы открыть записи за этот день. '+(lim>0?'Зелёный - день в плане, красный - выше плана, пунктир - план на день. ':'')+'★ - день без трат. Дни без записей не считаются ни хорошими, ни плохими.')+
     '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(dsum?'<div class="fine">Дней: '+dsum+'</div>':'')+'</div>';
   var cat=netByCat(life(me)),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});
@@ -2959,9 +2959,9 @@ function viewAn(){
   return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div>'+reviewCard()+
    
    (dayLimit()>0&&vym<=T.slice(0,7)?'':lifeCard(me,n))+dayCard+
-   '<div class="card"><div class="row"><h2 class="grow">По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats',catTip)+catHtml+'</div>'+
+   '<div class="card"><div class="row"><h2 class="grow">🗂️ По категориям</h2>'+tipBtn('cats')+'<button class="btn ghost sm" style="flex:none" data-a="catLim">Лимиты</button></div>'+tipBox('cats',catTip)+catHtml+'</div>'+
    habitsCard(me,upto)+monthsCard()+outCard(me)+
-   '<div class="card" style="padding:10px 12px;gap:8px"><div class="row"><h2 class="grow" style="display:flex;align-items:center;gap:8px">Выгрузка '+tipBtn('ex')+'</h2><button class="btn sm" style="flex:none" data-a="export">Для ИИ</button><button class="btn ghost sm" style="flex:none" data-a="csvOpen">CSV</button></div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'</div>';
+   '<div class="card" style="padding:10px 12px;gap:8px"><div class="row"><h2 class="grow" style="display:flex;align-items:center;gap:8px">📤 Выгрузка '+tipBtn('ex')+'</h2><button class="btn sm" style="flex:none" data-a="export">Для ИИ</button><button class="btn ghost sm" style="flex:none" data-a="csvOpen">CSV</button></div>'+tipBox('ex','Текст для разбора в чате с ИИ или таблица для Excel за любой период.')+'</div>';
 }
 /* привычки: дни недели, мелочи, куда чаще всего */
 var WDN=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],WDG=['понедельникам','вторникам','средам','четвергам','пятницам','субботам','воскресеньям'];
@@ -2990,7 +2990,7 @@ function habitsCard(me,upto){
   var top=Object.keys(g).map(function(k){return g[k]}).filter(function(o){return o.n>=2&&o.s>0}).sort(function(p,q){return q.s-p.s}).slice(0,5);
   if(top.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Куда чаще всего</div><div class="list">'+top.map(function(o){var c=CMAP[o.cat]||CMAP.other;return '<button class="row" data-a="noteHist" data-v="'+esc(o.name)+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(o.name)+'</div><div class="s">'+o.n+' '+plw(o.n,'раз','раза','раз')+' · в среднем '+money(o.s/o.n)+'</div></div><span class="amt out">'+money(o.s)+'</span></button>'}).join('')+'</div>';
   if(!H)return '';
-  return '<div class="card"><div class="tiprow"><h2>Привычки</h2>'+tipBtn('hab')+'</div>'+tipBox('hab','Дни недели - средние траты на жизнь за последние 8 недель, считаются только дни с записями или отмеченные «без трат». Мелочи и «Куда чаще всего» - за выбранный месяц, после вычета возвратов. Нажми на строку, чтобы открыть эти записи в «Истории».')+H+'</div>';
+  return '<div class="card"><div class="tiprow"><h2>🔄 Привычки</h2>'+tipBtn('hab')+'</div>'+tipBox('hab','Дни недели - средние траты на жизнь за последние 8 недель, считаются только дни с записями или отмеченные «без трат». Мелочи и «Куда чаще всего» - за выбранный месяц, после вычета возвратов. Нажми на строку, чтобы открыть эти записи в «Истории».')+H+'</div>';
 }
 /* траты на жизнь за последние 6 месяцев против плана */
 function monthsCard(){
@@ -3013,7 +3013,7 @@ function monthsCard(){
   if(full.length)txt='В среднем '+money(avg)+' в месяц'+(lim>0&&done?', в плане '+good+' из '+done+' '+plw(done,'месяца','месяцев','месяцев'):'')+'.';
   if(full.length>=3){var last=full[full.length-1].v,ea=full.slice(0,-1).reduce(function(s0,o){return s0+o.v},0)/(full.length-1),dv=last-ea;
     if(Math.abs(dv)>=ea*0.07)txt+=' Прошлый месяц '+(dv<0?'на '+money(-dv)+' меньше':'на '+money(dv)+' больше')+', чем в среднем до него.'}
-  return '<div class="card"><div class="tiprow"><h2>По месяцам</h2>'+tipBtn('mon')+'</div>'+tipBox('mon','Траты на жизнь после вычета возвратов. '+(lim>0?'Пунктир - план на месяц по нынешнему плану на день. Зелёный - в плане, красный - выше. ':'')+'Бледный столбик - месяц ещё идёт. Нажми на месяц, чтобы открыть его разбор.')+
+  return '<div class="card"><div class="tiprow"><h2>📈 По месяцам</h2>'+tipBtn('mon')+'</div>'+tipBox('mon','Траты на жизнь после вычета возвратов. '+(lim>0?'Пунктир - план на месяц по нынешнему плану на день. Зелёный - в плане, красный - выше. ':'')+'Бледный столбик - месяц ещё идёт. Нажми на месяц, чтобы открыть его разбор.')+
     '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Траты по месяцам" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(txt?'<div class="fine">'+txt+'</div>':'')+'</div>';
 }
 

@@ -3206,7 +3206,11 @@ window.addEventListener('popstate',function(){
   if(NAV.sheet){NAV.sheet=false;closeSheet(true);return}
   if(NAV.tab){NAV.tab=false;tab='home';window.scrollTo(0,0);render();return}
 });
-function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov');o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false}
+/* то же окно перерисовывается (добавили строку, переключили вкладку) - остаёмся на том же месте, а не прыгаем наверх */
+function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=document.getElementById('ov'),old=o.hidden?null:o.querySelector('.sheet'),st=old?old.scrollTop:0,oh=old&&old.querySelector('h3')?old.querySelector('h3').textContent:null,wy=window.scrollY;
+  o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false;
+  if(oh!==null&&st>0){var nw=o.querySelector('.sheet'),nh=nw.querySelector('h3');if(nh&&nh.textContent===oh){nw.scrollTop=st;requestAnimationFrame(function(){nw.scrollTop=st})}}
+  if(window.scrollY!==wy)window.scrollTo(0,wy)}
 function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;try{applyPetTheme()}catch(e){}if(pendingR){pendingR=false;render()}}
 /* окна (и список выбора) закрываются смахиванием вниз: за название или с любого места, если окно прокручено в самый верх; страница под ними остаётся на том же месте */
 (function(){var g=null;
@@ -3657,7 +3661,7 @@ document.addEventListener('click',function(ev){
   else if(a==='sdate'){var fi=document.getElementById('f_date');if(fi){if(v==='o')dpOpen(fi);else{fi.value=v==='t'?T:iso(addDays(parse(T),-1));fi.dispatchEvent(new Event('change',{bubbles:true}))}}}
   else if(a==='partsOn'){var dp=readEntry();dp.parts=[{cat:dp.cat==='home'?'':'home',amt:''}];entrySheet();setTimeout(function(){var e=document.getElementById('pa0');if(e)e.focus();partsLive()},60)}
   else if(a==='partsOff'){var dq=readEntry();dq.parts=null;entrySheet()}
-  else if(a==='partAdd'){var dr=readEntry();dr.parts.push({cat:'',amt:''});entrySheet();setTimeout(function(){partsLive()},60)}
+  else if(a==='partAdd'){var dr=readEntry(),lp=dr.parts[dr.parts.length-1];dr.parts.push({cat:lp&&lp.cat||'',amt:''});entrySheet();setTimeout(function(){var ni=document.getElementById('pa'+(dr.parts.length-1));if(ni)ni.focus({preventScroll:true});partsLive()},60)}
   else if(a==='partDel'){var ds=readEntry();ds.parts.splice(+b.dataset.i,1);if(!ds.parts.length)ds.parts=null;entrySheet();setTimeout(function(){partsLive()},60)}
   else if(a==='amtPlus'){var ai=document.getElementById(v);if(ai){var av=ai.value.trim();if(av&&!/\+$/.test(av))ai.value=av+'+';ai.focus();try{ai.setSelectionRange(ai.value.length,ai.value.length)}catch(e){}partsLive()}}
   else if(a==='qcat'){var dc=readEntry();dc.cat=v;dc.manual=true;dc.auto=false;if(dc.type==='e'){dc.cls=NEEDC[v]?'need':'mind'}entrySheet()}

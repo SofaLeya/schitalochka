@@ -233,3 +233,20 @@ test('возврат за весь чек делится по разложенн
   // в истории у «Дома» видна доля возврата 325 ₽
   await expect(page.locator('text=доля возврата 325')).toBeVisible();
 });
+
+test('окно не прыгает наверх, когда добавляешь строку в разложение', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await start(page);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '5201');
+  await page.click('[data-a=partsOn]');
+  await page.fill('#pa0', '892');
+  const sh = page.locator('#ov .sheet');
+  await sh.evaluate(e => { e.scrollTop = e.scrollHeight; });
+  const before = await sh.evaluate(e => e.scrollTop);
+  expect(before).toBeGreaterThan(50);
+  await page.click('[data-a=partAdd]');
+  const after = await page.locator('#ov .sheet').evaluate(e => e.scrollTop);
+  expect(Math.abs(after - before)).toBeLessThan(120);
+  await expect(page.locator('[data-pc="1"]')).toHaveValue('home'); // новая строка - в ту же категорию
+});

@@ -761,6 +761,7 @@ function refunds(list){return list.reduce(function(a,x){ // пришедшие �
   return a},0)}
 /* траты по категориям за вычетом возвратов: возврат относится к своей трате (по «Делю с кем-то» или по заметке «Возврат: …»),
    иначе делится по тратам того же дня, иначе по всем тратам периода */
+function grpAmt(x,ex){return x.grp?ex.filter(function(e){return e.grp===x.grp}).reduce(function(a,e){return a+e.amt},0):x.amt}
 function netByCat(list){
   var ex=list.filter(function(x){return x.type==='e'&&!x.skip}),rf=list.filter(function(x){return x.type==='i'&&x.cat==='refund'&&!x.skip}),cat={};
   ex.forEach(function(x){cat[x.cat]=(cat[x.cat]||0)+x.amt});
@@ -769,13 +770,14 @@ function netByCat(list){
     var w={},tw=0;src.forEach(function(x){w[x.cat]=(w[x.cat]||0)+x.amt});
     Object.keys(w).forEach(function(c){w[c]=Math.min(w[c],cat[c]||0);tw+=w[c]});
     if(tw<=0)return v;var left=v;Object.keys(w).forEach(function(c){left-=take(c,Math.min(v*w[c]/tw,w[c]))});return Math.max(0,left)}
-  ex.forEach(function(x){if(x.split>0&&!x.splitDone)take(x.cat,Math.min(x.split,x.amt))});
+  function grpTake(x,v){var g=x.grp?ex.filter(function(e){return e.grp===x.grp}):[x],t=g.reduce(function(a,e){return a+e.amt},0);if(g.length<2||!(t>0)){take(x.cat,v);return}g.forEach(function(e){take(e.cat,v*e.amt/t)})}
+  ex.forEach(function(x){if(x.split>0&&!x.splitDone)grpTake(x,Math.min(x.split,grpAmt(x,ex)))});
   rf.forEach(function(r){
     var v=r.amt,lk=ex.filter(function(e){return e.id===r.for})[0]||ex.filter(function(e){return e.splitDone===r.id})[0];
-    if(lk){take(lk.cat,v);return}
+    if(lk){grpTake(lk,v);return}
     var m=String(r.note||'').match(/^Возврат:\s*(.+)$/i);
     if(m&&r.for!=='none'){var nm=norm(m[1]),c=ex.filter(function(e){return e.note&&norm(e.note)===nm&&e.date<=r.date}).sort(function(p,q){return p.date<q.date?1:-1})[0];
-      if(c){v-=take(c.cat,v);if(v<=0.005)return}}
+      if(c){if(c.grp){grpTake(c,v);return}v-=take(c.cat,v);if(v<=0.005)return}}
     var sd=ex.filter(function(e){return e.date===r.date});
     if(sd.length)v=spread(v,sd);
     if(v>0.005)spread(v,ex)});
@@ -1961,18 +1963,23 @@ function refLinks(){
     if(!e)e=refMatch(r.note,r.date,r.amt,ex);
     if(e&&e.date.slice(0,7)===r.date.slice(0,7)){linked[r.id]=e.id;(byExp[e.id]=byExp[e.id]||[]).push(r)}
   });
-  return {byExp:byExp,linked:linked};
+  /* разложенный чек: возврат и «Делю с кем-то» на любую его часть делятся по всем частям пропорционально суммам */
+  var gb={},gp={},grp={};ex.forEach(function(x){if(x.grp)(grp[x.grp]=grp[x.grp]||[]).push(x)});
+  Object.keys(grp).forEach(function(k){var g=grp[k];if(g.length<2)return;var t=g.reduce(function(a,e){return a+e.amt},0);if(!(t>0))return;
+    var R=0,P=0;g.forEach(function(e){R+=(byExp[e.id]||[]).reduce(function(a,r){return a+r.amt},0);if(e.split>0&&!e.splitDone)P+=e.split});P=Math.min(P,t);
+    g.forEach(function(e){gb[e.id]=R*e.amt/t;gp[e.id]=P*e.amt/t})});
+  return {byExp:byExp,linked:linked,gb:gb,gp:gp};
 }
+function backOf(x,LK){if(LK.gb&&LK.gb[x.id]!=null)return {back:LK.gb[x.id],pend:LK.gp[x.id]};return {back:(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0),pend:x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0}}
 function netOf(x,LK){
-  var back=(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0),pend=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
-  return Math.max(0,x.amt-back-pend);
+  var b=backOf(x,LK);return Math.max(0,x.amt-b.back-b.pend);
 }
 function histRow(x,LK){
   if(x.type!=='e'||x.skip)return entryRow(x);
-  var rl=LK.byExp[x.id]||[],pend=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
-  if(!rl.length&&!pend)return entryRow(x);
-  var c=CMAP[x.cat]||CMAP.other,back=rl.reduce(function(a,r){return a+r.amt},0),net=Math.max(0,x.amt-back-pend);
-  var main='<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.cls?CLS[x.cls][0]:''))+' · было '+money(x.amt)+(pend?' · ждёшь возврат '+money(pend):'')+'</div></div><span class="amt out">−'+money(net)+'</span></button>';
+  var rl=LK.byExp[x.id]||[],bo=backOf(x,LK),pend=bo.pend,inG=LK.gb&&LK.gb[x.id]!=null;
+  if(!rl.length&&!(pend>0.005)&&!(inG&&bo.back>0.005))return entryRow(x);
+  var c=CMAP[x.cat]||CMAP.other,back=bo.back,net=Math.max(0,x.amt-back-pend);
+  var main='<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.cls?CLS[x.cls][0]:''))+' · было '+money(x.amt)+(inG&&!rl.length&&back>0.005?' · доля возврата '+money(back):'')+(pend>0.005?' · ждёшь возврат '+money(pend):'')+'</div></div><span class="amt out">−'+money(net)+'</span></button>';
   var subs=rl.map(function(r){
     var nt=String(r.note||'').replace(/^Возврат:\s*/i,'').trim();if(nt&&x.note&&norm(nt)===norm(x.note))nt='';
     return '<button class="row" data-a="edit" data-id="'+r.id+'" style="padding-top:0;padding-left:22px"><div class="grow"><div class="s">↩ вернули'+(nt?' · '+esc(nt):'')+(r.date!==x.date?' · '+fdate(r.date):'')+'</div></div><span class="amt in" style="font-size:14px">+'+money(r.amt)+'</span></button>'}).join('');
@@ -4045,9 +4052,10 @@ document.addEventListener('submit',function(ev){
     var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip,nobal:!!d.nobal};
     if(d.type==='i'&&d.cat==='refund'){if(d.for)rec.for=d.for;else if(d.forManual)rec.for='none'}
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
+    var gid=null;if(parts.length){var old0=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;gid=(old0&&old0.grp)||uid();rec.grp=gid}
     if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
     else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec);if(d.payLeft)S.payNote={d:T,st:'put'}}
-    var extraIds=parts.map(function(pt){var r2={id:uid(),type:'e',amt:pt.amt,cat:pt.cat,date:rec.date,note:rec.note,cls:NEEDC[pt.cat]?'need':(rec.cls||'need'),clsSet:false,acc:rec.acc,skip:rec.skip,nobal:rec.nobal};S.entries.push(r2);learn(r2);return r2.id});
+    var extraIds=parts.map(function(pt){var r2={id:uid(),grp:gid,type:'e',amt:pt.amt,cat:pt.cat,date:rec.date,note:rec.note,cls:NEEDC[pt.cat]?'need':(rec.cls||'need'),clsSet:false,acc:rec.acc,skip:rec.skip,nobal:rec.nobal};S.entries.push(r2);learn(r2);return r2.id});
     var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);
     vym=rec.date.slice(0,7);

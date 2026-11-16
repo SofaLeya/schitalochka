@@ -211,3 +211,25 @@ test('один чек раскладывается по категориям, с
   const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => !e.demo && e.type === 'e').map(e => e.cat + ':' + e.amt).sort());
   expect(es).toEqual(['home:650', 'prod:1951']);
 });
+
+test('возврат за весь чек делится по разложенным частям пропорционально', async ({ page }) => {
+  await start(page);
+  // трата 5201 и возврат 2600, привязанный к ней
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+    d.entries.push({ id: 'big', type: 'e', amt: 5201, cat: 'prod', note: 'Заказ', date: iso, acc: d.accounts[0].id });
+    d.entries.push({ id: 'ref', type: 'i', amt: 2600, cat: 'refund', note: 'Вернули половину', date: iso, acc: d.accounts[0].id, for: 'big' });
+    localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await page.click('[data-a=edit][data-id=big]');
+  await page.click('[data-a=partsOn]');
+  await page.fill('#pa0', '650');
+  await page.locator('#fm button[type=submit]').click();
+  const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => e.type === 'e' && e.grp).map(e => e.cat + ':' + e.amt).sort());
+  expect(es).toEqual(['home:650', 'prod:4551']);
+  // в истории у «Дома» видна доля возврата 325 ₽
+  await expect(page.locator('text=доля возврата 325')).toBeVisible();
+});

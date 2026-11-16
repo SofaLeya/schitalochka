@@ -281,3 +281,77 @@ test('меню монстрика: 4 вкладки, на 1-м уровне цв
   expect(d.pet.theme).toBe('puff');
   expect(errs).toEqual([]);
 });
+
+const optVal = (page, sel, txt) => page.$eval(sel, (e, t) => [...e.options].find(o => o.text.includes(t)).value, txt);
+
+test('валюта: можно выбрать основную, значок меняется везде', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('[data-a=settings]');
+  await page.click('[data-a=curOpen]');
+  await page.selectOption('#s_cur', 'GEL');
+  await page.click('#ov [data-a=close]');
+  await expect(page.locator('.hero .big')).toContainText('₾');
+  await addExpense(page, 15.5, 'Пятёрочка');
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('text=15,50 ₾').first()).toBeVisible();
+  expect(errs).toEqual([]);
+});
+
+test('валюта: счёт в другой валюте, трата с него и обмен по курсу', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  // карта в лари, свой курс 30 ₽ за 1 ₾
+  await page.click('[data-a=newAcc]');
+  await page.fill('#a_name', 'Карта в лари');
+  await page.selectOption('#a_type', 'other');
+  await page.selectOption('#a_cur', 'GEL');
+  await page.fill('#a_start', '100');
+  await page.locator('#fm button[type=submit]').click();
+  await page.click('[data-a=settings]');
+  await page.click('[data-a=curOpen]');
+  await page.fill('#mr_GEL', '30');
+  await page.click('[data-a=curSave]');
+  const row = page.locator('.row[data-a=editAcc]:has-text("Карта в лари")');
+  await expect(row).toContainText('100 ₾');
+  await expect(row).toContainText('≈ 3 000 ₽');
+  // трата 10 ₾ с этой карты
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '10');
+  await page.fill('#f_note', 'Пятёрочка Тбилиси');
+  await page.locator('#f_more summary').click();
+  await page.selectOption('#f_acc', await optVal(page, '#f_acc', 'Карта в лари'));
+  await expect(page.locator('#f_fx')).toContainText('≈ 300 ₽');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  await expect(row).toContainText('90 ₾');
+  expect(await heroNumber(page)).toBe(20000);
+  // обмен: 3 000 ₽ со свободных денег -> пришло 95 ₾
+  await page.click('.tabs .plus');
+  await page.click('#ov [data-a=stype][data-v=t]');
+  await page.selectOption('#f_to', await optVal(page, '#f_to', 'Карта в лари'));
+  await page.fill('#f_amt', '3000');
+  await page.fill('#f_amt2', '95');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  await expect(row).toContainText('185 ₾');
+  expect(await heroNumber(page)).toBe(17000);
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('.row:has-text("Пятёрочка Тбилиси")')).toContainText('10 ₾');
+  expect(errs).toEqual([]);
+});
+
+test('валюта: курс подтягивается из интернета', async ({ page }) => {
+  await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { gel: 0.025 } }) }));
+  await start(page);
+  await page.click('[data-a=newAcc]');
+  await page.fill('#a_name', 'Лари');
+  await page.selectOption('#a_type', 'other');
+  await page.selectOption('#a_cur', 'GEL');
+  await page.fill('#a_start', '10');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('.row[data-a=editAcc]:has-text("Лари")')).toContainText('≈ 400 ₽');
+  await page.click('[data-a=settings]');
+  await page.click('[data-a=curOpen]');
+  await expect(page.locator('#ov')).toContainText('курс из интернета');
+});

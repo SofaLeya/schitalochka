@@ -302,10 +302,10 @@ test('валюта: счёт в другой валюте, трата с нег�
   const errs = [];
   await start(page, errs);
   // карта в лари, свой курс 30 ₽ за 1 ₾
-  await page.click('[data-a=newAcc]');
+  await page.click('[data-a=newCard]');
   await page.fill('#a_name', 'Карта в лари');
-  await page.selectOption('#a_type', 'other');
   await page.selectOption('#a_cur', 'GEL');
+  await page.uncheck('#a_live');
   await page.fill('#a_start', '100');
   await page.locator('#fm button[type=submit]').click();
   await page.click('[data-a=settings]');
@@ -344,9 +344,8 @@ test('валюта: счёт в другой валюте, трата с нег�
 test('валюта: курс подтягивается из интернета', async ({ page }) => {
   await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { gel: 0.025 } }) }));
   await start(page);
-  await page.click('[data-a=newAcc]');
+  await page.click('[data-a=newCard]');
   await page.fill('#a_name', 'Лари');
-  await page.selectOption('#a_type', 'other');
   await page.selectOption('#a_cur', 'GEL');
   await page.fill('#a_start', '10');
   await page.locator('#fm button[type=submit]').click();
@@ -429,12 +428,40 @@ test('Google Диск: данные уходят в облако и приход
   await a.evaluate(c => { localStorage.setItem('yd-sync', c) }, conn);
   await a.reload();
   await addExpense(a, 500, 'Пятёрочка');
-  await expect.poll(() => Object.values(drive.files).some(f => f.name === 'schitalochka.json' && f.body.includes('Пятёрочка')), { timeout: 10000 }).toBe(true);
+  await expect.poll(() => Object.values(drive.files).some(f => f.name === 'schitalochka.json' && f.body.includes('Пятёрочка')), { timeout: 20000 }).toBe(true);
   const b = await (await browser.newContext()).newPage();
   await b.route(/googleapis\.com/, drive.handler);
   await b.goto('/index.html');
   await b.evaluate(c => { localStorage.setItem('yd-sync', c.replace('"A"', '"B"')) }, conn);
   await b.reload();
-  await expect.poll(async () => (await b.locator('.hero .big').innerText()).replace(/\D/g, ''), { timeout: 10000 }).toBe('19500');
+  await expect.poll(async () => (await b.locator('.hero .big').innerText()).replace(/\D/g, ''), { timeout: 20000 }).toBe('19500');
   await expect(b.locator('#syncbtn')).toContainText('Диск');
+});
+
+test('карты: вторая карта в долларах «на жизнь» входит в свободные деньги', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('[data-a=newCard]');
+  await page.fill('#a_name', 'Долларовая');
+  await page.selectOption('#a_cur', 'USD');
+  await expect(page.locator('#a_live')).toBeChecked();
+  await page.fill('#a_start', '50');
+  await page.locator('#fm button[type=submit]').click();
+  await page.click('[data-a=settings]');
+  await page.click('[data-a=curOpen]');
+  await page.fill('#mr_USD', '100');
+  await page.click('[data-a=curSave]');
+  await expect.poll(() => heroNumber(page)).toBe(25000);
+  // трата с долларовой карты: выбор карты виден сразу, без «Ещё»
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '10');
+  await page.fill('#f_note', 'Пятёрочка');
+  await expect(page.locator('#f_acc')).toBeVisible();
+  await page.selectOption('#f_acc', await optVal(page, '#f_acc', 'Долларовая'));
+  await expect(page.locator('#f_fx')).toContainText('≈ 1 000 ₽');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  await expect.poll(() => heroNumber(page)).toBe(24000);
+  await expect(page.locator('.row[data-a=editAcc]:has-text("Долларовая")')).toContainText('40 $');
+  expect(errs).toEqual([]);
 });

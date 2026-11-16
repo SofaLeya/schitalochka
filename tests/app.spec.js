@@ -302,7 +302,8 @@ test('валюта: счёт в другой валюте, трата с нег�
   const errs = [];
   await start(page, errs);
   // карта в лари, свой курс 30 ₽ за 1 ₾
-  await page.click('[data-a=newCard]');
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
   await page.fill('#a_name', 'Карта в лари');
   await page.selectOption('#a_cur', 'GEL');
   await page.uncheck('#a_live');
@@ -344,12 +345,14 @@ test('валюта: счёт в другой валюте, трата с нег�
 test('валюта: курс подтягивается из интернета', async ({ page }) => {
   await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { gel: 0.025 } }) }));
   await start(page);
-  await page.click('[data-a=newCard]');
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
   await page.fill('#a_name', 'Лари');
   await page.selectOption('#a_cur', 'GEL');
   await page.fill('#a_start', '10');
   await page.locator('#fm button[type=submit]').click();
-  await expect(page.locator('.row[data-a=editAcc]:has-text("Лари")')).toContainText('≈ 400 ₽');
+  await expect(page.locator('.hero .hcard:has-text("Лари")')).toContainText('10 ₾');
+  await expect.poll(() => heroNumber(page)).toBe(20400);
   await page.click('[data-a=settings]');
   await page.click('[data-a=curOpen]');
   await expect(page.locator('#ov')).toContainText('курс из интернета');
@@ -441,7 +444,8 @@ test('Google Диск: данные уходят в облако и приход
 test('карты: вторая карта в долларах «на жизнь» входит в свободные деньги', async ({ page }) => {
   const errs = [];
   await start(page, errs);
-  await page.click('[data-a=newCard]');
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
   await page.fill('#a_name', 'Долларовая');
   await page.selectOption('#a_cur', 'USD');
   await expect(page.locator('#a_live')).toBeChecked();
@@ -462,7 +466,7 @@ test('карты: вторая карта в долларах «на жизнь�
   await page.locator('#fm button[type=submit]').click();
   await expect(page.locator('#ov .sheet')).toBeHidden();
   await expect.poll(() => heroNumber(page)).toBe(24000);
-  await expect(page.locator('.row[data-a=editAcc]:has-text("Долларовая")')).toContainText('40 $');
+  await expect(page.locator('.hero .hcard:has-text("Долларовая")')).toContainText('40 $');
   expect(errs).toEqual([]);
 });
 

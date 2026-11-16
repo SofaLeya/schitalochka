@@ -250,3 +250,17 @@ test('окно не прыгает наверх, когда добавляешь
   expect(Math.abs(after - before)).toBeLessThan(120);
   await expect(page.locator('[data-pc="1"]')).toHaveValue('home'); // новая строка - в ту же категорию
 });
+
+test('разложенный чек помечен и показывает свои части', async ({ page }) => {
+  await start(page);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '1000');
+  await page.fill('#f_note', 'Заказ продукты');
+  await page.click('[data-a=partsOn]');
+  await page.fill('#pa0', '300');
+  await page.locator('#fm button[type=submit]').click();
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('text=часть чека 1 000').first()).toBeVisible();
+  await page.locator('.row:has-text("Продукты")').first().click();
+  await expect(page.locator('text=Чек на 1 000 ₽ разложен')).toBeVisible();
+});

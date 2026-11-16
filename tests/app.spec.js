@@ -195,3 +195,19 @@ test('подсказки: монстрик говорит про мелочи, "
   await expect(page.locator('text=Разбор месяца')).toBeVisible();
   expect(errs).toEqual([]);
 });
+
+test('один чек раскладывается по категориям, суммы с плюсом складываются', async ({ page }) => {
+  await start(page);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '2000+601');
+  await expect(page.locator('#f_amtsum')).toContainText('2 601');
+  await page.fill('#f_note', 'Заказ продукты');
+  await page.click('[data-a=partsOn]');
+  await page.fill('#pa0', '400');
+  await page.click('[data-a=amtPlus][data-v=pa0]');
+  await page.locator('#pa0').pressSequentially('250');
+  await expect(page.locator('#f_prest')).toContainText('1 951');
+  await page.locator('#fm button[type=submit]').click();
+  const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => !e.demo && e.type === 'e').map(e => e.cat + ':' + e.amt).sort());
+  expect(es).toEqual(['home:650', 'prod:1951']);
+});

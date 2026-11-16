@@ -264,3 +264,20 @@ test('разложенный чек помечен и показывает св�
   await page.locator('.row:has-text("Продукты")').first().click();
   await expect(page.locator('text=Чек на 1 000 ₽ разложен')).toBeVisible();
 });
+
+test('меню монстрика: 4 вкладки, на 1-м уровне цветок открыт, имя и цвета сохраняются', async ({ page }) => {
+  const errs = []; page.on('pageerror', e => errs.push(String(e)));
+  await start(page);
+  await page.click('[data-a=petPick]');
+  await expect(page.locator('.ptabs button')).toHaveText(['Монстрик', 'Наряд', 'Фон', 'Цвета']);
+  await page.fill('#pu_name', 'Софа');
+  await page.click('[data-a=petTab][data-v=outfit]');
+  await expect(page.locator('[data-a=petAcc][data-v=flower] .lkb')).toHaveCount(0);
+  await page.click('[data-a=petTab][data-v=col]');
+  await page.click('[data-a=petTheme][data-v=puff]');
+  await page.locator('#fm button[type=submit]').click();
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')));
+  expect(d.uname).toBe('Софа');
+  expect(d.pet.theme).toBe('puff');
+  expect(errs).toEqual([]);
+});

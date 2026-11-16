@@ -465,3 +465,46 @@ test('карты: вторая карта в долларах «на жизнь�
   await expect(page.locator('.row[data-a=editAcc]:has-text("Долларовая")')).toContainText('40 $');
   expect(errs).toEqual([]);
 });
+
+async function importTable(page, name, text) {
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Загрузить данные' }).click();
+  await page.locator('#ov summary', { hasText: 'Траты из таблицы' }).click();
+  await page.setInputFiles('#s_xl', { name, mimeType: 'text/csv', buffer: Buffer.from(text, 'utf8') });
+  await expect(page.locator('#ov h3')).toContainText('Траты из таблицы');
+}
+const storedE = page => stored(page).then(o => o.entries.filter(e => !e.demo));
+
+test('таблица: американская выписка в долларах (даты месяц/день, минус - расход)', async ({ page }) => {
+  const errs = [];
+  await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { usd: 0.01 } }) }));
+  await start(page, errs);
+  await importTable(page, 'chase.csv', 'Posting Date,Description,Amount,Type,Balance\n11/14/2026,STARBUCKS,-4.50,DEBIT,995.50\n11/13/2026,PAYROLL,"1,500.00",CREDIT,1000.00\n10/20/2026,WHOLE FOODS,-23.10,DEBIT,500\n');
+  await expect(page.locator('#xm_ccy')).toHaveValue('RUB');
+  await page.selectOption('#xm_ccy', 'USD');
+  await expect(page.locator('#ov')).toContainText('месяц/день/год');
+  await page.click('[data-a=xlNext]');
+  await page.click('[data-a=bkAdd]');
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  const es = await storedE(page);
+  const sb = es.find(e => /starbucks/i.test(e.note));
+  expect(sb).toMatchObject({ type: 'e', date: '2026-11-14', amt: 450, oc: 'USD', oa: 4.5 });
+  expect(es.find(e => /payroll/i.test(e.note))).toMatchObject({ type: 'i', date: '2026-11-13', oa: 1500 });
+  expect(es.find(e => /whole foods/i.test(e.note)).date).toBe('2026-10-20');
+  expect(errs).toEqual([]);
+});
+
+test('таблица: расход и приход в разных столбцах, запятая в дробях, валюта в сумме', async ({ page }) => {
+  const errs = [];
+  await page.route(/currency-api/, r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ date: '2026-11-16', rub: { gel: 0.04 } }) }));
+  await start(page, errs);
+  await importTable(page, 'bog.csv', 'Date;Details;Debit;Credit;Balance\n16.11.2026;Carrefour;12,50 GEL;;100,00\n15.11.2026;Transfer in;;200,00 GEL;112,50\n');
+  await expect(page.locator('#xm_ccy')).toHaveValue('GEL');
+  await page.click('[data-a=xlNext]');
+  await page.click('[data-a=bkAdd]');
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  const es = await storedE(page);
+  expect(es.find(e => e.note === 'Carrefour')).toMatchObject({ type: 'e', amt: 312.5, oc: 'GEL', oa: 12.5 });
+  expect(es.find(e => e.note === 'Transfer in')).toMatchObject({ type: 'i', oa: 200 });
+  expect(errs).toEqual([]);
+});

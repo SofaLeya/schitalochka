@@ -2682,21 +2682,45 @@ function xlRead(file){return file.arrayBuffer().then(function(buf){
   else wb=XLSX.read(buf,{type:'array',cellDates:true});
   return wb})}
 function xlRows(ws){return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}).filter(function(r){return r.some(function(c){return String(c).trim()!==''})})}
-function xlDate(v){
+var XLMON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,янв:1,фев:2,мар:3,апр:4,мая:5,май:5,июн:6,июл:7,авг:8,сен:9,окт:10,ноя:11,дек:12};
+function xlMonN(w){w=String(w||'').toLowerCase().replace(/ё/g,'е').slice(0,3);return XLMON[w]||0}
+/* дата из ячейки; order - 'dmy' (как у нас и почти везде) или 'mdy' (как в США), определяется по всему столбцу */
+function xlDate(v,order){
   if(v instanceof Date&&!isNaN(v)){var d=new Date(v.getTime()+12*3600e3);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
   if(typeof v==='number'&&v>20000&&v<80000){var d2=new Date(Math.round((v-25569)*864e5)+12*3600e3);return d2.getUTCFullYear()+'-'+p2(d2.getUTCMonth()+1)+'-'+p2(d2.getUTCDate())}
-  var t=String(v).trim(),m=t.match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{2,4})/);if(m){var y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+p2(+m[2])+'-'+p2(+m[1])}
-  m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+p2(+m[2])+'-'+p2(+m[3]);return null}
-function xlNum(v){if(typeof v==='number')return v;var t=String(v).replace(/[\s  ₽]|руб\.?|RUB|RUR/gi,'').replace('−','-').replace(',','.');var n=parseFloat(t);return isNaN(n)?null:n}
+  var t=String(v).trim(),m,y,mo,da;
+  if((m=t.match(/^(\d{4})[.\/\-](\d{1,2})[.\/\-](\d{1,2})/))){y=+m[1];mo=+m[2];da=+m[3]}
+  else if((m=t.match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{2,4})/))){y=+(m[3].length===2?'20'+m[3]:m[3]);if(order==='mdy'){mo=+m[1];da=+m[2]}else{da=+m[1];mo=+m[2]}}
+  else if((m=t.match(/^(\d{1,2})[\s.\-\/]+([A-Za-zА-Яа-яЁё]{3,})\.?[\s.\-\/,]+(\d{2,4})/))&&xlMonN(m[2])){da=+m[1];mo=xlMonN(m[2]);y=+(m[3].length===2?'20'+m[3]:m[3])}
+  else if((m=t.match(/^([A-Za-zА-Яа-яЁё]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})/))&&xlMonN(m[1])){mo=xlMonN(m[1]);da=+m[2];y=+m[3]}
+  else return null;
+  if(!(mo>=1&&mo<=12&&da>=1&&da<=31&&y>1990&&y<2100))return null;return y+'-'+p2(mo)+'-'+p2(da)}
+function xlOrder(vals){var dm=0,md=0;vals.forEach(function(v){var m=String(v).trim().match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-]\d{2,4}/);if(!m)return;if(+m[1]>12)dm++;if(+m[2]>12)md++});return md>dm?'mdy':'dmy'}
+/* число из ячейки: 1 234,56 / 1,234.56 / 1.234,56 / (12.50) / 12.50- / «−12,5 ₾» / «12.50 GEL» */
+function xlNum(v){if(typeof v==='number')return v;var t=String(v==null?'':v).trim();if(!t)return null;
+  var neg=/^\(.*\)$/.test(t)||(/[-−]\s*$/.test(t)&&!/^[-−]/.test(t))||/\bDR\b/i.test(t);
+  t=t.replace(/−/g,'-').replace(/[^\d.,\-+]/g,'');if(!/\d/.test(t))return null;
+  var lc=t.lastIndexOf(','),ld=t.lastIndexOf('.');
+  if(lc>=0&&ld>=0){if(lc>ld)t=t.replace(/\./g,'').replace(',','.');else t=t.replace(/,/g,'')}
+  else if(lc>=0){t=(t.match(/,/g).length===1&&/,\d{1,2}$/.test(t))?t.replace(',','.'):t.replace(/,/g,'')}
+  else if(ld>=0&&t.match(/\./g).length>1)t=t.replace(/\./g,'');
+  var sg=/^-/.test(t)?-1:1;t=t.replace(/[-+]/g,'');var n=parseFloat(t);if(isNaN(n))return null;n*=sg;if(neg&&n>0)n=-n;return n}
+/* валюта из текста ячейки: код (GEL, USD) или значок (₾, $) */
+function xlCurOf(t){t=String(t||'');var m=t.toUpperCase().match(/\b([A-Z]{3})\b/);if(m&&CUR[m[1]])return m[1];if(/RUR|РУБ/i.test(t))return 'RUB';
+  var ks=Object.keys(CUR);for(var i=0;i<ks.length;i++){var sy=CUR[ks[i]][0];if(sy.length<=2&&!/^[A-Za-zА-Яа-я]/.test(sy)&&t.indexOf(sy)>=0&&!(sy==='$'&&/C\$/.test(t)))return ks[i]}return ''}
 function xlCat(name,type){var n=norm(name);if(!n)return '';var list=type==='i'?ICATS:CATS;
   var c=list.filter(function(x){return x.id===n||norm(x.name)===n})[0]||list.filter(function(x){var k=norm(x.name);return k.indexOf(n)===0||n.indexOf(k)===0})[0];return c?c.id:''}
-function xlGuessCols(head){var g={date:-1,amt:-1,note:-1,cat:-1,type:-1};
-  head.forEach(function(h,i){h=norm(h);
-    if(g.date<0&&/дата|date|день/.test(h))g.date=i;
-    else if(g.amt<0&&/сумм|amount|стоим|цена|руб|₽|расход|потрач/.test(h))g.amt=i;
-    else if(g.cat<0&&/категор|category|статья|группа/.test(h))g.cat=i;
-    else if(g.type<0&&/^тип|вид операц|приход|направл/.test(h))g.type=i;
-    else if(g.note<0&&/опис|назван|заметк|коммент|назнач|что|товар|магазин|где|name|note|desc/.test(h))g.note=i});
+function xlGuessCols(head){var g={date:-1,amt:-1,note:-1,cat:-1,type:-1,debit:-1,credit:-1,cur:-1};
+  head.forEach(function(h,i){h=norm(h);if(!h)return;
+    if(/остат|баланс|balance|saldo|bakiye/.test(h))return; // остаток на счёте - это не сумма операции
+    if(g.date<0&&/дата|date|день|datum|fecha|data|tarih|თარიღ|күн|сана|sana/.test(h))g.date=i;
+    else if(g.cur<0&&/валют|currency|^ccy|^curr|para birimi|ვალუტა|waluta|währung|devise|moneda/.test(h))g.cur=i;
+    else if(g.debit<0&&/дебет|debit|withdraw|paid out|money out|outflow|списан|расход по|^расход|gasavali|გასავალი|ausgang|cargo|wypływ|^out$/.test(h))g.debit=i;
+    else if(g.credit<0&&/кредит|credit|deposit|paid in|money in|inflow|зачисл|^приход|поступлен|შემოსავალი|eingang|abono|wpływ|^in$/.test(h))g.credit=i;
+    else if(g.amt<0&&/сумм|amount|стоим|цена|руб|₽|расход|потрач|^sum|betrag|importe|importo|montant|tutar|kwota|თანხა|summa|сома|value|total/.test(h))g.amt=i;
+    else if(g.cat<0&&/категор|category|статья|группа|kategor|categor/.test(h))g.cat=i;
+    else if(g.type<0&&/^тип|вид операц|направл|^type|transaction type|dr\/cr|debit\/credit|cr\/dr/.test(h))g.type=i;
+    else if(g.note<0&&/опис|назван|заметк|коммент|назнач|что|товар|магазин|где|получат|контраг|name|note|desc|detail|merchant|payee|narrat|memo|refer|beneficiar|counterpart|verwendung|concepto|libell|opis|açıklama|დანიშნულება|დასახელება/.test(h))g.note=i});
   return g}
 function xlStart(file){var msg=document.getElementById('s_xlmsg');function say(t){if(msg){msg.textContent=t;msg.hidden=false}}
   say('Читаю таблицу…');
@@ -2708,30 +2732,50 @@ function xlStart(file){var msg=document.getElementById('s_xlmsg');function say(t
       sh={xl:true,file:file.name,sheets:sheets,si:si};xlPrep();xlMapSheet();
     }).catch(function(){say('Не получилось прочитать файл. Подходят .xlsx, .xls и .csv.')})})}
 function xlPrep(){var rows=sh.sheets[sh.si].rows,hi=0;
-  for(var i=0;i<Math.min(10,rows.length);i++){var g=xlGuessCols(rows[i]);if(g.date>=0&&g.amt>=0){hi=i;break}}
+  for(var i=0;i<Math.min(15,rows.length);i++){var g=xlGuessCols(rows[i]);if(g.date>=0&&(g.amt>=0||g.debit>=0||g.credit>=0)){hi=i;break}}
   sh.hi=hi;sh.head=rows[hi].map(function(h,i){return String(h).trim()||('Столбец '+(i+1))});sh.map=xlGuessCols(rows[hi]);
-  if(sh.map.date<0||sh.map.amt<0){ // без заголовков: ищем по содержимому
-    var r=rows[hi+1]||rows[0];r.forEach(function(v,i){if(sh.map.date<0&&xlDate(v))sh.map.date=i;else if(sh.map.amt<0&&xlNum(v)!==null&&!xlDate(v))sh.map.amt=i;else if(sh.map.note<0&&typeof v==='string'&&v.trim()&&xlNum(v)===null)sh.map.note=i})}}
+  if(sh.map.date<0||(sh.map.amt<0&&sh.map.debit<0&&sh.map.credit<0)){ // без заголовков: ищем по содержимому
+    var r=rows[hi+1]||rows[0];r.forEach(function(v,i){if(sh.map.date<0&&xlDate(v))sh.map.date=i;else if(sh.map.amt<0&&xlNum(v)!==null&&!xlDate(v))sh.map.amt=i;else if(sh.map.note<0&&typeof v==='string'&&v.trim()&&xlNum(v)===null)sh.map.note=i})}
+  sh.acc=sh.acc||defAcc();var body=rows.slice(hi+1,hi+40),fc='';
+  if(sh.map.amt>=0)body.some(function(r){fc=xlCurOf(r[sh.map.amt]);return !!fc});
+  ['cur','debit','credit'].forEach(function(k){if(!fc&&sh.map[k]>=0)body.some(function(r){fc=xlCurOf(r[sh.map[k]]);return !!fc})});
+  sh.ccy=fc||accCur(accById(sh.acc));
+  sh.order=sh.map.date>=0?xlOrder(body.map(function(r){return r[sh.map.date]})):'dmy';
+  if(sh.ccy!==baseCur())rtFetch(false,true)}
 function xlMapSheet(){var m=sh.map,rows=sh.sheets[sh.si].rows;
   function sel(k,lab,need){return '<div class="f"><label for="xm_'+k+'">'+lab+'</label><select id="xm_'+k+'" data-xm="'+k+'">'+(need?'':'<option value="-1">— нет —</option>')+sh.head.map(function(h,i){return '<option value="'+i+'"'+(m[k]===i?' selected':'')+'>'+esc(h)+'</option>'}).join('')+'</select></div>'}
-  var prev=rows.slice(sh.hi+1,sh.hi+4).map(function(r){return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t" style="font-size:14px">'+esc(m.note>=0?String(r[m.note]):'')+'</div><div class="s">'+esc(m.date>=0?(xlDate(r[m.date])||String(r[m.date])):'')+(m.cat>=0&&r[m.cat]?' · '+esc(String(r[m.cat])):'')+'</div></div><span class="amt">'+esc(m.amt>=0?String(r[m.amt]):'')+'</span></div>'}).join('');
+  var neg0=m.amt>=0&&rows.slice(sh.hi+1).some(function(r){var v=xlNum(r[m.amt]);return v!==null&&v<0});
+  var prev=rows.slice(sh.hi+1,sh.hi+4).map(function(r){var o=m.date>=0?xlRow(r,neg0):null;return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t" style="font-size:14px">'+esc(m.note>=0?String(r[m.note]):'')+'</div><div class="s">'+esc(m.date>=0?(xlDate(r[m.date],sh.order)||String(r[m.date])):'')+(m.cat>=0&&r[m.cat]?' · '+esc(String(r[m.cat])):'')+'</div></div><span class="amt '+(o&&o.dir==='in'?'in':'out')+'">'+(o?(o.dir==='in'?'+':'−')+mon(o.v,o.cur):'?')+'</span></div>'}).join('');
   openSheet('<h3>Траты из таблицы</h3><p class="fine">'+esc(sh.file)+' · строк: '+(rows.length-sh.hi-1)+'. Укажи, в каком столбце что лежит.</p>'+
    (sh.sheets.length>1?'<div class="f"><label for="xm_sheet">Лист</label><select id="xm_sheet">'+sh.sheets.map(function(x,i){return '<option value="'+i+'"'+(i===sh.si?' selected':'')+'>'+esc(x.name)+'</option>'}).join('')+'</select></div>':'')+
-   '<div class="two">'+sel('date','Дата',true)+sel('amt','Сумма',true)+'</div><div class="two">'+sel('note','Название / заметка')+sel('cat','Категория')+'</div>'+sel('type','Тип (расход / доход)')+
-   '<p class="fine">Если в «Сумме» есть минусы, минус — расход, плюс — доход. Иначе всё считается расходами, если нет столбца «Тип».</p>'+
+   '<div class="two">'+sel('date','Дата',true)+sel('amt','Сумма')+'</div><div class="two">'+sel('note','Название / заметка')+sel('cat','Категория')+'</div>'+
+   '<details'+(m.debit>=0||m.credit>=0||m.cur>=0||m.type>=0?' open':'')+'><summary class="fine" style="cursor:pointer">Расход и приход в разных столбцах, тип, валюта</summary><div class="f" style="gap:10px;margin-top:8px"><div class="two">'+sel('debit','Расход (списано)')+sel('credit','Приход (зачислено)')+'</div><div class="two">'+sel('type','Тип (расход / доход)')+sel('cur','Валюта (столбец)')+'</div></div></details>'+
+   '<div class="two"><div class="f"><label for="xm_ccy">Валюта сумм</label><select id="xm_ccy">'+curOpts(sh.ccy||baseCur()).replace(/ · [^<]*</g,function(x){return x})+'</select></div>'+
+   (S.accounts.filter(isLive).length>1?'<div class="f"><label for="xm_acc">Карта</label><select id="xm_acc">'+S.accounts.filter(isLive).map(function(a){return '<option value="'+a.id+'"'+(a.id===sh.acc?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select></div>':'<div></div>')+'</div>'+
+   ((sh.ccy||baseCur())!==baseCur()?'<p class="fine" style="margin:0">Суммы в '+sym(sh.ccy)+' пересчитаю в '+sym()+' по сегодняшнему курсу ('+rateTxt(sh.ccy)+'), исходная сумма сохранится в записи.</p>':'')+
+   '<p class="fine">Минус в «Сумме» - расход, плюс - доход. Если минусов нет, всё считается расходами, кроме строк, где тип - доход или сумма в «Приходе». Даты '+(sh.order==='mdy'?'читаю как месяц/день/год (американский формат).':'читаю как день.месяц.год.')+'</p>'+
    '<div class="card" style="gap:0;padding:10px 12px"><b style="font-size:13px">Так прочитаю первые строки</b>'+prev+'</div>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="xlNext">Дальше</button></div>')}
-function xlNext(){var m=sh.map,rows=sh.sheets[sh.si].rows.slice(sh.hi+1),neg=false,ops=[],bad=0,seen={};
-  rows.forEach(function(r){var v=xlNum(r[m.amt]);if(v!==null&&v<0)neg=true});
-  rows.forEach(function(r,i){var date=xlDate(r[m.date]),v=xlNum(r[m.amt]);if(!date||v===null||v===0){bad++;return}
-    var dir='out';if(m.type>=0){var t=norm(r[m.type]);if(/доход|приход|поступ|пополн|зачисл|^\+|income|возврат/.test(t))dir='in'}else if(neg&&v>0)dir='in';
-    var note=m.note>=0?String(r[m.note]).trim():'',cat=m.cat>=0?String(r[m.cat]).trim():'';
-    var isRef=dir==='in'&&/возврат|кэшбэк|кешбэк/i.test(note+' '+cat);
-    var key='xl_'+date+'_'+Math.abs(v).toFixed(2)+'_'+hsh(norm(note)+'|'+cat);if(seen[key])key+='_'+i;seen[key]=1;
-    ops.push({op:{key:key,date:date,amt:Math.abs(v),dir:dir,bank:'Таблица',desc:note||(cat||'Запись'),merchant:note||cat,kind:dir==='in'?(isRef?'refund':'income'):'buy',tableCat:cat},owner:''})});
+/* одна строка таблицы: дата, сумма (положительная), направление и валюта; neg - есть ли в столбце суммы минусы */
+function xlRow(r,neg){var m=sh.map,date=xlDate(r[m.date],sh.order);if(!date)return null;var v=null,dir='out';
+  if(m.debit>=0||m.credit>=0){var dv=m.debit>=0?xlNum(r[m.debit]):null,cv=m.credit>=0?xlNum(r[m.credit]):null;
+    if(dv)v=Math.abs(dv);else if(cv){v=Math.abs(cv);dir='in'}}
+  if(v===null&&m.amt>=0){var a=xlNum(r[m.amt]);if(a){v=Math.abs(a);if(m.type>=0){var t=norm(r[m.type]);if(/доход|приход|поступ|пополн|зачисл|^\+|income|возврат|credit|^cr$|^c$|deposit|incoming|refund|^in$/.test(t))dir='in'}else if(neg&&a>0)dir='in'}}
+  if(!v)return null;
+  var cur=(m.cur>=0&&xlCurOf(r[m.cur]))||(m.amt>=0&&xlCurOf(r[m.amt]))||(m.debit>=0&&xlCurOf(r[m.debit]))||(m.credit>=0&&xlCurOf(r[m.credit]))||sh.ccy||baseCur();
+  return {date:date,v:v,dir:dir,cur:cur}}
+function xlNext(){var m=sh.map,rows=sh.sheets[sh.si].rows.slice(sh.hi+1),neg=false,ops=[],bad=0,seen={},fx={},acc=sh.acc||defAcc();
+  if(m.date<0||(m.amt<0&&m.debit<0&&m.credit<0)){toast('Выбери столбцы с датой и суммой.',true);return}
+  if(m.amt>=0)rows.forEach(function(r){var v=xlNum(r[m.amt]);if(v!==null&&v<0)neg=true});
+  rows.forEach(function(r,i){var o=xlRow(r,neg);if(!o){bad++;return}
+    var note=m.note>=0?String(r[m.note]).trim():'',cat=m.cat>=0?String(r[m.cat]).trim():'',dir=o.dir;
+    var isRef=dir==='in'&&/возврат|кэшбэк|кешбэк|refund|cashback/i.test(note+' '+cat);
+    var amt=o.cur===baseCur()?o.v:Math.round(o.v*rateOf(o.cur)*100)/100;
+    var key='xl_'+o.date+'_'+o.v.toFixed(2)+'_'+hsh(norm(note)+'|'+cat);if(seen[key])key+='_'+i;seen[key]=1;
+    fx[key]={acc:acc,oc:o.cur!==baseCur()?o.cur:'',oa:o.v};
+    ops.push({op:{key:key,date:o.date,amt:amt,dir:dir,bank:'Таблица',desc:note||(cat||'Запись'),merchant:note||cat,kind:dir==='in'?(isRef?'refund':'income'):'buy',tableCat:cat},owner:''})});
   if(!ops.length){toast('Строки с датой и суммой не найдены. Проверь столбцы.',true);return}
-  sh={bk:true,ops:ops,banks:['таблица'],manualCat:{},showAll:false};bkReclass();bkSheet();if(bad)toast('Пропущено строк без даты или суммы: '+bad)}
-
+  sh={bk:true,ops:ops,banks:['таблица'],manualCat:{},showAll:false,fx:fx};bkReclass();bkSheet();if(bad)toast('Пропущено строк без даты или суммы: '+bad)}
 /* план из Excel: листы «Доходы», «Платежи», «Накопления», «Долги» */
 function xlPlanFromWb(wb){var o={app:'schitalochka-plan',v:1,mode:'full'},found=0;
   function cols(head,map){var r={};Object.keys(map).forEach(function(k){r[k]=-1;head.forEach(function(h,i){if(r[k]<0&&map[k].test(norm(h)))r[k]=i})});return r}
@@ -2760,7 +2804,7 @@ function bkAdd(){
   if(S.demo){S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.accounts.forEach(function(x){if(x.demoStart){x.start=0;delete x.demoStart}});dropDemoAccs();S.demo=false}
   var have={};S.entries.forEach(function(e){have[e.id]=1});
   add.forEach(function(r){var id='bk_'+r.key;if(have[id])return;
-    var en={id:id,type:r.type,amt:r.amt,cat:r.cat,date:r.date,note:r.note,cls:r.type==='e'?(NEEDC[r.cat]?'need':'mind'):'',acc:defAcc(),hist:true,bank:r.bank};if(r.hold)en.hold=true;S.entries.push(en);n++;
+    var en={id:id,type:r.type,amt:r.amt,cat:r.cat,date:r.date,note:r.note,cls:r.type==='e'?(NEEDC[r.cat]?'need':'mind'):'',acc:defAcc(),hist:true,bank:r.bank};var fx0=sh.fx&&sh.fx[r.key];if(fx0){if(accById(fx0.acc))en.acc=fx0.acc;if(fx0.oc){en.oc=fx0.oc;en.oa=fx0.oa}}if(r.hold)en.hold=true;S.entries.push(en);n++;
     if(r.catManual&&r.kind==='buy')learn({type:r.type,note:r.note,cat:r.cat});
   });
   var skipK=sh.rows.filter(function(r){return !r.checked&&r.state!=='loaded'}).map(function(r){return r.key});
@@ -2773,6 +2817,8 @@ document.addEventListener('change',function(ev){
   if(t.id==='s_xl'&&t.files&&t.files[0]){var xf0=t.files[0];t.value='';xlStart(xf0);return}
   if(t.dataset&&t.dataset.xm&&sh&&sh.xl){sh.map[t.dataset.xm]=+t.value;xlMapSheet();return}
   if(t.id==='xm_sheet'&&sh&&sh.xl){sh.si=+t.value;xlPrep();xlMapSheet();return}
+  if(t.id==='xm_ccy'&&sh&&sh.xl){sh.ccy=t.value;if(t.value!==baseCur())rtFetch(false,true);xlMapSheet();return}
+  if(t.id==='xm_acc'&&sh&&sh.xl){sh.acc=t.value;var ac0=accCur(accById(t.value));if(ac0!==baseCur()||sh.ccy===baseCur())sh.ccy=ac0;xlMapSheet();return}
   if(!sh||!sh.bk)return;
   if(t.dataset.bkx!==undefined){var r=sh.rows[+t.dataset.bkx];r.checked=t.checked;var sel=document.querySelector('[data-bkc="'+t.dataset.bkx+'"]');if(sel)sel.style.display=t.checked?'':'none';var go=document.getElementById('bk_go');if(go)go.textContent=bkFoot()}
   else if(t.dataset.bkc!==undefined){var r2=sh.rows[+t.dataset.bkc];r2.cat=t.value;r2.catManual=true;sh.manualCat[r2.key]=t.value;var same=0;sh.rows.forEach(function(x,xi){if(x!==r2&&!x.catManual&&x.type===r2.type&&norm(x.note)===norm(r2.note)){x.cat=t.value;x.catManual=true;sh.manualCat[x.key]=t.value;same++;var s2=document.querySelector('[data-bkc="'+xi+'"]');if(s2)s2.value=t.value}});if(same)toast('Такая же категория и у похожих: '+same)}
@@ -3600,7 +3646,7 @@ function helpSheet(){
   q('👾 Монстрик',ul(['Радуется, когда траты в плане, хвалит за дни без трат и в день зарплаты, если остались деньги. Иногда подсказывает, где можно сэкономить.','Ночью, с 0 до 7, спит, но записи принимает.','Нажми на него - он отреагирует, подержи палец - обнимашки.','Сменить монстрика, дать имя, выбрать размер и фон - «сменить» рядом с его именем.','Звёзды даются за результат: день без трат, день в плане, неделя и месяц в бюджете. Перерасход звёзды не отнимает.']))+
   q('📊 История и анализ',ul(['«История» - все записи лентой, есть поиск и фильтры.','В полном режиме у траты можно отметить, какая она: 🧾 нужно, 💭 хотелось или ⚡ спонтанно.','«Анализ» - прогноз на месяц, траты по дням и по категориям. Нажми на столбик или категорию - откроются эти записи.','«Выгрузка» внизу «Анализа» - текст со всеми тратами, его можно отдать любому ИИ и попросить разобрать.']))+
   q('🛟 Как не потерять данные',ul(['Записи хранятся только в этом телефоне, на сайт они не уходят.','Включи Яндекс Диск или Google Диск: шестерёнка → «Копии и синхронизация». Копии будут делаться сами, и данные появятся на другом телефоне.','Нет облака - раз в неделю жми там же «Скачать файл на устройство».','Открывай приложение всегда одним способом: значком или в том же браузере.']))+
-  q('📥 Загрузить выписку или таблицу',ul(['Шестерёнка → «Загрузить данные».','Выписка из банка (PDF): Альфа, Сбер, ВТБ, ОТП, Т-Банк. Таблица Excel или CSV: нужны дата и сумма.','Перед добавлением всё покажется на проверку. Повторная загрузка дублей не создаст.'])+
+  q('📥 Загрузить выписку или таблицу',ul(['Шестерёнка → «Загрузить данные».','Выписка из банка (PDF): Альфа, Сбер, ВТБ, ОТП, Т-Банк. Таблица Excel или CSV из любого банка, в том числе заграничного: нужны дата и сумма. Английские заголовки, расход и приход в разных столбцах и другие валюты понимаются.','Перед добавлением всё покажется на проверку. Повторная загрузка дублей не создаст.'])+
     '<p class="fine" style="margin:4px 0">Из другого приложения: выгрузи оттуда файл, отправь его ИИ (Claude, ChatGPT, DeepSeek) вместе с запросом ниже, а ответ вставь в «Загрузить данные» → «Записи из текста».</p>'+'<textarea id="h_prompt" readonly style="width:100%;min-height:90px;font-size:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);padding:10px">Сделай из этих данных записи для приложения считалОчка. Ответь только JSON-списком, без пояснений. Каждая запись: {&quot;id&quot;: уникальная строка, &quot;type&quot;: &quot;e&quot; для расхода или &quot;i&quot; для дохода, &quot;amt&quot;: сумма числом больше нуля, &quot;cat&quot;: категория, &quot;date&quot;: дата в виде ГГГГ-ММ-ДД, &quot;note&quot;: короткое описание}. Категории расходов: prod продукты, cafe кафе и доставка, trans транспорт, taxi такси, rent жильё, kom коммуналка, conn связь, subs подписки, health здоровье, pharm аптека, beauty красота, cloth одежда, tech техника, fun развлечения, gift подарки, edu образование, trip путешествия, sport спорт, home дом и быт, pets питомцы, debt долги, tax налоги, save накопления, help помощь близким, other прочее. Категории доходов: salary зарплата, side подработка, gift_in подарок, refund возврат, other_in прочее. Переводы между своими счетами не включай. Если файл большой, сохрани результат в файл .json.</textarea>'+'<button type="button" class="btn sm" data-a="copyPrompt">Скопировать запрос для ИИ</button>')+
   q('📲 Как поставить на телефон',ul(['<b>Android:</b> открой ссылку в Chrome → ⋮ → «Установить приложение» (или «Добавить на главный экран»).','<b>iPhone:</b> открой ссылку в Safari → «Поделиться» → «На экран «Домой»».','Открывай потом только через значок, иначе данные будут в другом месте.']))+
   '</div><button type="button" class="btn ghost" data-a="close">Закрыть</button>')}

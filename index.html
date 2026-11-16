@@ -679,6 +679,8 @@ healLinks();
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 
 /* ---------- model ---------- */
+var DKINDS={card:['💳','Кредитка'],credit:['🏦','Кредит'],loan:['📄','Займ'],person:['🤝','Долг человеку'],other:['🧾','Другой долг']};
+function dkOf(a){return DKINDS[a&&a.dk]||null}
 var ATYPES={main:'Свободные деньги',save:'Копилка',debt:'Долг',other:'Счёт или карта'};
 function accName(a){return a.type==='main'?(typeof S!=='undefined'&&S&&cardsOn()?(a.name||'Основная карта'):'Свободные деньги'):a.name}
 var ACOL={main:'var(--accent)',save:'var(--in)',debt:'var(--out)',other:'var(--muted)'};
@@ -1987,7 +1989,7 @@ function accountsCard(){
   if(!funds.length&&!debts.length)return cardsCard()+'<div class="card"><h2>Копилки и долги</h2><p class="fine" style="margin:0">Пока нет. Копилка помогает откладывать на цель, долг - следить, кому и сколько ещё вернуть.</p><div class="btns"><button class="btn ghost sm" data-a="newAcc">Новая копилка</button><button class="btn ghost sm" data-a="newDebt">Новый долг</button></div></div>';
   var fs=0,ds=0;funds.forEach(function(a){fs+=accBal(a)});debts.forEach(function(a){ds+=accBal(a)});
   function row(a,many){var b=accBalN(a),M=function(n){return mon(n,isFx(a)?a.cur:baseCur())};
-    return '<button class="row" data-a="editAcc" data-id="'+a.id+'" data-acc="'+a.id+'">'+(many?'<span class="drag" aria-label="Перетащить">⠿</span>':'')+'<span class="cico" style="--cc:'+ACOL[a.type]+'" aria-hidden="true">'+(a.type==='debt'?'🏦':a.type==='save'?'🐷':'💳')+'</span><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+(a.type==='save'&&!a.goal?'нажми, чтобы задать цель':a.type==='save'?'':ATYPES[a.type])+(a.type==='debt'&&a.start<0?' · погашено '+M(Math.max(0,b-a.start))+' из '+M(-a.start):'')+'</div>'+(a.type==='debt'&&a.start<0?'<div class="bar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,(b-a.start)/-a.start*100))+'%;background:var(--in)"></i></div>':'')+(a.type==='save'?goalLine(a):'')+'</div><span class="amt'+(b<0?' out':'')+'">'+M(b)+(isFx(a)?'<span class="fine" style="display:block;text-align:right">≈ '+money(accBal(a))+'</span>':'')+'</span></button>';
+    return '<button class="row" data-a="editAcc" data-id="'+a.id+'" data-acc="'+a.id+'">'+(many?'<span class="drag" aria-label="Перетащить">⠿</span>':'')+'<span class="cico" style="--cc:'+ACOL[a.type]+'" aria-hidden="true">'+(a.type==='debt'?(dkOf(a)?dkOf(a)[0]:'🏦'):a.type==='save'?'🐷':'💳')+'</span><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+(a.type==='save'&&!a.goal?'нажми, чтобы задать цель':a.type==='save'?'':a.type==='debt'&&dkOf(a)?dkOf(a)[1]:ATYPES[a.type])+(a.type==='debt'&&a.start<0?' · погашено '+M(Math.max(0,b-a.start))+' из '+M(-a.start):'')+'</div>'+(a.type==='debt'&&a.start<0?'<div class="bar" style="margin-top:6px"><i style="width:'+Math.max(0,Math.min(100,(b-a.start)/-a.start*100))+'%;background:var(--in)"></i></div>':'')+(a.type==='save'?goalLine(a):'')+'</div><span class="amt'+(b<0?' out':'')+'">'+M(b)+(isFx(a)?'<span class="fine" style="display:block;text-align:right">≈ '+money(accBal(a))+'</span>':'')+'</span></button>';
   }
   function head(k,title,sum,note){return fhead(k,title,money(sum),note)}
   var h=cardsCard()+'<div class="card">'+head('save','🐷 Копилки',fs,'Отложенное на цели. В «Свободные деньги» не входит.');
@@ -3591,7 +3593,8 @@ function accSheet(){
   var isM=d.type==='main',isC=isM||d.type==='other';
   openSheet('<h3>'+(isM?'Основная карта':d.type==='other'?(sh.id?'Карта или счёт':'Новая карта или счёт'):sh.id?'Копилка или долг':'Новая копилка')+'</h3>'+
    '<form id="fm" class="f" style="gap:14px" autocomplete="off">'+
-   '<div class="f"><label for="a_name">Название</label><input id="a_name" value="'+esc(d.name||'')+'" placeholder="'+(isC?'Например: Тинькофф, Карта в долларах':'Например: Отпуск, Подушка, Долг')+'"></div>'+
+   '<div class="f"><label for="a_name">Название</label><input id="a_name" value="'+esc(d.name||'')+'" placeholder="'+(isC?'Например: Тинькофф, Карта в долларах':d.type==='debt'?'Например: Кредитка Альфы, Ипотека, Маме':'Например: Отпуск, Подушка, Долг')+'"></div>'+
+   (d.type==='debt'?'<div class="f"><label for="a_dk">Какой долг</label><select id="a_dk">'+Object.keys(DKINDS).map(function(k){return '<option value="'+k+'"'+((d.dk||'other')===k?' selected':'')+'>'+DKINDS[k][0]+' '+DKINDS[k][1]+'</option>'}).join('')+'</select></div>':'')+
    (isM?'<p class="fine" style="margin:0">Основная: на неё приходят выплаты, в её валюте ('+sym()+') считается всё приложение. Валюту меняют в Настройки → «Валюта».</p>':'')+
    (isC?'':'<div class="f"><label for="a_type">Что это</label><select id="a_type">'+Object.keys(ATYPES).filter(function(k){return k==="save"||k==="debt"||d.type===k}).map(function(k){return '<option value="'+k+'"'+(d.type===k?' selected':'')+'>'+ATYPES[k]+'</option>'}).join('')+'</select><span class="fine">'+ATDESC[d.type]+'</span></div>')+
    (isM?'':'<div class="f"><label for="a_cur">Валюта</label><select id="a_cur">'+curOpts(d.cur||baseCur())+'</select>'+((d.cur||baseCur())!==baseCur()?'<span class="fine">Остаток веду в '+sym(d.cur)+', в общие итоги он идёт по курсу: '+rateTxt(d.cur)+'.</span>':'')+'</div>')+
@@ -3605,7 +3608,7 @@ function accSheet(){
    (sh.id&&!isM?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delAcc">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+
    '</form>');
 }
-function readAcc(){var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};d.name=g('a_name');d.type=g('a_type')||d.type;d.cur=g('a_cur')||d.cur;var lv=document.getElementById('a_live');if(lv)d.live=lv.checked;d.start=g('a_start');if(document.getElementById('a_goal'))d.goal=g('a_goal');if(document.getElementById('a_mo'))d.monthly=g('a_mo');return d}
+function readAcc(){var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};d.name=g('a_name');d.type=g('a_type')||d.type;if(document.getElementById('a_dk'))d.dk=g('a_dk');d.cur=g('a_cur')||d.cur;var lv=document.getElementById('a_live');if(lv)d.live=lv.checked;d.start=g('a_start');if(document.getElementById('a_goal'))d.goal=g('a_goal');if(document.getElementById('a_mo'))d.monthly=g('a_mo');return d}
 function sumAmt(s){var t=String(s||'').replace(/\s/g,'');if(t.indexOf('+')<0)return num(t);var p=t.split('+').filter(Boolean),r=0;for(var i=0;i<p.length;i++){var v=num(p[i]);if(!isFinite(v))return NaN;r+=v}return Math.round(r*100)/100}
 function num(s){var n=parseFloat(String(s).replace(/\s/g,'').replace(',','.'));return isFinite(n)?n:NaN}
 
@@ -4020,7 +4023,7 @@ document.addEventListener('click',function(ev){
   else if(a==='newCard'){sh={ac:true,id:null,d:{name:'',type:'other',start:'',cur:baseCur(),live:true}};accSheet()}
   else if(a==='newAcc'){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet()}
   else if(a==='newDebt'){sh={ac:true,id:null,d:{name:'',type:'debt',start:''}};accSheet()}
-  else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{goal:ac.goal?String(ac.goal):'',monthly:ac.monthly?String(ac.monthly):'',name:ac.name,type:ac.type,cur:ac.cur&&CUR[ac.cur]?ac.cur:baseCur(),live:!!ac.live,start:String(Math.round((ac.type==='debt'?Math.abs(accBalN(ac)):accBalN(ac))*100)/100)}};accSheet()}}
+  else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{goal:ac.goal?String(ac.goal):'',monthly:ac.monthly?String(ac.monthly):'',name:ac.name,type:ac.type,cur:ac.cur&&CUR[ac.cur]?ac.cur:baseCur(),live:!!ac.live,dk:ac.dk||'',start:String(Math.round((ac.type==='debt'?Math.abs(accBalN(ac)):accBalN(ac))*100)/100)}};accSheet()}}
   else if(a==='delAcc'){var rest=S.accounts.filter(function(x){return x.id!==sh.id});if(!rest.some(function(x){return x.type==='main'}))return showErr('Должны остаться свободные деньги.');var _sn=JSON.stringify(S);S.accounts=rest;save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='newTransfer'){sh={id:null,d:newDraft('t')};tDefaults(sh.d);entrySheet()}
   else if(a==='newDeposit'||a==='newWithdraw'){var fd=S.accounts.filter(function(x){return x.type==='save'})[0];if(!fd){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
@@ -4293,7 +4296,7 @@ document.addEventListener('submit',function(ev){
     var val=ad.type==='debt'?-Math.abs(sv):sv,next=S.accounts.map(function(a){return a});
     var gl=ad.type==='save'&&ad.goal?num(ad.goal):0;if(ad.goal&&ad.type==='save'&&!(gl>0))return showErr('Цель — сумма числом.');
     var mo=ad.type==='save'&&ad.monthly?num(ad.monthly):0;if(ad.monthly&&ad.type==='save'&&!(mo>0))return showErr('«Откладываю в месяц» — сумма числом.');
-    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(ad.cur&&ad.cur!==baseCur())o.cur=ad.cur;if(ad.type==='other'&&ad.live)o.live=true;if(a.adj)o.adj=a.adj.slice();if((o.cur||'')!==(a.cur&&a.cur!==baseCur()?a.cur:'')){o.start=val;delete o.adj;var ob=accBalN(o);o.start=val-(ob-val)}else addAdj(o,val-accBalN(o));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(ad.cur&&ad.cur!==baseCur())no.cur=ad.cur;if(ad.type==='other'&&ad.live)no.live=true;if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
+    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(ad.cur&&ad.cur!==baseCur())o.cur=ad.cur;if(ad.type==='other'&&ad.live)o.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')o.dk=ad.dk;if(a.adj)o.adj=a.adj.slice();if((o.cur||'')!==(a.cur&&a.cur!==baseCur()?a.cur:'')){o.start=val;delete o.adj;var ob=accBalN(o);o.start=val-(ob-val)}else addAdj(o,val-accBalN(o));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(ad.cur&&ad.cur!==baseCur())no.cur=ad.cur;if(ad.type==='other'&&ad.live)no.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')no.dk=ad.dk;if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
     if(!next.some(function(a){return a.type==='main'}))return showErr('Должны остаться свободные деньги.');
     S.accounts=next;save();closeSheet();render();toast('Остаток сохранён');try{rtFetch()}catch(e){}
   }else if(document.getElementById('s_lim')){

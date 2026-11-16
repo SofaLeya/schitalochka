@@ -512,3 +512,22 @@ test('таблица: расход и приход в разных столбц�
   expect(es.find(e => e.note === 'Transfer in')).toMatchObject({ type: 'i', oa: 200 });
   expect(errs).toEqual([]);
 });
+
+test('долги: вид долга - кредитка, кредит, займ, долг человеку', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('[data-a=newDebt]');
+  await page.fill('#a_name', 'Маме');
+  await page.selectOption('#a_dk', 'person');
+  await page.fill('#a_start', '5000');
+  await page.locator('#fm button[type=submit]').click();
+  const r = page.locator('.row[data-a=editAcc]:has-text("Маме")');
+  await expect(r).toContainText('Долг человеку');
+  await expect(r).toContainText('🤝');
+  await r.click();
+  await expect(page.locator('#a_dk')).toHaveValue('person');
+  await page.selectOption('#a_dk', 'card');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(r).toContainText('Кредитка');
+  expect(errs).toEqual([]);
+});

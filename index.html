@@ -4364,7 +4364,7 @@ function ydDirty(m){m=m||ydGet();return (m.chg||0)>(m.sent||0)}
 /* ---------- Google Диск: то же самое, что Яндекс, только хранилище другое ----------
    Папка «считалОчка» в Google Диске пользователя. Доступ drive.file: приложение видит только свои файлы.
    Вход Google живёт час; потом при открытии приложение тихо (без вопросов) берёт новый вход. */
-var GD={cid:'',scope:'https://www.googleapis.com/auth/drive.file',api:'https://www.googleapis.com/drive/v3/files',up:'https://www.googleapis.com/upload/drive/v3/files',folder:'считалОчка',file:'schitalochka.json'};
+var GD={cid:'1081738493377-4r04toc9anb7rh28riqldf1nnhcsmdl9.apps.googleusercontent.com',scope:'https://www.googleapis.com/auth/drive.file',api:'https://www.googleapis.com/drive/v3/files',up:'https://www.googleapis.com/upload/drive/v3/files',folder:'считалОчка',file:'schitalochka.json'};
 function gdOn(){return ydGet().prov==='gd'}
 function gdExpired(){var m=ydGet();return m.prov==='gd'&&!!m.tok&&!(m.exp>Date.now()+60000)}
 function gdLogin(silent){if(!GD.cid)return;YD.leaving=true;try{sessionStorage.setItem('gd-try',String(Date.now()))}catch(e){}

@@ -319,7 +319,7 @@ html.bigtext{zoom:1.14}
 .seg.st4 button.on .sti{color:#fff;background:var(--sc);box-shadow:none}
 .amtrow{display:flex;gap:8px;align-items:stretch}.amtrow .amount{flex:1;min-width:0}.plusbtn{flex:none;width:52px;padding:0;font-size:24px;font-weight:700}.plusbtn.sm{width:40px;font-size:20px}
 .parts{display:flex;flex-direction:column;gap:8px;background:var(--surface2);border-radius:14px;padding:12px}
-.prow{display:flex;gap:6px;align-items:center}.prow select{flex:1.4;min-width:0}.prow input{flex:1;min-width:0;width:0}.pdel{flex:none;width:32px;height:32px;border-radius:50%;background:none;border:0;color:inherit;opacity:.7;font-size:16px}
+.prow2{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line)}.prow{display:flex;gap:6px;align-items:center}.prow select{flex:1;min-width:0}.prow input{flex:1;min-width:0;width:0}.addsum{flex:none;white-space:nowrap;font-size:13px;line-height:1.15;padding:6px 10px}.amtrow .addsum{width:auto;font-size:12.5px}.pdel{flex:none;width:32px;height:32px;border-radius:50%;background:none;border:0;color:inherit;opacity:.7;font-size:16px}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
 .help summary{cursor:pointer;font-weight:700;padding:13px 0;list-style:none;display:flex;justify-content:space-between;gap:8px}
 .help summary::-webkit-details-marker{display:none}
@@ -3324,7 +3324,7 @@ function entrySheet(){
   openSheet('<h3>'+(sh.id?'Запись':'Новая запись')+'</h3>'+
    '<div class="seg st4">'+segs+'</div>'+
    '<form id="fm" class="f ent" style="gap:10px" autocomplete="off">'+
-   '<div class="f"><div class="amtrow"><input id="f_amt" class="amount" aria-label="Сумма, ₽" inputmode="decimal" placeholder="0 ₽" value="'+esc(d.amt||'')+'">'+(isT?'':'<button type="button" class="btn ghost plusbtn" data-a="amtPlus" data-v="f_amt" aria-label="Прибавить ещё сумму">+</button>')+'</div><span class="fine" id="f_amtsum" hidden></span>'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
+   '<div class="f"><div class="amtrow"><input id="f_amt" class="amount" aria-label="Сумма, ₽" inputmode="decimal" placeholder="0 ₽" value="'+esc(d.amt||'')+'">'+(isT?'':'<button type="button" class="btn ghost addsum" data-a="amtPlus" data-v="f_amt" aria-label="Прибавить ещё сумму">+ ещё<br>сумма</button>')+'</div><span class="fine" id="f_amtsum" hidden></span>'+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
    qk+body+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+
    '<div class="f"><label>Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'" hidden><div class="seg" id="f_dseg">'+dSeg+'</div></div>'+
@@ -3340,13 +3340,14 @@ function entrySheet(){
 function partsH(d){
   if(!d.parts||!d.parts.length)return '<button type="button" class="btn ghost sm" data-a="partsOn" style="align-self:flex-start">🧩 Разложить по категориям</button>';
   return '<div class="parts"><div class="row" style="gap:8px"><b class="grow">🧩 Разложить по категориям</b><button type="button" class="fine" data-a="partsOff" style="text-decoration:underline">не нужно</button></div>'+
-    '<p class="fine" style="margin:0">Например, в заказе продукты и бытовое. Укажи, сколько ушло в другие категории, остальное останется в основной. Несколько сумм в одну категорию можно сложить кнопкой «+».</p>'+
-    d.parts.map(function(p,i){return '<div class="prow"><select data-pc="'+i+'" aria-label="Категория части">'+opts(CATS,p.cat)+'</select><input id="pa'+i+'" data-pa="'+i+'" inputmode="decimal" placeholder="0 ₽" aria-label="Сумма части" value="'+esc(p.amt||'')+'"><button type="button" class="btn ghost plusbtn sm" data-a="amtPlus" data-v="pa'+i+'" aria-label="Прибавить ещё сумму">+</button><button type="button" class="pdel" data-a="partDel" data-i="'+i+'" aria-label="Убрать часть">✕</button></div>'}).join('')+
+    '<p class="fine" style="margin:0">Например, в заказе продукты и бытовое. Укажи, сколько ушло в другие категории, остальное останется в основной. Если в одну категорию несколько позиций, жми «+ ещё сумма» - они сложатся.</p>'+
+    d.parts.map(function(p,i){return '<div class="prow2"><div class="prow"><select data-pc="'+i+'" aria-label="Категория части">'+opts(CATS,p.cat)+'</select><button type="button" class="pdel" data-a="partDel" data-i="'+i+'" aria-label="Убрать часть">✕</button></div><div class="prow"><input id="pa'+i+'" data-pa="'+i+'" inputmode="decimal" placeholder="Сумма, ₽" aria-label="Сумма части" value="'+esc(p.amt||'')+'"><button type="button" class="btn ghost sm addsum" data-a="amtPlus" data-v="pa'+i+'">+ ещё сумма</button></div><span class="fine" id="pa'+i+'s" hidden></span></div>'}).join('')+
     '<button type="button" class="btn ghost sm" data-a="partAdd" style="align-self:flex-start">＋ Ещё категория</button><p class="fine" id="f_prest" style="margin:0"></p></div>'}
 function partsRead(d){if(!d.parts)return;d.parts.forEach(function(p,i){var c=document.querySelector('[data-pc="'+i+'"]'),a=document.querySelector('[data-pa="'+i+'"]');if(c&&c.value)p.cat=c.value;if(a)p.amt=a.value})}
 function partsLive(){
   var a=document.getElementById('f_amt'),h=document.getElementById('f_amtsum');
-  if(a&&h){var t=a.value;if(t.indexOf('+')>=0){var v=sumAmt(t);h.hidden=false;h.textContent=isFinite(v)?'= '+money(v):'проверь сумму'}else h.hidden=true}
+  if(a&&h){var t=a.value;if(t.indexOf('+')>=0){var v=sumAmt(t);h.hidden=false;h.textContent=isFinite(v)?'Вместе: '+money(v):'Проверь суммы'}else h.hidden=true}
+  document.querySelectorAll('[data-pa]').forEach(function(e){var hs=document.getElementById(e.id+'s');if(!hs)return;if(e.value.indexOf('+')>=0){var v=sumAmt(e.value);hs.hidden=false;hs.textContent=isFinite(v)?'Вместе: '+money(v):'Проверь суммы'}else hs.hidden=true});
   var r=document.getElementById('f_prest');if(!r||!sh||!sh.d)return;
   var tot=sumAmt(a?a.value:''),used=0;document.querySelectorAll('[data-pa]').forEach(function(e){var v=sumAmt(e.value);if(v>0)used+=v});
   var mc=document.getElementById('f_cat'),mn=mc&&mc.value&&CMAP[mc.value]?CMAP[mc.value]:null,rest=Math.round(((tot||0)-used)*100)/100;

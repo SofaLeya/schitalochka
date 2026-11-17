@@ -927,7 +927,8 @@ function ruleEta(a){if(!(S.rules||[]).some(function(r){return r.acc===a.id}))ret
 function wizSrc(id){return (S.rules||[]).filter(function(r){return r.acc===id})}
 function wizDays(){var inc=(S.incomes||[]).filter(function(r){return +r.amt>0}),mx=0;inc.forEach(function(r){mx=Math.max(mx,+r.amt)});
   var d={};inc.forEach(function(r){if(+r.amt>=mx*0.3)d[+r.day]=1});var out=Object.keys(d).map(Number).sort(function(a,b){return a-b});return out.length?out:[10]}
-function wizAuto(id){return (S.rules||[]).filter(function(r){return r.auto===id})}
+function wizMine(r,id){return r.auto===id||(r.after===id&&r.acc!==id)} // правила «после цели X» - это цепочка X, в том числе созданные вручную
+function wizAuto(id){return (S.rules||[]).filter(function(r){return wizMine(r,id)})}
 function wizSum(id){var g={},o=[];wizAuto(id).forEach(function(r){if(!(r.acc in g)){g[r.acc]=0;o.push(r.acc)}g[r.acc]+=+r.amt||0});
   return o.filter(function(k){return accById(k)}).map(function(k){return {acc:k,amt:g[k]}})}
 function wizSumTxt(id){return wizSum(id).map(function(x){return esc(accById(x.acc).name)+' '+money(x.amt)}).join(', ')}
@@ -946,7 +947,7 @@ function wizPreview(){var el=document.getElementById('w_prev');if(!el||!sh||!sh.
   var id=sh.id,a=accById(id),rows=sh.rows.filter(function(w){return accById(w.t)}),b=wizBuild(id,rows,sh.mo),keep=S.rules,tot=0;
   sh.rows.forEach(function(w){tot+=Math.round(num(w.amt)||0)});
   var M=b.M,lines=[];
-  try{S.rules=keep.filter(function(r){return r.auto!==id}).concat(b.src,b.rules).map(function(r){return r.acc===id&&a.type==='save'?Object.assign({},r,{stop:1}):r});
+  try{S.rules=keep.filter(function(r){return !wizMine(r,id)}).concat(b.src,b.rules).map(function(r){return r.acc===id&&a.type==='save'?Object.assign({},r,{stop:1}):r});
     var sm=ruleSim(240),when=sm.reach[id];
     lines.push(a.type==='debt'?(when?'Долг закроется в <b>'+ymWord(when)+'</b>.':'По нынешнему плану долг не закрывается.'):(when?'Цель наберётся примерно в <b>'+ymWord(when)+'</b>.':'По нынешнему плану цель не набирается.'));
     sh.rows.forEach(function(w){var v=Math.round(num(w.amt)||0);if(w.t==='__new'&&v>0)lines.push('Потом '+(w.nn?'«'+esc(w.nn)+'»':'новая копилка')+': '+money(v)+' в месяц')});
@@ -984,7 +985,7 @@ function wizSave(){wizRead();var id=sh.id,a=accById(id);if(!a)return;
   if(!wizSrc(id).filter(function(r){return r.after!==id}).length&&!(num(sh.mo)>0)&&rows.length)return showErr('Впиши, сколько '+(a.type==='debt'?'отдавать':'откладывать')+' в месяц сейчас.');
   rows.forEach(function(w){if(w.nn){var na={id:uid(),name:w.nn.slice(0,40),type:'save',start:0};S.accounts.push(na);w.t=na.id}});
   var b=wizBuild(id,rows,sh.mo);
-  S.rules=(S.rules||[]).filter(function(r){return r.auto!==id}).concat(b.src,b.rules);
+  S.rules=(S.rules||[]).filter(function(r){return !wizMine(r,id)}).concat(b.src,b.rules);
   if(a.type==='save')S.rules.forEach(function(r){if(r.acc===id)r.stop=1});
   if(!S.planFrom)S.planFrom=T;save();closeSheet();render();
   toast(rows.length?'Готово: '+(a.type==='debt'?'когда долг закроется':'когда цель наберётся')+', деньги пойдут дальше':'Переключение убрано')}
@@ -4028,7 +4029,7 @@ document.addEventListener('click',function(ev){
   else if(a==='wiz'){wizOpen(id)}
   else if(a==='wizAdd'){if(sh&&sh.wz){wizRead();sh.rows.push({t:'',amt:'',nn:''});wizSheet()}}
   else if(a==='wizDel'){if(sh&&sh.wz){wizRead();sh.rows.splice(+v,1);wizSheet()}}
-  else if(a==='wizOff'){if(sh&&sh.wz){sh.rows=[];var _ws=JSON.stringify(S),_wid=sh.id;S.rules=(S.rules||[]).filter(function(r){return r.auto!==_wid});save();closeSheet();render();undoSnap(_ws,'Переключение убрано')}}
+  else if(a==='wizOff'){if(sh&&sh.wz){sh.rows=[];var _ws=JSON.stringify(S),_wid=sh.id;S.rules=(S.rules||[]).filter(function(r){return !wizMine(r,_wid)});save();closeSheet();render();undoSnap(_ws,'Переключение убрано')}}
   else if(a==='newDebtRule'){var da=accById(id);if(da){if(!S.planFrom){S.planFrom=T}sh={ru:true,id:null,d:{name:'Долг: '+da.name,amt:'',day:'',acc:da.id,after:'',stop:false}};ruleSheet()}}
   else if(a==='delRule'){var _sn=JSON.stringify(S);S.rules=S.rules.filter(function(x){return x.id!==sh.id});save();closeSheet();render();undoSnap(_sn,'Правило удалено')}
   else if(a==='recon'){sh={rc:true};reconSheet()}

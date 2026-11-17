@@ -553,7 +553,7 @@ test('раскладка с условием: после цели копилки
   expect(d.sim).toEqual([{ r1: 5000 }, { r2: 15000 }, { r2: 15000 }, {}]);
   expect(d.eta[0]).toMatch(/^\d{4}-\d{2}$/);
   // в карточке долга видна дата закрытия
-  const r = page.locator('.row[data-a=editAcc]:has-text("Вадиму")');
+  const r = page.locator(".row[data-a=editAcc][data-id=dv]");
   await expect(r).toContainText('закроется в');
   // окно долга: план погашения и кнопка добавить платёж
   await r.click();
@@ -654,4 +654,24 @@ test('«Куда дальше?» без правил: спрашивает су�
   await page.locator('#fm button[type=submit]').click();
   const r = (await stored(page)).rules.map(x => `${x.acc}:${x.day}:${x.amt}`).sort();
   expect(r).toEqual(['mm:10:3000', 'mm:25:3000', 'ot:10:3000', 'ot:25:3000']);
+});
+
+test('«Куда дальше?» подхватывает правила «после цели», созданные вручную, без дублей', async ({ page }) => {
+  await start(page);
+  await patch(page, {
+    simple: false,
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 },
+      { id: 'pk', name: 'Подкопка', type: 'save', start: 100000, goal: 180000 },
+      { id: 'dv', name: 'Вадиму', type: 'debt', start: -200000 }],
+    rules: [{ id: 'r1', name: 'Подкопка', amt: 10000, day: 10, acc: 'pk', stop: 1 }, { id: 'r2', name: 'Подкопка', amt: 10000, day: 25, acc: 'pk', stop: 1 },
+      { id: 'm1', name: 'Долг: Вадиму', amt: 7500, day: 10, acc: 'dv', after: 'pk' }, { id: 'm2', name: 'Долг: Вадиму', amt: 7500, day: 25, acc: 'dv', after: 'pk' }],
+  });
+  await page.reload();
+  await page.locator('.row[data-a=editAcc]:has-text("Подкопка")').click();
+  await expect(page.locator('#ov .sheet')).toContainText('Вадиму 15 000');
+  await page.click('[data-a=wiz]');
+  await expect(page.locator('#w_t0')).toHaveValue('dv');
+  await expect(page.locator('#w_a0')).toHaveValue('15000');
+  await page.locator('#fm button[type=submit]').click();
+  expect((await stored(page)).rules.filter(r => r.acc === 'dv').length).toBe(2);
 });

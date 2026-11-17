@@ -596,3 +596,62 @@ test('правило без условия работает как раньше,
   expect(d.cap).toEqual([5000]);
   expect(d.sim[1]).toEqual({ x: 5000 });
 });
+
+test('«Куда дальше?»: одно окно настраивает переключение подкопки на долг и новую копилку', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await patch(page, {
+    simple: false,
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 },
+      { id: 'pk', name: 'Подкопка', type: 'save', start: 175000, goal: 180000 },
+      { id: 'dv', name: 'Вадиму', type: 'debt', start: -30000, dk: 'person' }],
+    rules: [{ id: 'r1', name: 'Подкопка', amt: 10000, day: 10, acc: 'pk' }, { id: 'r2', name: 'Подкопка', amt: 10000, day: 25, acc: 'pk' }],
+  });
+  await page.reload();
+  await page.locator('.row[data-a=editAcc]:has-text("Подкопка")').click();
+  await page.click('[data-a=wiz]');
+  await expect(page.locator('#ov .sheet')).toContainText('20 000');
+  await expect(page.locator('#w_t0')).toHaveValue('dv'); // долг подставлен сам
+  await page.fill('#w_a0', '15000');
+  await page.click('[data-a=wizAdd]');
+  await page.selectOption('#w_t1', '__new');
+  await page.fill('#w_n1', 'Фонд');
+  await page.fill('#w_a1', '5000');
+  await expect(page.locator('#w_prev')).toContainText('закроется в');
+  await expect(page.locator('#w_prev')).toContainText('Распределено всё');
+  await page.locator('#fm button[type=submit]').click();
+  const st = await stored(page);
+  const fund = st.accounts.find(a => a.name === 'Фонд');
+  expect(fund).toBeTruthy();
+  const auto = st.rules.filter(r => r.auto === 'pk').map(r => `${r.acc === 'dv' ? 'dv' : 'fund'}:${r.day}:${r.amt}:${r.after}`).sort();
+  expect(auto).toEqual(['dv:10:7500:pk', 'dv:25:7500:pk', 'fund:10:2500:pk', 'fund:25:2500:pk']);
+  expect(st.rules.filter(r => r.acc === 'pk').every(r => r.stop === 1)).toBe(true);
+  await expect(page.locator('.row[data-a=editAcc]:has-text("Подкопка")')).toContainText('потом → Вадиму');
+  // повторное открытие показывает настроенное, «Готово» не плодит дубли
+  await page.locator('.row[data-a=editAcc]:has-text("Подкопка")').click();
+  await page.click('[data-a=wiz]');
+  await expect(page.locator('#w_a0')).toHaveValue('15000');
+  await page.locator('#fm button[type=submit]').click();
+  expect((await stored(page)).rules.filter(r => r.auto === 'pk').length).toBe(4);
+  expect(errs).toEqual([]);
+});
+
+test('«Куда дальше?» без правил: спрашивает сумму и делит на дни зарплаты', async ({ page }) => {
+  await start(page);
+  await patch(page, {
+    simple: false,
+    incomes: [{ id: 'i1', name: 'ЗП', amt: 50000, day: 10 }, { id: 'i2', name: 'Аванс', amt: 40000, day: 25 }, { id: 'i3', name: 'мелочь', amt: 1000, day: 5 }],
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 },
+      { id: 'ot', name: 'Отпуск', type: 'save', start: 0, goal: 60000 },
+      { id: 'mm', name: 'Маме', type: 'debt', start: -10000 }],
+    rules: [],
+  });
+  await page.reload();
+  await page.locator('.row[data-a=editAcc]:has-text("Отпуск")').click();
+  await page.click('[data-a=wiz]');
+  await page.fill('#w_mo', '6000');
+  await page.fill('#w_a0', '6000');
+  await page.locator('#fm button[type=submit]').click();
+  const r = (await stored(page)).rules.map(x => `${x.acc}:${x.day}:${x.amt}`).sort();
+  expect(r).toEqual(['mm:10:3000', 'mm:25:3000', 'ot:10:3000', 'ot:25:3000']);
+});

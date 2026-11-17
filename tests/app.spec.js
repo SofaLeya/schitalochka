@@ -531,3 +531,58 @@ test('долги: вид долга - кредитка, кредит, займ, 
   await expect(r).toContainText('Кредитка');
   expect(errs).toEqual([]);
 });
+
+test('раскладка с условием: после цели копилки деньги идут на долг, у долга есть дата закрытия', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  // полный режим, копилка с целью почти набрана и долг
+  await patch(page, {
+    simple: false,
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 },
+      { id: 'pk', name: 'Подкопка', type: 'save', start: 175000, goal: 180000 },
+      { id: 'dv', name: 'Вадиму', type: 'debt', start: -30000, dk: 'person' }],
+    rules: [
+      { id: 'r1', name: 'Подкопка', amt: 10000, day: 10, acc: 'pk', stop: 1 },
+      { id: 'r2', name: 'Долг: Вадиму', amt: 15000, day: 10, acc: 'dv', after: 'pk' }],
+  });
+  await page.reload();
+  const d = await page.evaluate(() => window.ruleDbg());
+  expect(d.on).toEqual([true, false]);
+  expect(d.cap).toEqual([5000, 0]); // до цели осталось 5 000 - больше не кладём
+  // месяц 0: 5 000 добирают подкопку, долг ждёт (начнёт со следующей выплаты); дальше по 15 000, 30 000 - за 2 месяца
+  expect(d.sim).toEqual([{ r1: 5000 }, { r2: 15000 }, { r2: 15000 }, {}]);
+  expect(d.eta[0]).toMatch(/^\d{4}-\d{2}$/);
+  // в карточке долга видна дата закрытия
+  const r = page.locator('.row[data-a=editAcc]:has-text("Вадиму")');
+  await expect(r).toContainText('закроется в');
+  // окно долга: план погашения и кнопка добавить платёж
+  await r.click();
+  await expect(page.locator('#ov .sheet')).toContainText('План погашения');
+  await expect(page.locator('#ov .sheet')).toContainText('после цели «Подкопка»');
+  await page.click('[data-a=newDebtRule]');
+  await expect(page.locator('#u_name')).toHaveValue('Долг: Вадиму');
+  await page.fill('#u_amt', '1000');
+  await page.fill('#u_day', '25');
+  await page.locator('#fm button[type=submit]').click();
+  expect((await stored(page)).rules.filter(x => x.acc === 'dv').length).toBe(2);
+  // когда подкопка набрана - её правило останавливается, долговое включается
+  const st = await stored(page);
+  st.accounts.find(a => a.id === 'pk').start = 180000;
+  await patch(page, { accounts: st.accounts });
+  await page.reload();
+  expect((await page.evaluate(() => window.ruleDbg())).on.slice(0, 2)).toEqual([false, true]);
+  expect(errs).toEqual([]);
+});
+
+test('правило без условия работает как раньше, даже если цель набрана', async ({ page }) => {
+  await start(page);
+  await patch(page, {
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 }, { id: 'ot', name: 'Отпуск', type: 'save', start: 5000, goal: 1000 }],
+    rules: [{ id: 'x', name: 'Отпуск', amt: 5000, day: 10, acc: 'ot' }],
+  });
+  await page.reload();
+  const d = await page.evaluate(() => window.ruleDbg());
+  expect(d.on).toEqual([true]);
+  expect(d.cap).toEqual([5000]);
+  expect(d.sim[1]).toEqual({ x: 5000 });
+});

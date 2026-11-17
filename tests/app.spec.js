@@ -561,6 +561,16 @@ test('раскладка с условием: после цели копилки
   await expect(page.locator('#ov .sheet')).toContainText('после цели «Подкопка»');
   await page.click('[data-a=newDebtRule]');
   await expect(page.locator('#u_name')).toHaveValue('Долг: Вадиму');
+  // в правиле для долга: нет галочки «Остановить» и нет пункта «когда закрыт долг Вадиму»
+  await expect(page.locator('#u_stop')).toHaveCount(0);
+  await expect(page.locator('#u_after option')).toHaveText(['сразу', 'когда набрана цель «Подкопка»']);
+  // переключили на копилку с целью: галочка появилась, введённая сумма не пропала
+  await page.fill('#u_amt', '1234');
+  await page.selectOption('#u_acc', 'pk');
+  await expect(page.locator('#u_stop')).toHaveCount(1);
+  await expect(page.locator('#u_after option')).toHaveText(['сразу', 'когда закрыт долг «Вадиму»']);
+  await expect(page.locator('#u_amt')).toHaveValue('1234');
+  await page.selectOption('#u_acc', 'dv');
   await page.fill('#u_amt', '1000');
   await page.fill('#u_day', '25');
   await page.locator('#fm button[type=submit]').click();

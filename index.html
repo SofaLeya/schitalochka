@@ -3263,11 +3263,11 @@ function ruleSheet(){
    '<div class="f"><label for="u_name">Название</label><input id="u_name" value="'+esc(d.name)+'" placeholder="Например, Отпуск"></div>'+
    '<div class="two"><div class="f"><label for="u_amt">Сумма, '+sym()+'</label><input id="u_amt" inputmode="decimal" value="'+esc(d.amt)+'"></div><div class="f"><label for="u_day">День выплаты</label><input id="u_day" inputmode="numeric" value="'+esc(d.day)+'" placeholder="5, 10, 20, 25"></div></div>'+
    '<div class="f"><label for="u_acc">В какую копилку</label><select id="u_acc">'+S.accounts.filter(function(a){return a.type!=='main'}).map(function(a){return '<option value="'+a.id+'"'+(d.acc===a.id?' selected':'')+'>'+esc(a.name)+'</option>'}).join('')+'</select></div>'+
-   (function(){var tg=S.accounts.filter(function(a){return (a.type==='save'&&a.goal>0)||a.type==='debt'});
-     return '<div class="help f"><details'+(d.after||d.stop?' open':'')+'><summary><span class="st">Условие<span class="ss">необязательно: когда правилу начать и закончить</span></span></summary><div class="hb f" style="gap:12px;padding-bottom:14px">'+
+   (function(){var tg=S.accounts.filter(function(a){return ((a.type==='save'&&a.goal>0)||a.type==='debt')&&a.id!==d.acc}),ta=accById(d.acc),canStop=ta&&ta.type==='save'&&ta.goal>0;
+     return '<div class="help f"><details id="u_cond"'+(d.after||d.stop||sh.cOpen?' open':'')+'><summary><span class="st">Условие<span class="ss">необязательно: когда правилу начать и закончить</span></span></summary><div class="hb f" style="gap:12px;padding-bottom:14px">'+
      '<div class="f"><label for="u_after">Начать</label><select id="u_after"><option value="">сразу</option>'+tg.map(function(a){return '<option value="'+a.id+'"'+(d.after===a.id?' selected':'')+'>'+(a.type==='debt'?'когда закрыт долг «'+esc(a.name)+'»':'когда набрана цель «'+esc(a.name)+'»')+'</option>'}).join('')+'</select>'+(tg.length?'':'<span class="fine">Чтобы выбрать, у копилки должна быть цель.</span>')+'</div>'+
-     '<label class="chk"><input type="checkbox" id="u_stop"'+(d.stop?' checked':'')+'> Остановить, когда цель копилки набрана</label>'+
-     '<span class="fine" style="margin-top:-6px">Правило в долг останавливается само, когда долг закрыт. Пример: «Подкопка» до цели, а следующие правила «когда набрана цель Подкопка» - на долг и в фонд.</span>'+
+     (canStop?'<label class="chk"><input type="checkbox" id="u_stop"'+(d.stop?' checked':'')+'> Остановить, когда цель «'+esc(ta.name)+'» набрана</label>':ta&&ta.type==='debt'?'<span class="fine">Платежи в долг остановятся сами, когда долг закрыт.</span>':'')+
+     '<div class="tiprow" style="justify-content:flex-end"><span class="fine">Пример</span>'+tipBtn('ucond')+'</div>'+tipBox('ucond','Правило «Подкопка» с галочкой «Остановить, когда цель набрана». Ещё правила «на долг» и «в фонд» с «Начать: когда набрана цель Подкопка». Когда подушка наберётся, приложение само переключит деньги со следующей выплаты.')+
      '</div></details></div>'})()+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.id?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delRule">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить правило</button>'):'')+'</form>');
@@ -4276,7 +4276,7 @@ document.addEventListener('submit',function(ev){
   if(document.getElementById('u_name')){
     var un=document.getElementById('u_name').value.trim(),ua=num(document.getElementById('u_amt').value),ud=parseInt(document.getElementById('u_day').value,10),uc=document.getElementById('u_acc').value;
     if(!un)return showErr('Введи название.');if(!(ua>0))return showErr('Введи сумму больше нуля.');if(!(ud>=1&&ud<=31))return showErr('День от 1 до 31.');if(!uc)return showErr('Выбери счёт.');
-    var uaf=(document.getElementById('u_after')||{}).value||'',ust=!!(document.getElementById('u_stop')||{}).checked;
+    var uaf=(document.getElementById('u_after')||{}).value||'',ust=!!(document.getElementById('u_stop')||{}).checked;var uta=accById(uc);if(!(uta&&uta.type==='save'&&uta.goal>0))ust=false;
     if(uaf&&uaf===uc)return showErr('Правило не может ждать свою же копилку. Для этого есть «Остановить, когда цель набрана».');
     var setC=function(r){if(uaf)r.after=uaf;else delete r.after;if(ust)r.stop=1;else delete r.stop};
     if(sh.id)S.rules.forEach(function(r){if(r.id===sh.id){r.name=un;r.amt=ua;r.day=ud;r.acc=uc;setC(r)}});else{var nr={id:uid(),name:un,amt:ua,day:ud,acc:uc};setC(nr);S.rules.push(nr)}
@@ -4402,6 +4402,8 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='h_acc'){if(hd)hd.acc=ev.target.value;hdSync();return}
   if(ev.target.id==='h_sk'){if(hd)hd.sk=ev.target.value;hdSync();return}
   if(ev.target.id==='a_type'&&sh&&sh.ac){readAcc();accSheet();return}
+  if(ev.target.id==='u_acc'&&sh&&sh.ru){var g=function(i){var e=document.getElementById(i);return e?e.value:''},cd=document.getElementById('u_cond');
+    sh.d.name=g('u_name');sh.d.amt=g('u_amt');sh.d.day=g('u_day');sh.d.acc=g('u_acc');sh.d.after=g('u_after');if(sh.d.after===sh.d.acc)sh.d.after='';var us=document.getElementById('u_stop');sh.d.stop=!!(us&&us.checked);sh.cOpen=!!(cd&&cd.open);ruleSheet();return}
   if(ev.target.id==='a_cur'&&sh&&sh.ac){readAcc();accSheet();if(ev.target.value!==baseCur())rtFetch(false,true);return}
   if(ev.target.id==='f_cur'&&sh&&sh.d){sh.d.curSet=true;readEntry();entrySheet();rtFetch(false,true);return}
   if(ev.target.id==='s_cur'&&CUR[ev.target.value]&&ev.target.value!==baseCur()){S.cur=ev.target.value;if(S.mrate)S.mrate={};save();try{TCOIN=TCOIN.replace(/>[^<]*<\/text>/,'>'+coinS()+'</text>')}catch(e){}render();curSheet();rtFetch(true);toast('Основная валюта: '+CUR[S.cur][1]);return}

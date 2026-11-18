@@ -1948,7 +1948,7 @@ function payTarget(){
   var sv=S.accounts.filter(function(a){return a.type==='save'}),skip=/плат|кварт|аренд|коммун|обязат|налог/i,pref=/подкоп|подуш|накоп|отпуск|мечт|цел/i;
   return sv.filter(function(a){return pref.test(a.name)&&!skip.test(a.name)})[0]||sv.filter(function(a){return !skip.test(a.name)})[0]||sv[0]||null}
 function dayTick(){var t=iso(new Date());if(t!==T){T=t;try{render()}catch(e){}}}setInterval(dayTick,60000);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')dayTick()});
-function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),r=refunds(l);return {n:l0.length,e:e,r:r,v:e-r}}
+function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),v=sumNet(l,refLinks());return {n:l0.length,e:e,r:e-v,v:v}}
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
@@ -1962,7 +1962,7 @@ function nameAsk(){if(S.demo||S.unameAsked||uName()||!(S.onb||S.setup)||realCoun
   return '<div class="bub"><b>Кстати, а как тебя зовут?</b><div class="fine" style="margin-top:2px">Буду иногда звать по имени.</div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input id="un_in" maxlength="20" placeholder="Имя" aria-label="Твоё имя" style="flex:1;min-width:0"><button class="btn sm" data-a="unameOk" style="flex:none">Готово</button></div><button class="fine" data-a="unameNo" style="text-decoration:underline;margin-top:6px">Не скажу</button></div>'}
 function monsterCard(me,net,dnum){
   if(S.nopet)return '';
-  var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=tdl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(tdl),mood,msg;
+  var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=sumNet(tdl,refLinks()),mood,msg;
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
@@ -2016,7 +2016,7 @@ function monsterCard(me,net,dnum){
   else if(tn>lim&&tn<=lim*1.15){mood='calm';msg=pk(['Сегодня совсем немного сверху, не страшно. За месяц всё ок 👌','Совсем немного сверху, ничего страшного. За месяц ты в плане.'])}
   else if(tn>lim&&tn<=lim*1.5){mood='think';msg=pk(['Сегодня побольше вышло, но в среднем за месяц ты в плане. Завтра можно полегче.','Дороговатый день, но месяц пока в плане 👌'])}
   else if(tn>lim){mood='think';msg=pk(['Сегодня крупный день. Что-то разовое? В среднем за месяц пока в плане.','Сегодня заметно больше плана - что-то крупное? Месяц пока держится.'])}
-  else if(tn<=0){mood='happy';msg='Записи есть, трат нет — отлично!'}
+  else if(tn<=0){mood='happy';msg='Записи есть, а трат за сегодня нет - отлично!'}
   else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь, запас по плану есть!','Хороший запас! Так держать.','Экономишь как профи!','Месяц идёт лучше плана - красота.'])}
   else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}

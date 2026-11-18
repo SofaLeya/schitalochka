@@ -732,3 +732,27 @@ test('история: трата с другой карты подписана, 
   await page.locator('.card', { hasText: 'Трубочка' }).first().screenshot({ path: '/tmp/day.png' });
   expect(errs).toEqual([]);
 });
+
+test('карты в "Чем оплачено" выше копилок; своей категории можно выбрать картинку', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.accounts.push({ id: 's1', type: 'save', name: 'Копилка А', bal: 100 });
+    d.accounts.push({ id: 'c2', type: 'other', name: 'ОТП', bal: 1000 });
+    d.ccats = [{ id: 'c_x', name: 'Кресла', color: 'hsl(10 70% 45%)' }];
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('.tabs .plus');
+  const names = await page.locator('#f_acc option').allTextContents();
+  expect(names.findIndex(t => t.startsWith('ОТП'))).toBeLessThan(names.findIndex(t => t.startsWith('Копилка А')));
+  await page.click('[data-a=close]');
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Мои категории' }).click();
+  await page.click('[data-a=ccIco][data-id=c_x]');
+  await page.click('[data-a=ccIcoSet][data-v="🛋️"]');
+  await expect(page.locator('#ov details[open]', { hasText: 'Мои категории' })).toContainText('🛋️');
+  expect((await stored(page)).ccats[0].ico).toBe('🛋️');
+  expect(errs).toEqual([]);
+});

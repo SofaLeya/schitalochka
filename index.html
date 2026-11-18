@@ -2162,10 +2162,11 @@ function accountsCard(){
 /* части одного разложенного чека */
 function grpOf(x){if(!x||!x.grp)return [];var g=S.entries.filter(function(e){return e.grp===x.grp&&e.type==='e'});return g.length>1?g:[]}
 function grpTag(x){var g=grpOf(x);if(!g.length)return '';return ' · 🧩 часть чека '+money(g.reduce(function(a,e){return a+e.amt},0))}
+function accTag(x){if(x.type==='t'||x.nobal)return '';var id=accOf(x);if(!id||id===defAcc())return '';var a=accById(id);return a?' · 💳 '+esc(accName(a)):''}
 function entryRow(x){
   if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:var(--muted)"></span><div class="grow"><div class="t">Перевод</div><div class="s">'+esc((fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))+(x.note?' · '+esc(x.note):'')+'</div></div><span class="amt">'+entMoney(x)+'</span></button>'}
   var c=CMAP[x.cat]||CMAP.other;
-  return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+grpTag(x)+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+(x.nobal?' · не с моих счетов':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+entMoney(x)+(x.oc&&x.oa>0&&x.oc!==baseCur()?'<span class="fine" style="display:block;text-align:right">≈ '+money(x.amt)+'</span>':'')+'</span></button>';
+  return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+grpTag(x)+accTag(x)+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+(x.nobal?' · не с моих счетов':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+entMoney(x)+(x.oc&&x.oa>0&&x.oc!==baseCur()?'<span class="fine" style="display:block;text-align:right">≈ '+money(x.amt)+'</span>':'')+'</span></button>';
 }
 var hq='',ha='',hc='',hacc='',hsk='',hfrom='',hto='',hMonths=2,hfo=false;
 function haN(v){return lc(v).toLocaleString('ru-RU').replace(/[\s\u202f]/g,' ')}
@@ -2224,7 +2225,7 @@ function histRow(x,LK){
   var rl=LK.byExp[x.id]||[],bo=backOf(x,LK),pend=bo.pend,inG=LK.gb&&LK.gb[x.id]!=null;
   if(!rl.length&&!(pend>0.005)&&!(inG&&bo.back>0.005))return entryRow(x);
   var c=CMAP[x.cat]||CMAP.other,back=bo.back,net=Math.max(0,x.amt-back-pend);
-  var main='<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.cls?CLS[x.cls][0]:''))+grpTag(x)+' · было '+money(x.amt)+(inG&&!rl.length&&back>0.005?' · доля возврата '+money(back):'')+(pend>0.005?' · ждёшь возврат '+money(pend):'')+'</div></div><span class="amt out">−'+money(net)+'</span></button>';
+  var main='<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.cls?CLS[x.cls][0]:''))+grpTag(x)+accTag(x)+' · было '+money(x.amt)+(inG&&!rl.length&&back>0.005?' · доля возврата '+money(back):'')+(pend>0.005?' · ждёшь возврат '+money(pend):'')+'</div></div><span class="amt out">−'+money(net)+'</span></button>';
   var subs=rl.map(function(r){
     var nt=String(r.note||'').replace(/^Возврат:\s*/i,'').trim();if(nt&&x.note&&norm(nt)===norm(x.note))nt='';
     return '<button class="row" data-a="edit" data-id="'+r.id+'" style="padding-top:0;padding-left:22px"><div class="grow"><div class="s">↩ вернули'+(nt?' · '+esc(nt):'')+(r.date!==x.date?' · '+fdate(r.date):'')+'</div></div><span class="amt in" style="font-size:14px">+'+money(r.amt)+'</span></button>'}).join('');
@@ -2255,7 +2256,7 @@ function histList(){
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
       var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimit(),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,sumNet(life(by[d]),LK)):0,
-        dsum=(dsp>0?(lim>0&&ln>0?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>'+(dsp-ln>1?' · всего '+money(dsp):''):'траты '+money(dsp)):'')+(din>0?(dsp>0?' · ':'')+'<span style="color:var(--in)">+'+money(din)+'</span>':''),
+        dsum=(dsp>0?(lim>0&&ln>0?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>':'траты '+money(dsp)):'')+(din>0?(dsp>0?' · ':'')+'<span style="color:var(--in)">+'+money(din)+'</span>':'')+(dsp>0&&lim>0&&ln>0&&dsp-ln>1?'<span style="display:block;opacity:.7;font-weight:500">всего '+money(dsp)+'</span>':''),
         dn=d===T?'Сегодня, ':d===iso(addDays(parse(T),-1))?'Вчера, ':'';
       out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dn+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(dn?'':', '+WD[dt.getDay()])+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
     });

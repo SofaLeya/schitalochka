@@ -713,3 +713,22 @@ test('предсказание: сколько останется к зарпл�
   expect((await stored(page)).fcPlans.length).toBe(0);
   expect(errs).toEqual([]);
 });
+
+test('история: трата с другой карты подписана, "всего" на второй строке дня', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    d.accounts.push({ id: 'c2', type: 'other', name: 'Альфа', bal: 1000 });
+    d.entries.push({ id: 'z1', type: 'e', amt: 300, cat: 'cafe', note: 'Ужин', date: iso(t), acc: '' });
+    d.entries.push({ id: 'z2', type: 'e', amt: 125, cat: 'health', note: 'Трубочка', date: iso(t), acc: 'c2' });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('[data-a=tab][data-v=hist]');
+  await expect(page.locator('.row', { hasText: 'Трубочка' })).toContainText('💳 Альфа');
+  await expect(page.locator('.row', { hasText: 'Ужин' })).not.toContainText('💳');
+  await page.locator('.card', { hasText: 'Трубочка' }).first().screenshot({ path: '/tmp/day.png' });
+  expect(errs).toEqual([]);
+});

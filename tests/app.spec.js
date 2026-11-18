@@ -675,3 +675,41 @@ test('«Куда дальше?» подхватывает правила «по�
   await page.locator('#fm button[type=submit]').click();
   expect((await stored(page)).rules.filter(r => r.acc === 'dv').length).toBe(2);
 });
+
+test('предсказание: сколько останется к зарплате, свои планы по дням недели', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('[data-a=fcOpen]');
+  await expect(page.locator('#ov .sheet h3')).toContainText('Предсказание');
+  // без дней зарплаты просит их задать
+  await page.fill('#fc_pd', '25');
+  await page.click('[data-a=fcPd]');
+  // 10 обычных дней по 500 ₽ и одна крупная покупка (не еда) 1 000 ₽ вчера
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    const ago = n => { const x = new Date(t); x.setDate(t.getDate() - n); return iso(x); };
+    for (let i = 1; i <= 10; i++) d.entries.push({ id: 'k' + i, type: 'e', amt: 500, cat: 'cafe', note: 'Ужин', date: ago(i), acc: '' });
+    d.entries.push({ id: 'big1', type: 'e', amt: 1000, cat: 'tech', note: 'Лампа', date: ago(1), acc: '' });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('[data-a=fcOpen]');
+  const sheet = page.locator('#ov .sheet');
+  await expect(sheet).toContainText('останется');
+  await expect(sheet).toContainText('без крупных покупок');
+  // свой план: по средам 2 000, половину вернут
+  await page.selectOption('#fc_cat', 'prod').catch(() => {});
+  await page.fill('#fc_amt', '2000');
+  await page.locator('#fc_half').check();
+  await page.click('[data-a=fcAdd]');
+  await expect(sheet).toContainText('вернут половину');
+  const plans = (await stored(page)).fcPlans.length;
+  expect(plans).toBe(1);
+  const f = await page.evaluate(() => window.fcCalc());
+  expect(f.pace).toBeGreaterThan(f.paceB);
+  expect(f.leftB).toBeGreaterThan(f.left);
+  await page.click('[data-a=fcDel]');
+  expect((await stored(page)).fcPlans.length).toBe(0);
+  expect(errs).toEqual([]);
+});

@@ -775,19 +775,24 @@ test('нерегулярный доход: на сколько дней хват
   const sheet = page.locator('#ov .sheet');
   await expect(sheet).toContainText('хватит на');
   await page.click('#ov [data-a=close]');
-  // правило 10% и подушка в настройках
+  // правило 10% и подушка - через мастер в настройках
   await page.click('[data-a=settings]');
   await page.locator('#ov summary', { hasText: 'Нерегулярный доход' }).click();
+  await page.click('[data-a=irrWiz][data-v="1"]');
+  await page.selectOption('#pct_acc', 'cu');
   await page.fill('#pct_v', '10');
   await page.click('[data-a=pctAdd]');
+  await expect(page.locator('#ov .sheet')).toContainText('10%');
+  await page.click('[data-a=irrWiz][data-v="2"]');
+  await page.click('[data-a=irrWiz][data-v="3"]');
   await page.selectOption('#cu_acc', 'cu');
-  await page.click('[data-a=cuSave]');
+  await page.click('[data-a=irrWizEnd]');
   const st = await stored(page);
   expect(st.irreg).toBe(true);
   expect(st.pct[0].pct).toBe(10);
   expect(st.cushion).toBe('cu');
   await page.locator('#ov [data-a=close]').last().click();
-  await expect(page.locator('.row', { hasText: 'Подушка' }).first()).toContainText('жизни');
+  await expect(page.locator('.row', { hasText: 'Подушка' }).first()).toContainText('из 3 мес. жизни');
   // доход 5 000 -> предложение отложить 500
   await page.click('.tabs .plus');
   await page.click('[data-a=stype][data-v=i]');
@@ -850,17 +855,22 @@ test('нерегулярный доход: мне должны, сам себе 
   await page.click('.dlg .yes');
   await expect.poll(() => heroNumber(page)).toBe(before + 3000);
   expect((await stored(page)).owed.length).toBe(0);
-  // налог и сам себе зарплата в настройках
+  // налог и сам себе зарплата - через мастер
   await page.evaluate(() => { const o = document.querySelector('#ov [data-a=close]'); if (o) o.click(); });
   await page.click('[data-a=settings]');
   await page.locator('#ov summary', { hasText: 'Нерегулярный доход' }).click();
+  await page.click('[data-a=irrWiz][data-v="1"]');
   await page.click('[data-a=taxQuick]');
+  await page.click('[data-a=irrWiz][data-v="2"]');
   await page.selectOption('#sp_acc', 'buf');
   await page.fill('#sp_amt', '7000');
   await page.selectOption('#sp_ev', 'w');
+  await expect(page.locator('#sp_dwb')).toBeVisible();
+  await expect(page.locator('#sp_dmb')).toBeHidden();
   const wd = await page.evaluate(() => new Date().getDay());
-  await page.selectOption('#sp_day', 'w' + wd);
-  await page.click('[data-a=spSave]');
+  await page.selectOption('#sp_dw', String(wd));
+  await page.click('[data-a=irrWiz][data-v="3"]');
+  await page.click('[data-a=irrWizEnd]');
   const st = await stored(page);
   expect(st.pct.some(r => r.pct === 6)).toBe(true);
   expect(st.selfPay.amt).toBe(7000);
@@ -869,5 +879,27 @@ test('нерегулярный доход: мне должны, сам себе 
   const b2 = await heroNumber(page);
   await page.click('[data-a=spDo]');
   await expect.poll(() => heroNumber(page)).toBe(b2 + 7000);
+  expect(errs).toEqual([]);
+});
+
+test('нерегулярный доход: вопрос при знакомстве и "ещё не пришло" в окне дохода', async ({ page }) => {
+  const errs = [];
+  page.on('pageerror', e => errs.push(String(e)));
+  await page.goto('/index.html');
+  await page.click('[data-a=onbNext]');
+  await page.fill('#ob_bal', '20000');
+  await page.click('[data-a=onbNext]');
+  await page.click('[data-a=onbIrr][data-v="1"]');
+  await page.click('[data-a=onbNext]');
+  await page.click('[data-a=onbGo]');
+  await expect.poll(async () => (await stored(page)).irreg).toBe(true);
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  await page.click('.tabs .plus');
+  await page.click('[data-a=stype][data-v=i]');
+  await page.fill('#f_amt', '2500');
+  await page.fill('#f_note', 'Смена');
+  await page.locator('#f_owed').check();
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('[data-a=owedOpen]')).toContainText('2 500');
   expect(errs).toEqual([]);
 });

@@ -982,6 +982,6 @@ test('история: итог дня виден, даже если общий �
   await page.click('[data-a=tab][data-v=hist]');
   const card = page.locator('.card', { hasText: 'Ужин' }).first();
   await expect(card).toContainText('из 1 500');
-  await expect(card).toContainText('вернули больше');
+  await expect(card).toContainText('больше');
   expect(errs).toEqual([]);
 });

@@ -1315,7 +1315,7 @@ function planOutSet(){var pi=planInfo(),l;
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
   // полный режим с планом из «Платежей»: на жизнь — только траты со свободных денег, без отмеченных платежей
-  if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isLiveId(accOf(x))||rc[x.cat]))})}
+  if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isLiveId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isLiveId(accOf(x)))})}
   var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return life(list).reduce(function(a,x){if(x.type==='e'&&!x.skip)return a+netOf(x,LK);if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return a-x.amt;return a},0)}
@@ -2337,7 +2337,9 @@ function histList(){
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
       var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimit(),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,sumNet(life(by[d]),LK)):0,
-        dsum=(dsp>0?(lim>0&&ln>0?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>':'траты '+money(dsp)):'')+(din>0?(dsp>0?' · ':'')+'<span style="color:var(--in)">+'+money(din)+'</span>':'')+(dsp>0&&lim>0&&ln>0&&dsp-ln>1?'<span style="display:block;opacity:.7;font-weight:500">всего '+money(dsp)+'</span>':''),
+        hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,
+        p1=pl?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
+        dsum=p1+(din>0?(p1?' · ':'')+'<span style="color:var(--in)">+'+money(din)+'</span>':'')+(pl&&Math.abs(dsp-ln)>1?'<span style="display:block;opacity:.7;font-weight:500">'+(dsp>=0?'всего '+money(dsp):'вернули больше, чем потратили, на '+money(-dsp))+'</span>':''),
         dn=d===T?'Сегодня, ':d===iso(addDays(parse(T),-1))?'Вчера, ':'';
       out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dn+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(dn?'':', '+WD[dt.getDay()])+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
     });

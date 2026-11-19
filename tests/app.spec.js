@@ -967,3 +967,21 @@ test('возврат можно получить на долг, другую к�
   expect(await heroNumber(page)).toBe(before);
   expect(errs).toEqual([]);
 });
+
+test('история: итог дня виден, даже если общий возврат больше трат', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    d.entries.push({ id: 'a1', type: 'e', amt: 355, cat: 'cafe', note: 'Ужин', date: iso(t), acc: '' });
+    d.entries.push({ id: 'a2', type: 'i', amt: 955, cat: 'refund', note: '', date: iso(t), acc: '' });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('[data-a=tab][data-v=hist]');
+  const card = page.locator('.card', { hasText: 'Ужин' }).first();
+  await expect(card).toContainText('из 1 500');
+  await expect(card).toContainText('вернули больше');
+  expect(errs).toEqual([]);
+});

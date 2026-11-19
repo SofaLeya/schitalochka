@@ -820,3 +820,54 @@ test('нерегулярный доход в полном режиме: плит
   await expect(page.locator('#ov .sheet')).toContainText('хватит на');
   expect(errs).toEqual([]);
 });
+
+test('нерегулярный доход: мне должны, сам себе зарплата, копилка для налога', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    const ago = n => { const x = new Date(t); x.setDate(t.getDate() - n); return iso(x); };
+    for (let i = 1; i <= 10; i++) d.entries.push({ id: 'k' + i, type: 'e', amt: 500, cat: 'cafe', note: 'Ужин', date: ago(i), acc: '' });
+    d.accounts.push({ id: 'buf', type: 'save', name: 'Буфер', start: 30000 });
+    d.irreg = true; d.payDays = []; d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  // мне должны
+  await page.click('[data-a=owedOpen]');
+  await page.fill('#ow_n', 'Смена');
+  await page.fill('#ow_a', '3000');
+  await page.click('[data-a=owedAdd]');
+  await expect(page.locator('#ov .sheet')).toContainText('Всего должны');
+  await page.click('#ov [data-a=close]');
+  await expect(page.locator('[data-a=owedOpen]')).toContainText('3 000');
+  await page.click('[data-a=fcOpen]');
+  await expect(page.locator('#ov .sheet')).toContainText('если заплатят');
+  await page.click('#ov [data-a=close]');
+  const before = await heroNumber(page);
+  await page.click('[data-a=owedOpen]');
+  await page.click('[data-a=owedGot]');
+  await page.click('.dlg .yes');
+  await expect.poll(() => heroNumber(page)).toBe(before + 3000);
+  expect((await stored(page)).owed.length).toBe(0);
+  // налог и сам себе зарплата в настройках
+  await page.evaluate(() => { const o = document.querySelector('#ov [data-a=close]'); if (o) o.click(); });
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Нерегулярный доход' }).click();
+  await page.click('[data-a=taxQuick]');
+  await page.selectOption('#sp_acc', 'buf');
+  await page.fill('#sp_amt', '7000');
+  await page.selectOption('#sp_ev', 'w');
+  const wd = await page.evaluate(() => new Date().getDay());
+  await page.selectOption('#sp_day', 'w' + wd);
+  await page.click('[data-a=spSave]');
+  const st = await stored(page);
+  expect(st.pct.some(r => r.pct === 6)).toBe(true);
+  expect(st.selfPay.amt).toBe(7000);
+  await page.locator('#ov [data-a=close]').last().click();
+  await expect(page.locator('body')).toContainText('Сам себе зарплата');
+  const b2 = await heroNumber(page);
+  await page.click('[data-a=spDo]');
+  await expect.poll(() => heroNumber(page)).toBe(b2 + 7000);
+  expect(errs).toEqual([]);
+});

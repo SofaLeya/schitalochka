@@ -996,9 +996,10 @@ try{window.ruleDbg=function(){return {on:S.rules.map(ruleOn),cap:S.rules.map(rul
 function ymWord(ym){var x=ym.split('-');return MONTHS_P[+x[1]-1]+' '+x[0]}
 
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
-var APP_VER='2026-11-19a';
+var APP_VER='2026-11-19b';
 /* «Что нового»: только 2-3 свежих коротких пункта; старое - под «Что было раньше», устаревшее удаляем; версию меняем только при настоящих новостях */
-var NEWS=['💸 Для тех, кому платят за смены или по часам: ⚙️ → «Нерегулярный доход». Приложение покажет, на сколько дней хватит денег, и предложит откладывать процент с каждого дохода.',
+var NEWS=['💼 Нерегулярный доход: «Мне должны» для неоплаченных смен, «Сам себе зарплата» из копилки-буфера и копилка для налога самозанятых.',
+ '💸 Для тех, кому платят за смены или по часам: ⚙️ → «Нерегулярный доход». Приложение покажет, на сколько дней хватит денег, и предложит откладывать процент с каждого дохода.',
  '🔮 На главной кнопка «Предсказание»: сколько останется к зарплате, если тратить как обычно. Можно добавить свои планы, например продукты по понедельникам.',
  '🧩 Копилка набралась - куда дальше? Открой копилку с целью → «Куда дальше?»: выбери, на какой долг или в какую копилку потом пойдут эти деньги, приложение переключит само. У долга видно, когда он закроется.',
  '💳 Карты: в «Кошельке» можно добавить вторую карту, в том числе в другой валюте, и выбирать в записи, чем оплачено. Трату можно записать в любой валюте (например, евро в поездке).'];
@@ -1111,7 +1112,7 @@ function plannedItems(from,days){
    всё, кроме продуктов, кафе, транспорта и такси, от четверти дневного плана. Свои планы (например, продукты по понедельникам)
    добавляются отдельно, а прошлые траты этой категории в этот день недели из темпа убираются, чтобы не посчитать дважды. */
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
-function fcHero(h){return h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button></div>')}
+function fcHero(h){return h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>')+spNote()}
 function fcEnd(){if(S.irreg)return null;var nd=nextPayDates(1)[0];if(!nd&&!S.simple&&(S.incomes||[]).length){try{nd=perDay().nextIn}catch(e){}}return nd&&nd>T?nd:null}
 function fcPace(){
   var LK=refLinks(),lim=dayLimit(),huge=lim?lim*3:lc(5000),big=lim?lim/4:lc(400),EV={prod:1,cafe:1,trans:1,taxi:1},pl=S.fcPlans||[],nsM={};
@@ -1127,9 +1128,26 @@ function fcPace(){
       else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,hugeS:hugeS,huge:huge,pl:pl}}
 /* нерегулярный доход: на сколько дней хватит денег при нынешнем темпе (с платежами по датам и своими планами) */
-function fcRun(pace){var pl=S.fcPlans||[],m=balance(),outs={};
+
+/* «Мне должны»: заработано, но ещё не пришло (смены, часы). На баланс не влияет, пока не нажато «Пришло» */
+function owedSum(){return (S.owed||[]).reduce(function(a,o){return a+(+o.amt||0)},0)}
+/* «Сам себе зарплата»: доходы копятся в буфере, оттуда раз в неделю или месяц - ровная сумма на карту */
+function spOn(){var sp=S.selfPay;return !!(S.irreg&&sp&&sp.amt>0&&accById(sp.acc))}
+function spMonthly(){var sp=S.selfPay;return sp.every==='w'?sp.amt*52/12:sp.amt}
+function spDueKey(){var sp=S.selfPay,t=parse(T);if(sp.every==='w'){var back=(t.getDay()-(+sp.day)+7)%7;return iso(addDays(t,-back))}
+  var ym=T.slice(0,7),d=payDateIn(ym,+sp.day||1);if(d>T)d=payDateIn(nextYM(ym,-1),+sp.day||1);return d}
+function spNext(from){var sp=S.selfPay,out=[],t=parse(from);for(var j=1;j<=92;j++){var d=addDays(t,j),di=iso(d);if(sp.every==='w'?d.getDay()===+sp.day:di===payDateIn(di.slice(0,7),+sp.day||1))out.push(di)}return out}
+function spNote(){if(!spOn())return '';var k=spDueKey();if(k<(S.selfPay.from||'')||S.selfPayDone===k)return '';var a=accById(S.selfPay.acc),v=Math.min(S.selfPay.amt,Math.max(0,accBal(a)));
+  return '<div class="note info"><b>💼 Сам себе зарплата</b><span>'+(v>0?'Пора перевести себе '+money(v)+' из «'+esc(accName(a))+'».':'В «'+esc(accName(a))+'» пока пусто, переводить нечего.')+'</span><div class="btns" style="margin-top:8px">'+(v>0?'<button type="button" class="btn sm" data-a="spDo" data-v="'+v+'">Перевести</button>':'')+'<button type="button" class="btn ghost sm" data-a="spSkip">Пропустить</button></div></div>'}
+function owedChip(){if(!S.irreg)return '';var n=(S.owed||[]).length;return '<button type="button" class="fcb" style="margin-top:8px;background:rgba(255,255,255,.1)" data-a="owedOpen">💼 '+(n?'Мне должны: '+money(owedSum()):'Мне должны - записать')+'</button>'}
+function owedSheet(){var l=S.owed||[];sh={id:'owed'};
+  openSheet('<h3>💼 Мне должны</h3><p class="fine" style="margin-top:0">Заработано, но ещё не пришло: смены, часы, заказы. В свободные деньги не входит, пока не нажмёшь «Пришло».</p>'+
+   (l.length?'<div class="list">'+l.map(function(o){return '<div class="row"><span class="cico" style="--cc:var(--in)">💼</span><div class="grow"><div class="t">'+esc(o.name||'Доход')+'</div><div class="s">'+money(o.amt)+(o.date?' · с '+dlabel(o.date):'')+'</div></div><button type="button" class="btn sm" style="flex:none" data-a="owedGot" data-id="'+o.id+'">Пришло</button><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="owedDel" data-id="'+o.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div><p class="fine">Всего должны: <b>'+money(owedSum())+'</b></p>':'')+
+   '<div class="two" style="margin-top:8px"><div class="f"><label for="ow_n">За что</label><input id="ow_n" placeholder="Смена 19.11"></div><div class="f"><label for="ow_a">Сумма, '+sym()+'</label><input id="ow_a" inputmode="decimal" placeholder="3000"></div></div><button type="button" class="btn ghost" data-a="owedAdd">Добавить</button>'+
+   '<div class="btns"><button type="button" class="btn" data-a="close">Готово</button></div>')}
+function fcRun(pace,extra){var pl=S.fcPlans||[],m=balance()+(extra||0),outs={},sp=spOn()?S.selfPay:null,buf=sp?Math.max(0,accBal(accById(sp.acc))):0,spd={};if(sp)spNext(T).forEach(function(d){spd[d]=1});
   if(!S.simple){try{plannedItems(T,92).forEach(function(e){if(e.kind==='out'&&!offMain(e)&&e.date>T)outs[e.date]=(outs[e.date]||0)+e.amt})}catch(e){}}
-  for(var j=1;j<=92;j++){var d=addDays(parse(T),j),di=iso(d);m-=pace+(outs[di]||0);pl.forEach(function(q){if(d.getDay()===+q.wd)m-=q.amt*(q.half?0.5:1)});if(m<0)return {days:j-1,date:iso(addDays(parse(T),j-1))}}
+  for(var j=1;j<=92;j++){var d=addDays(parse(T),j),di=iso(d);if(spd[di]&&buf>0){var g=Math.min(sp.amt,buf);buf-=g;m+=g}m-=pace+(outs[di]||0);pl.forEach(function(q){if(d.getDay()===+q.wd)m-=q.amt*(q.half?0.5:1)});if(m<0)return {days:j-1,date:iso(addDays(parse(T),j-1))}}
   return {days:92,date:null}}
 function fcCalc(){
   var nd=fcEnd();if(!nd)return null;
@@ -1148,7 +1166,8 @@ function fcIrrBody(){var P=fcPace();
   if(P.kn<5)return '<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   var r=fcRun(P.pace),rb=fcRun(P.paceB),dd=function(x){return x.date?x.days+' '+plw(x.days,'день','дня','дней')+' - до '+dlabel(x.date):'больше 3 месяцев'};
   return '<div class="fcbig">При твоём темпе денег хватит на<b>'+(r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ месяца')+'</b>'+(r.date?'примерно до '+dlabel(r.date):'')+'</div><p class="fine">Обычный день - около '+money(P.pace)+'.</p>'+
-   (rb.days>r.days?'<div class="note info" style="margin-top:10px"><span>Если обойдёшься без крупных покупок - хватит на '+dd(rb)+'</span></div>':'')}
+   (rb.days>r.days?'<div class="note info" style="margin-top:10px"><span>Если обойдёшься без крупных покупок - хватит на '+dd(rb)+'</span></div>':'')+
+   (owedSum()>0?'<div class="note info" style="margin-top:10px"><span>А если заплатят, что должны ('+money(owedSum())+'), - хватит на '+dd(fcRun(P.pace,owedSum()))+'</span></div>':'')+(spOn()?'<p class="fine">Сам себе зарплата из «'+esc(accName(accById(S.selfPay.acc)))+'» уже учтена, пока в буфере есть деньги.</p>':'')}
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>';
   if(!f&&S.irreg){openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+'<p class="fine" style="margin-top:14px">Как считается: свободные деньги сейчас ('+money(balance())+') уменьшаются на обычные траты по последним 2 неделям'+(S.simple?'':', платежи по их датам')+' и твои планы, пока не кончатся. Новые доходы не учитываются - их никто не знает заранее.</p><div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>');return}
@@ -1224,9 +1243,10 @@ function planInfo(){if(PI_ON){if(!PI_C)PI_C=planInfo0();return PI_C}return planI
 function irregInc(){var cur=T.slice(0,7),mn=null;for(var k=1;k<=3;k++){var m=nextYM(cur,-k),l=S.entries.filter(function(x){return !x.demo&&x.date.slice(0,7)===m});if(l.length<5)continue;
   var v=l.reduce(function(a,x){return a+(x.type==='i'&&!x.skip&&x.cat!=='refund'?x.amt:0)},0);if(mn===null||v<mn)mn=v}return mn||0}
 function pctSum(){return (S.pct||[]).reduce(function(a,r){return a+(accById(r.acc)?+r.pct||0:0)},0)}
-function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0;var ii=irregInc();if(!(ii>0))return p0;
+function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0;var ii=spOn()?spMonthly():irregInc();if(!(ii>0))return p0;
+  if(spOn()){ii=spMonthly()}
   var c={inc:ii,fixed:0,save:0,irr:0};if(p0.src==='full'){c.fixed=p0.c.fixed;c.save=p0.c.save;c.irr=p0.c.irr}else if(S.planCalc){c.fixed=+S.planCalc.fixed||0;c.save=+S.planCalc.save||0;c.irr=+S.planCalc.irr||0}
-  c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:'irreg',c:c}}
+  if(!spOn())c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:spOn()?'self':'irreg',c:c}}
 function planInfo1(){
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {v:planCalcVal(fp),src:'full',c:fp}}
   if(S.planCalc&&+S.planCalc.inc>0)return {v:planCalcVal(S.planCalc),src:'calc'};
@@ -1234,7 +1254,7 @@ function planInfo1(){
   var a=planByIncome();if(a)return {v:a,src:'income'};
   return {v:0,src:'none'};
 }
-var PLANSRC={irreg:'по осторожному доходу (самый скромный месяц из трёх)',full:'по вкладке «Платежи»',manual:'твоя сумма',calc:'по твоему расчёту',income:'по доходам и платежам',none:'не задан'};
+var PLANSRC={self:'по сумме «Сам себе зарплата»',irreg:'по осторожному доходу (самый скромный месяц из трёх)',full:'по вкладке «Платежи»',manual:'твоя сумма',calc:'по твоему расчёту',income:'по доходам и платежам',none:'не задан'};
 function dayLimit(){return planInfo().v}
 function planDefaults(){var c=S.planCalc||{},inc=0,fx=0,sv=0;(S.incomes||[]).forEach(function(r){inc+=+r.amt||0});(S.recur||[]).forEach(function(r){fx+=+r.amt||0});(S.rules||[]).forEach(function(r){if(ruleOn(r))sv+=+r.amt||0});
   return {inc:c.inc!=null?c.inc:(inc||''),fixed:c.fixed!=null?c.fixed:(fx||''),save:c.save!=null?c.save:(sv||''),irr:c.irr!=null?c.irr:''}}
@@ -2169,13 +2189,19 @@ function debtEtaTxt(a,pre){var e=ruleEta(a);if(e===null)return '';return pre+(e?
 function pctParts(x){return (S.pct||[]).filter(function(r){return accById(r.acc)}).map(function(r){return {r:r,v:Math.round(x.amt*r.pct/100/lc(10))*lc(10)}}).filter(function(o){return o.v>0})}
 function pctOffer(id){var x=S.entries.filter(function(e){return e.id===id})[0];if(!x)return;var ps=pctParts(x);if(!ps.length)return;sh={id:'pct',pct:id};
   openSheet('<h3>💸 Разложить с дохода</h3><p>Пришло '+money(x.amt)+'. По твоим правилам:</p><div class="list">'+ps.map(function(o){return '<div class="row"><span class="cico" style="--cc:'+ACOL.save+'">🐷</span><div class="grow"><div class="t">'+esc(accName(accById(o.r.acc)))+'</div><div class="s">'+o.r.pct+'% с дохода</div></div><span class="amt">'+money(o.v)+'</span></div>'}).join('')+'</div><div class="btns"><button type="button" class="btn ghost" data-a="close">Пропустить</button><button type="button" class="btn" data-a="pctDo" data-id="'+id+'">Разложить '+money(ps.reduce(function(a,o){return a+o.v},0))+'</button></div>')}
+function spSetHtml(sv){var sp=S.selfPay||{},ii=irregInc(),wd=['вс','пн','вт','ср','чт','пт','сб'];
+  return '<p class="fine" style="margin:0">Все доходы копятся в одной копилке-буфере, а оттуда ты платишь себе ровную сумму. Тогда жить можно ровно, даже если доход скачет. '+(spOn()?'':'Чтобы весь доход шёл в буфер, добавь правило выше: буфер · 100%.')+(ii>0?' По твоим доходам ровно выходит до '+money(Math.floor(ii/lc(500))*lc(500))+' в месяц ('+money(Math.floor(ii*12/52/lc(100))*lc(100))+' в неделю).':'')+'</p>'+
+   '<div class="two"><div class="f"><label for="sp_acc">Буфер</label><select id="sp_acc"><option value="">выключено</option>'+sv.map(function(a){return '<option value="'+a.id+'"'+(a.id===sp.acc?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select></div><div class="f"><label for="sp_amt">Сумма, '+sym()+'</label><input id="sp_amt" inputmode="decimal" value="'+(sp.amt||'')+'" placeholder="10000"></div></div>'+
+   '<div class="two"><div class="f"><label for="sp_ev">Как часто</label><select id="sp_ev"><option value="w"'+(sp.every==='w'?' selected':'')+'>каждую неделю</option><option value="m"'+(sp.every==='m'?' selected':'')+'>каждый месяц</option></select></div><div class="f"><label for="sp_day">День</label><select id="sp_day">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="w'+w+'"'+(sp.every==='w'&&+sp.day===w?' selected':'')+'>'+wd[w]+' (если каждую неделю)</option>'}).join('')+Array.apply(null,{length:28}).map(function(_,i){return '<option value="m'+(i+1)+'"'+(sp.every!=='w'&&+sp.day===i+1?' selected':'')+'>'+(i+1)+' число (если каждый месяц)</option>'}).join('')+'</select></div></div><button type="button" class="btn ghost" data-a="spSave">Сохранить</button>'}
 function irrSetHtml(){var sv=S.accounts.filter(function(a){return a.type==='save'});
   if(!S.irreg)return '<p class="fine" style="margin:0">Для тех, кому платят за смены, по часам или как придётся. Тогда приложение покажет, на сколько дней хватит денег, план на день посчитает по самому скромному месяцу из трёх прошлых, а откладывать можно процентом с каждого дохода.</p><button type="button" class="btn" data-a="irrOn">Включить</button>';
   var ii=irregInc();
   return '<p class="fine" style="margin:0">Включён. На главной вместо «Можно в день до зарплаты» - на сколько дней хватит денег. '+(ii>0?'Осторожный доход для плана: '+money(ii)+' в месяц.':'План по доходу появится, когда будет хотя бы месяц записей.')+'</p>'+
    '<div class="sgrp">Откладывать с каждого дохода</div>'+((S.pct||[]).length?'<div class="list">'+S.pct.map(function(r){var a=accById(r.acc);return '<div class="row"><span class="cico" style="--cc:'+ACOL.save+'">🐷</span><div class="grow t">'+esc(a?accName(a):'?')+' · '+r.pct+'%</div><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="pctDel" data-id="'+r.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'')+
    (sv.length?'<div class="two"><div class="f"><label for="pct_acc">Копилка</label><select id="pct_acc">'+sv.map(function(a){return '<option value="'+a.id+'">'+esc(accName(a))+'</option>'}).join('')+'</select></div><div class="f"><label for="pct_v">Процент</label><input id="pct_v" inputmode="decimal" placeholder="10"></div></div><button type="button" class="btn ghost" data-a="pctAdd">Добавить правило</button>'+
-    '<div class="sgrp">Подушка безопасности</div><div class="f"><label for="cu_acc">Какая копилка - подушка</label><select id="cu_acc"><option value="">нет</option>'+sv.map(function(a){return '<option value="'+a.id+'"'+(a.id===S.cushion?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select></div><button type="button" class="btn ghost" data-a="cuSave">Сохранить подушку</button><p class="fine" style="margin:0">У подушки в «Кошельке» видно, на сколько дней жизни её хватит.</p>':'<p class="fine" style="margin:0">Сначала заведи копилку в «Кошельке».</p>')+
+    '<p class="fine" style="margin:0">Самозанятым: откладывай налог сразу - 4% с доходов от людей, 6% от компаний и ИП.</p>'+(S.accounts.some(function(a){return a.type==='save'&&/налог/i.test(a.name)})?'':'<button type="button" class="btn ghost sm" data-a="taxQuick">＋ Копилка «Налог» и 6% с дохода</button>')+
+    '<div class="sgrp">Сам себе зарплата</div>'+spSetHtml(sv)+
+    '<div class="sgrp">Подушка безопасности</div><div class="f"><label for="cu_acc">Какая копилка - подушка</label><select id="cu_acc"><option value="">нет</option>'+sv.map(function(a){return '<option value="'+a.id+'"'+(a.id===S.cushion?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select></div><button type="button" class="btn ghost" data-a="cuSave">Сохранить подушку</button><p class="fine" style="margin:0">У подушки в «Кошельке» видно, на сколько дней жизни её хватит.</p>':'<p class="fine" style="margin:0">Сначала заведи копилку в «Кошельке». Самозанятым: налог удобно откладывать сразу - 4% с доходов от людей, 6% от компаний и ИП.</p><button type="button" class="btn ghost sm" data-a="taxQuick">＋ Копилка «Налог» и 6% с дохода</button>')+
    '<button type="button" class="btn ghost" data-a="irrOff">Выключить</button>'}
 function cushTxt(a){var d=dayLimit()||fcPace().pace;if(!(d>0))return '🛟 подушка';var n=Math.floor(accBal(a)/d);return '🛟 '+(n>=61?'на '+Math.floor(n/30.4)+' мес. жизни':'на '+n+' '+plw(n,'день','дня','дней')+' жизни')}
 function accountsCard(){
@@ -4064,6 +4090,17 @@ document.addEventListener('click',function(ev){
   else if(a==='qcat'){var dc=readEntry();dc.cat=v;dc.manual=true;dc.auto=false;if(dc.type==='e'){dc.cls=NEEDC[v]?'need':'mind'}entrySheet()}
   else if(a==='scls'){var d2=readEntry();d2.cls=v;d2.clsManual=true;d2.clsSet=true;entrySheet()}
   else if(a==='close')closeSheet();
+  else if(a==='owedOpen')owedSheet();
+  else if(a==='owedAdd'){var oa=+String(document.getElementById('ow_a').value||'').replace(',','.').replace(/\s/g,'');if(!(oa>0)){toast('Впиши сумму');return}S.owed=(S.owed||[]).concat([{id:'ow'+Date.now(),name:(document.getElementById('ow_n').value||'').trim().slice(0,40)||'Смена',amt:oa,date:T}]);save();render();owedSheet()}
+  else if(a==='owedDel'){S.owed=(S.owed||[]).filter(function(o){return o.id!==id});save();render();owedSheet()}
+  else if(a==='owedGot'){var og=(S.owed||[]).filter(function(o){return o.id===id})[0];if(og)uiAsk('Сколько пришло?',{input:true,num:true,def:String(og.amt),yes:'Пришло'}).then(function(r){var gv=+String(r||'').replace(',','.').replace(/\s/g,'');if(!(gv>0))return;var ne={id:uid(),type:'i',amt:gv,cat:'side',date:T,note:og.name,cls:'',acc:defAcc()};S.entries.push(ne);S.owed=S.owed.filter(function(o){return o.id!==id});save();render();if(pctSum()>0)pctOffer(ne.id);else owedSheet();toast('Записан доход '+money(gv))})}
+  else if(a==='spSave'){var sa=document.getElementById('sp_acc').value,sm=+String(document.getElementById('sp_amt').value||'').replace(',','.').replace(/\s/g,''),se=document.getElementById('sp_ev').value,sdv=document.getElementById('sp_day').value;
+    if(!sa){S.selfPay=null;save();render();settingsSheet();toast('Сам себе зарплата выключена');return}
+    if(!(sm>0)){toast('Впиши сумму');return}
+    var sd=sdv.charAt(0)===se?+sdv.slice(1):(se==='w'?1:1);S.selfPay={acc:sa,amt:sm,every:se,day:sd,from:T};save();render();settingsSheet();toast('Сохранено')}
+  else if(a==='spDo'){var sv0=+v,spa=accById(S.selfPay.acc);if(spa&&sv0>0){var st={id:uid(),type:'t',amt:sv0,cat:'',date:T,note:'Сам себе зарплата',cls:'',from:spa.id,to:defAcc()};S.entries.push(st);S.selfPayDone=spDueKey();save();render();toast('Переведено '+money(sv0),false,function(){S.entries=S.entries.filter(function(e){return e.id!==st.id});delete S.selfPayDone;save();render();toast('Отменено')})}}
+  else if(a==='spSkip'){S.selfPayDone=spDueKey();save();render()}
+  else if(a==='taxQuick'){var ta={id:uid(),name:'Налог',type:'save',start:0};S.accounts.push(ta);S.pct=(S.pct||[]).concat([{id:'pc'+Date.now(),acc:ta.id,pct:6}]);save();render();settingsSheet();toast('Копилка «Налог»: 6% с каждого дохода')}
   else if(a==='irrOn'){S.irreg=true;save();render();if(sh&&sh.fc)fcSheet();else settingsSheet();toast('Нерегулярный доход включён')}
   else if(a==='irrOff'){S.irreg=false;save();render();settingsSheet()}
   else if(a==='pctAdd'){var pv=+String(document.getElementById('pct_v').value||'').replace(',','.');if(!(pv>0&&pv<=100)){toast('Впиши процент от 1 до 100');return}S.pct=(S.pct||[]).concat([{id:'pc'+Date.now(),acc:document.getElementById('pct_acc').value,pct:Math.round(pv*10)/10}]);save();render();settingsSheet()}

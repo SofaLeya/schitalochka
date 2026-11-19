@@ -3625,7 +3625,7 @@ document.addEventListener('touchend',endDrag);document.addEventListener('touchca
 function sortCats(list){return list.slice().sort(function(a,b){var ao=a.name==='Прочее'?1:0,bo=b.name==='Прочее'?1:0;if(ao!==bo)return ao-bo;return a.name.localeCompare(b.name,'ru')})}
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выбери категорию…</option>')+sortCats(list).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
-function accOpts(sel){return S.accounts.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')}
+function accOpts(sel){var rk={main:0,other:1,save:2,debt:3};return S.accounts.map(function(a,i){return [a,i]}).sort(function(x,y){return (rk[x[0].type]||0)-(rk[y[0].type]||0)||x[1]-y[1]}).map(function(z){var a=z[0],ic=a.type==='debt'?(dkOf(a)?dkOf(a)[0]:'🏦'):a.type==='save'?accIco(a):'💳';return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+ic+' '+esc(accName(a))+(a.type==='debt'?' (долг)':'')+'</option>'}).join('')}
 function srcOpts(sel){var rk={main:0,other:1,save:2};return S.accounts.filter(function(a){return a.type==='main'||a.type==='save'||a.type==='other'}).map(function(a,i){return [a,i]}).sort(function(x,y){return rk[x[0].type]-rk[y[0].type]||x[1]-y[1]}).map(function(z){return z[0]}).map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+(a.type==='main'?'':' · '+mon(accBalN(a),isFx(a)?a.cur:baseCur()))+'</option>'}).join('')}
 function tDefaults(d){
   if(!d.from||!accById(d.from))d.from=defAcc();

@@ -923,3 +923,24 @@ test('копилки: мешочек по умолчанию и своя кар�
   expect((await stored(page)).accounts.find(a => a.id === 'f1').ico).toBe('🏖️');
   expect(errs).toEqual([]);
 });
+
+test('перевод: сначала карты, потом копилки, долги подписаны', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.accounts.push({ id: 'd1', type: 'debt', name: 'ОТП', start: -1000 });
+    d.accounts.push({ id: 's1', type: 'save', name: 'Отпуск', start: 100 });
+    d.accounts.push({ id: 'c1', type: 'other', name: 'ОТП', start: 500 });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('.tabs .plus');
+  await page.click('[data-a=stype][data-v=t]');
+  const t = await page.locator('#f_to option').allTextContents();
+  const iCard = t.findIndex(x => x.includes('💳 ОТП')), iSave = t.findIndex(x => x.includes('Отпуск')), iDebt = t.findIndex(x => x.includes('ОТП (долг)'));
+  expect(iCard).toBeGreaterThan(-1);
+  expect(iCard).toBeLessThan(iSave);
+  expect(iSave).toBeLessThan(iDebt);
+  expect(errs).toEqual([]);
+});

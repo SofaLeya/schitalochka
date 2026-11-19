@@ -944,3 +944,26 @@ test('перевод: сначала карты, потом копилки, до
   expect(iSave).toBeLessThan(iDebt);
   expect(errs).toEqual([]);
 });
+
+test('возврат можно получить на долг, другую карту или в копилку', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.accounts.push({ id: 'd1', type: 'debt', name: 'Кредитка', start: -5000 });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  const before = await heroNumber(page);
+  await page.click('.tabs .plus');
+  await page.click('[data-a=stype][data-v=r]').catch(async () => { await page.locator('#ov button', { hasText: 'Вернули' }).first().click(); });
+  await page.fill('#f_amt', '951');
+  await page.selectOption('#f_acc', 'd1');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  const st = await stored(page);
+  const e = st.entries.find(x => x.amt === 951);
+  expect(e.acc).toBe('d1');
+  expect(await heroNumber(page)).toBe(before);
+  expect(errs).toEqual([]);
+});

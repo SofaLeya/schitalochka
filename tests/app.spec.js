@@ -756,3 +756,67 @@ test('карты в "Чем оплачено" выше копилок; свое�
   expect((await stored(page)).ccats[0].ico).toBe('🛋️');
   expect(errs).toEqual([]);
 });
+
+test('нерегулярный доход: на сколько дней хватит, процент с дохода в копилку, подушка', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    const ago = n => { const x = new Date(t); x.setDate(t.getDate() - n); return iso(x); };
+    for (let i = 1; i <= 10; i++) d.entries.push({ id: 'k' + i, type: 'e', amt: 500, cat: 'cafe', note: 'Ужин', date: ago(i), acc: '' });
+    d.accounts.push({ id: 'cu', type: 'save', name: 'Подушка', bal: 15000 });
+    d.payDays = []; d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  // без дней зарплаты предсказание предлагает нерегулярный доход
+  await page.click('[data-a=fcOpen]');
+  await page.click('#ov [data-a=irrOn]');
+  const sheet = page.locator('#ov .sheet');
+  await expect(sheet).toContainText('хватит на');
+  await page.click('#ov [data-a=close]');
+  // правило 10% и подушка в настройках
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Нерегулярный доход' }).click();
+  await page.fill('#pct_v', '10');
+  await page.click('[data-a=pctAdd]');
+  await page.selectOption('#cu_acc', 'cu');
+  await page.click('[data-a=cuSave]');
+  const st = await stored(page);
+  expect(st.irreg).toBe(true);
+  expect(st.pct[0].pct).toBe(10);
+  expect(st.cushion).toBe('cu');
+  await page.locator('#ov [data-a=close]').last().click();
+  await expect(page.locator('.row', { hasText: 'Подушка' }).first()).toContainText('жизни');
+  // доход 5 000 -> предложение отложить 500
+  await page.click('.tabs .plus');
+  await page.click('[data-a=stype][data-v=i]');
+  await page.fill('#f_amt', '5000');
+  await page.evaluate(() => { const e = document.getElementById('f_cat'); e.value = 'side'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toContainText('Разложить с дохода');
+  await page.click('[data-a=pctDo]');
+  const st2 = await stored(page);
+  const tr = st2.entries.filter(e => e.type === 't' && e.to === 'cu');
+  expect(tr.length).toBe(1);
+  expect(tr[0].amt).toBe(500);
+  expect(errs).toEqual([]);
+});
+
+test('нерегулярный доход в полном режиме: плитка "Хватит" и план по скромному месяцу', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    const ago = n => { const x = new Date(t); x.setDate(t.getDate() - n); return iso(x); };
+    for (let i = 1; i <= 100; i++) d.entries.push({ id: 'k' + i, type: 'e', amt: 300, cat: 'cafe', note: 'Ужин', date: ago(i), acc: '' });
+    for (let i = 1; i <= 100; i += 7) d.entries.push({ id: 'i' + i, type: 'i', amt: i < 40 ? 9000 : 6000, cat: 'side', note: 'Смена', date: ago(i), acc: '' });
+    d.simple = false; d.irreg = true; d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await expect(page.locator('.hero')).toContainText('Хватит');
+  await page.click('[data-a=fcOpen]');
+  await expect(page.locator('#ov .sheet')).toContainText('хватит на');
+  expect(errs).toEqual([]);
+});

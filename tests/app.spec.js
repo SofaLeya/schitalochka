@@ -903,3 +903,23 @@ test('нерегулярный доход: вопрос при знакомст�
   await expect(page.locator('[data-a=owedOpen]')).toContainText('2 500');
   expect(errs).toEqual([]);
 });
+
+test('копилки: мешочек по умолчанию и своя картинка', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.accounts.push({ id: 'f1', type: 'save', name: 'Отпуск', start: 1000 });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  const row = page.locator('.row[data-acc=f1]');
+  await expect(row).toContainText('💰');
+  await row.click();
+  await page.locator('#ov details.icod summary').click();
+  await page.click('#ov .icob[data-e="🏖️"]');
+  await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('.row[data-acc=f1]')).toContainText('🏖️');
+  expect((await stored(page)).accounts.find(a => a.id === 'f1').ico).toBe('🏖️');
+  expect(errs).toEqual([]);
+});

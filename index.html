@@ -909,7 +909,9 @@ window.poMode=function(m){window.poFill(m==='free'?'plan':'fit')}
 window.poFill=function(m){var ins=[].slice.call(document.querySelectorAll('.po_in')),inc=+String((document.getElementById('po_inc')||{}).value||'').replace(',','.')||0,tot=ins.reduce(function(a,e){return a+(+e.dataset.plan||0)},0),r10=function(v){return Math.floor(v/10)*10};
   if(m==='plan')ins.forEach(function(e){e.value=e.dataset.plan});
   else if(m==='zero')ins.forEach(function(e){e.value=0});
-  else if(m==='fit'){var k=tot>0?Math.min(1,inc/tot):0;ins.forEach(function(e){e.value=r10((+e.dataset.plan||0)*k)})}
+  else if(m==='fit'){var k=tot>0?Math.min(1,inc/tot):0,sm=0;ins.forEach(function(e){var v=r10((+e.dataset.plan||0)*k);e.value=v;sm+=v});
+    /* остаток от округления (копейки до 10 ₽) не оставляем «на жизнь» - докладываем, начиная с самых больших копилок */
+    var rest=Math.round(Math.min(inc,tot)-sm);ins.slice().sort(function(a,b){return (+b.dataset.plan||0)-(+a.dataset.plan||0)}).forEach(function(e){if(rest<=0)return;var room=(+e.dataset.plan||0)-(+e.value||0),add=Math.min(room,rest);if(add>0){e.value=Math.round((+e.value||0)+add);rest-=add}})}
   else{var left=inc;ins.forEach(function(e){var v=Math.min(+e.dataset.plan||0,Math.max(0,left));e.value=Math.round(v);left-=v})}
   window.poUpd()}
 function applyPayout(day,ym){

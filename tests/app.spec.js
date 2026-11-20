@@ -1006,6 +1006,13 @@ test('гибкая раскладка: пришло меньше - суммы п
   await expect(page.locator('.po_in[data-rule=r1]')).toHaveValue('1200');
   await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('400');
   await expect(page.locator('#po_tot')).toContainText('1 600');
+  // округление не оставляет копейки на жизнь: 1641 из 2000
+  await page.fill('#po_inc', '1641');
+  await page.locator('#ov button', { hasText: 'Уложиться' }).click();
+  const sum = await page.$$eval('.po_in', es => es.reduce((a, e) => a + (+e.value || 0), 0));
+  expect(sum).toBe(1641);
+  await page.fill('#po_inc', '1600');
+  await page.locator('#ov button', { hasText: 'Уложиться' }).click();
   await expect(page.locator('#po_cl')).toContainText('на 400 ₽ меньше плана');
   // «из свободных денег» - суммы по плану, потом снова «докинуть» - под пришедшее
   await page.check('input[name=po_m][value=free]');

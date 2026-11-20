@@ -985,3 +985,34 @@ test('история: итог дня виден, даже если общий �
   await expect(card).toContainText('больше');
   expect(errs).toEqual([]);
 });
+
+test('гибкая раскладка: пришло меньше - суммы под пришедшее, недостающее на следующую выплату', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  const t = new Date(); const ym = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0');
+  await patch(page, {
+    simple: false, planFrom: ym + '-01',
+    accounts: [{ id: 'a1', name: 'Основная карта', type: 'main', start: 20000 },
+      { id: 'k1', name: 'Подкопка', type: 'save', start: 0 }, { id: 'k2', name: 'Клода', type: 'save', start: 0 }],
+    incomes: [{ id: 'i1', name: 'Аванс', amt: 2000, day: 1 }],
+    rules: [{ id: 'r1', name: 'Подкопка', amt: 1500, day: 1, acc: 'k1' }, { id: 'r2', name: 'Клода', amt: 500, day: 1, acc: 'k2' }],
+    entries: [{ id: 'in1', type: 'i', amt: 1600, cat: 'salary', date: ym + '-01', note: 'Аванс', iid: 'i1', acc: '' }],
+  });
+  await page.reload();
+  await page.click('[data-a=tab][data-v=plan]');
+  await page.click('[data-a=applyP]');
+  await expect(page.locator('#po_inc')).toHaveValue('1600');
+  // сразу предлагает уложиться в пришедшее: 1500*0.8=1200, 500*0.8=400
+  await expect(page.locator('.po_in[data-rule=r1]')).toHaveValue('1200');
+  await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('400');
+  await expect(page.locator('#po_tot')).toContainText('1 600');
+  // по порядку: первая полностью, вторая - сколько осталось
+  await page.locator('#ov button', { hasText: 'По порядку' }).click();
+  await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('100');
+  await page.click('[data-a=poDo]');
+  const st = await stored(page);
+  expect(st.entries.filter(e => e.type === 't' && e.to === 'k1')[0].amt).toBe(1500);
+  expect(st.entries.filter(e => e.type === 't' && e.to === 'k2')[0].amt).toBe(100);
+  expect(st.carry).toEqual([expect.objectContaining({ acc: 'k2', amt: 400 })]);
+  expect(errs).toEqual([]);
+});

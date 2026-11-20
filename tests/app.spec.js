@@ -205,7 +205,7 @@ test('один чек раскладывается по категориям, с
   await page.fill('#f_amt', '2000+601');
   await expect(page.locator('#f_amtsum')).toContainText('2 601');
   await page.fill('#f_note', 'Заказ продукты');
-  await page.click('[data-a=partsOn]');
+  await page.click('[data-a=amtMore]'); await page.click('[data-a=partsOn]');
   await page.fill('#pa0', '400');
   await page.click('[data-a=amtPlus][data-v=pa0]');
   await page.locator('#pa0').pressSequentially('250');
@@ -228,7 +228,7 @@ test('возврат за весь чек делится по разложенн
   await page.reload();
   await page.click('.tabs [data-a=tab][data-v=hist]');
   await page.click('[data-a=edit][data-id=big]');
-  await page.click('[data-a=partsOn]');
+  await page.click('[data-a=amtMore]'); await page.click('[data-a=partsOn]');
   await page.fill('#pa0', '650');
   await page.locator('#fm button[type=submit]').click();
   const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => e.type === 'e' && e.grp).map(e => e.cat + ':' + e.amt).sort());
@@ -242,7 +242,7 @@ test('окно не прыгает наверх, когда добавляешь
   await start(page);
   await page.click('.tabs .plus');
   await page.fill('#f_amt', '5201');
-  await page.click('[data-a=partsOn]');
+  await page.click('[data-a=amtMore]'); await page.click('[data-a=partsOn]');
   await page.fill('#pa0', '892');
   const sh = page.locator('#ov .sheet');
   await sh.evaluate(e => { e.scrollTop = e.scrollHeight; });
@@ -259,7 +259,7 @@ test('разложенный чек помечен и показывает св�
   await page.click('.tabs .plus');
   await page.fill('#f_amt', '1000');
   await page.fill('#f_note', 'Заказ продукты');
-  await page.click('[data-a=partsOn]');
+  await page.click('[data-a=amtMore]'); await page.click('[data-a=partsOn]');
   await page.fill('#pa0', '300');
   await page.locator('#fm button[type=submit]').click();
   await page.click('.tabs [data-a=tab][data-v=hist]');
@@ -1053,5 +1053,23 @@ test('обновление: если на сайте новая сборка - �
   await page.route(/version\.txt/, r => r.fulfill({ contentType: 'text/plain', body: 'bbbbbbb\n' }));
   await start(page, errs);
   await expect(page.locator('#updbar')).toContainText('Есть обновление', { timeout: 8000 });
+  expect(errs).toEqual([]);
+});
+
+test('окно записи: одна кнопка «+ ещё сумма» - в ту же категорию или в другую', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('.tabs .plus');
+  await expect(page.locator('#ov [data-a=partsOn]')).toHaveCount(0);
+  await page.fill('#f_amt', '100');
+  await page.click('[data-a=amtMore]');
+  await page.click('.amtmore [data-a=amtPlus]');
+  await expect(page.locator('#f_amt')).toHaveValue('100+');
+  await expect(page.locator('.amtmore')).toHaveCount(0);
+  await page.locator('#f_amt').pressSequentially('50');
+  await page.click('[data-a=amtMore]');
+  await page.click('.amtmore [data-a=partsOn]');
+  await expect(page.locator('#ov .parts')).toBeVisible();
+  await expect(page.locator('#f_amt')).toHaveValue('100+50');
   expect(errs).toEqual([]);
 });

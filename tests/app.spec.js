@@ -1125,6 +1125,7 @@ test('производственный календарь: загрузка на
   await page.route(/isdayoff\.ru/, r => r.fulfill({ contentType: 'text/plain', body: str, headers: { 'access-control-allow-origin': '*' } }));
   await start(page, errs);
   await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Дни зарплаты' }).click();
   await page.locator('#ov summary', { hasText: 'Производственный календарь' }).click();
   await page.click(`[data-a=calLoad][data-v="${y}"]`);
   await expect.poll(async () => ((await stored(page)).rucal || {})[y]).toBe(str);

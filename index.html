@@ -236,6 +236,7 @@ html.bigtext{zoom:1.14}
 @media (prefers-reduced-motion:no-preference){.dlg .box{animation:pop .18s ease-out}}
 .toast .sub{font-weight:500;font-size:13px}
 .toast[hidden]{display:none}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}details.fold>summary::-webkit-details-marker{display:none}details.fold>summary h2{margin:0}details.fold>summary::after{content:'▾';margin-left:auto;opacity:.6}details.fold[open]>summary::after{content:'▴'}
 #updbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:60;display:flex;gap:10px;align-items:center;background:#a78bfa;color:#1a1033;font-weight:800;border-radius:999px;padding:8px 8px 8px 16px;box-shadow:0 8px 24px rgba(0,0,0,.45);white-space:nowrap}#updbar button{border:0;border-radius:999px;background:#1a1033;color:#fff;font:inherit;font-weight:800;padding:8px 14px;cursor:pointer}
 /* сообщение не мешает нажимать то, что под ним; кнопки внутри (например «Отменить») нажимаются как обычно */
 .toast{pointer-events:none}.toast button,.toast a{pointer-events:auto}
@@ -944,15 +945,6 @@ window.poFill=function(m){var dn=[].slice.call(document.querySelectorAll('.po_in
     var rest=Math.round(Math.min(inc,tot)-sm);ins.slice().sort(function(a,b){return (+b.dataset.plan||0)-(+a.dataset.plan||0)}).forEach(function(e){if(rest<=0)return;var room=(+e.dataset.plan||0)-(+e.value||0),add=Math.min(room,rest);if(add>0){e.value=Math.round((+e.value||0)+add);rest-=add}})}
   else{var left=inc;ins.forEach(function(e){var v=Math.min(+e.dataset.plan||0,Math.max(0,left));e.value=Math.round(v);left-=v})}
   window.poUpd()}
-function applyPayout(day,ym){
-  var date=payDateIn(ym,day),n=0;
-  /* условия проверяем по остаткам до этой выплаты: правило «после цели» начинает со следующей */
-  S.rules.filter(function(r){return r.day===day&&!ruleDone(r,ym)&&accById(r.acc)}).map(function(r){return {r:r,v:ruleCap(r)}}).forEach(function(o){
-    var r=o.r,v=o.v;if(!(v>0))return;
-    S.entries.push({id:uid(),type:'t',amt:v,cat:'',date:date,note:r.name+' · по плану',cls:'',from:defAcc(),to:r.acc,rule:r.id});n++;
-  });
-  return n;
-}
 /* ---------- правила с условием: «начать, когда набрана цель X / закрыт долг Y», «остановить на цели» ----------
    r.after - id копилки (с целью) или долга: правило ждёт, пока там не наберётся цель / долг не закроется.
    r.stop - правило в копилку останавливается, когда её цель набрана. Правило в долг останавливается само, когда долг закрыт. */
@@ -2444,18 +2436,7 @@ function tipsNow(){
   if(!first||diffDays(first,T)<14)return []; // мало данных - выводы будут случайными
   var out=[],ym=T.slice(0,7),d=parseInt(T.slice(8),10),LK=refLinks(),nsM={};(S.noSpend||[]).forEach(function(x){nsM[x]=1});
   function ex0(m,upto){return life(S.entries.filter(function(x){return !x.demo&&!x.skip&&(x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&x.date.slice(0,7)===m&&(!upto||parseInt(x.date.slice(8),10)<=upto)}))}
-  /* 1. прогноз до зарплаты по темпу последних двух недель */
-  (function(){var nd=nextPayDates(1)[0],pd=null;
-    if(!nd&&!S.simple&&(S.incomes||[]).length){try{pd=perDay();nd=pd.nextIn}catch(e){}}
-    if(!nd||nd<=T)return;var days=Math.max(1,diffDays(T,nd)),sumP=0,kn=0;
-    for(var i=1;i<=14;i++){var dd=iso(addDays(parse(T),-i)),n=dayNet(dd);if(!n.n&&!nsM[dd])continue;sumP+=Math.max(0,n.v);kn++}
-    if(kn<7)return;var pace=sumP/kn,avail;
-    if(!S.simple&&(S.incomes||[]).length){try{pd=pd||perDay();avail=pd.nextIn===nd?pd.val*pd.days:balance()+Math.max(0,dayNet(T).v)}catch(e){avail=balance()}}
-    else avail=balance()+Math.max(0,dayNet(T).v);
-    if(!(avail>0))return; // деньги уже в минусе - это и так видно на главной
-    var left=avail-pace*days,dw=days+' '+plw(days,'день','дня','дней');
-    if(left<0&&-left>=lc(300))out.push({t:'fc',mood:'worried',text:'До зарплаты '+dw+'. Если тратить как сейчас (около '+money(pace)+' в день), не хватит примерно '+money(-left)+'. Чтобы дотянуть - до '+money(Math.max(0,avail/days))+' в день.'});
-    else if(left>=1000&&left>=avail*0.1)out.push({t:'fc',mood:'happy',text:'До зарплаты '+dw+'. Если тратить как сейчас, останется около '+money(left)+' - можно будет отложить в копилку.'})})();
+  /* прогноз до зарплаты убран отсюда: он есть в «🔮 Предсказании» */
   /* 2. категория выросла или упала к обычному (среднее прошлых месяцев к этому же числу) */
   if(d>=7){var prev=[];for(var k=1;k<=6&&prev.length<3;k++){var pm=nextYM(ym,-k);if(ex0(pm).some(function(x){return x.type==='e'}))prev.push(pm)}
     if(prev.length){var cur=netByCat(ex0(ym)),base={};
@@ -2696,7 +2677,7 @@ function reviewCard(){
   if(!S.simple){var imp=totN(list.filter(function(x){return x.cls==='imp'}));
     if(spent>0&&imp/spent>0.15)tips.push('Спонтанные покупки - '+pct(Math.min(1,imp/spent))+' трат на жизнь. Попробуй правило суток: хочешь что-то незапланированное - подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
-  if(cur)tipsNow().forEach(function(t){if(t.t==='fc')tips.unshift(t.text);else if(t.t==='small')tips.push(t.text)});
+  if(cur)tipsNow().forEach(function(t){if(t.t==='small')tips.push(t.text)});
   if(!tips.length&&base)tips.push('Траты в пределах твоей нормы, всё ровно. Так держать!');
   if(tips.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">💡 Подсказки</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">'+tips.map(function(t){return '<li>'+esc(t)+'</li>'}).join('')+'</ul>';
   H+='<div class="row" style="justify-content:flex-end;gap:8px"><span class="fine">Как считается</span>'+tipBtn('rv')+'</div>'+tipBox('rv','Считается по твоим записям. Из трат вычтены возвраты. Платежи, уже учтённые в плане, и записи с галочкой «не считать в тратах» сюда не входят. Для подробного разбора отправь выгрузку в чат с ИИ (Claude, ChatGPT, DeepSeek, Алиса).');
@@ -3470,7 +3451,7 @@ function habitsCard(me,upto){
   var top=Object.keys(g).map(function(k){return g[k]}).filter(function(o){return o.n>=2&&o.s>0}).sort(function(p,q){return q.s-p.s}).slice(0,5);
   if(top.length)H+='<div class="fine" style="font-weight:700;margin-top:4px">Куда чаще всего</div><div class="list">'+top.map(function(o){var c=CMAP[o.cat]||CMAP.other;return '<button class="row" data-a="noteHist" data-v="'+esc(o.name)+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(o.name)+'</div><div class="s">'+o.n+' '+plw(o.n,'раз','раза','раз')+' · в среднем '+money(o.s/o.n)+'</div></div><span class="amt out">'+money(o.s)+'</span></button>'}).join('')+'</div>';
   if(!H)return '';
-  return '<div class="card"><div class="tiprow"><h2>🔄 Привычки</h2>'+tipBtn('hab')+'</div>'+tipBox('hab','Дни недели - средние траты на жизнь за последние 8 недель, считаются только дни с записями или отмеченные «без трат». Мелочи и «Куда чаще всего» - за выбранный месяц, после вычета возвратов. Нажми на строку, чтобы открыть эти записи в «Истории».')+H+'</div>';
+  return '<details class="card fold"><summary><h2>🔄 Привычки</h2><span class="fine">дни недели, мелочи</span></summary><div class="tiprow" style="justify-content:flex-end">'+tipBtn('hab')+'</div>'+tipBox('hab','Дни недели - средние траты на жизнь за последние 8 недель, считаются только дни с записями или отмеченные «без трат». Мелочи и «Куда чаще всего» - за выбранный месяц, после вычета возвратов. Нажми на строку, чтобы открыть эти записи в «Истории».')+H+'</details>';
 }
 /* траты на жизнь за последние 6 месяцев против плана */
 function monthsCard(){
@@ -3493,8 +3474,8 @@ function monthsCard(){
   if(full.length)txt='В среднем '+money(avg)+' в месяц'+(lim>0&&done?', в плане '+good+' из '+done+' '+plw(done,'месяца','месяцев','месяцев'):'')+'.';
   if(full.length>=3){var last=full[full.length-1].v,ea=full.slice(0,-1).reduce(function(s0,o){return s0+o.v},0)/(full.length-1),dv=last-ea;
     if(Math.abs(dv)>=ea*0.07)txt+=' Прошлый месяц '+(dv<0?'на '+money(-dv)+' меньше':'на '+money(dv)+' больше')+', чем в среднем до него.'}
-  return '<div class="card"><div class="tiprow"><h2>📈 По месяцам</h2>'+tipBtn('mon')+'</div>'+tipBox('mon','Траты на жизнь после вычета возвратов. '+(lim>0?'Пунктир - план на месяц по нынешнему плану на день. Зелёный - в плане, красный - выше. ':'')+'Бледный столбик - месяц ещё идёт. Нажми на месяц, чтобы открыть его разбор.')+
-    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Траты по месяцам" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(txt?'<div class="fine">'+txt+'</div>':'')+'</div>';
+  return '<details class="card fold"><summary><h2>📈 По месяцам</h2><span class="fine">как менялись траты</span></summary><div class="tiprow" style="justify-content:flex-end">'+tipBtn('mon')+'</div>'+tipBox('mon','Траты на жизнь после вычета возвратов. '+(lim>0?'Пунктир - план на месяц по нынешнему плану на день. Зелёный - в плане, красный - выше. ':'')+'Бледный столбик - месяц ещё идёт. Нажми на месяц, чтобы открыть его разбор.')+
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Траты по месяцам" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(txt?'<div class="fine">'+txt+'</div>':'')+'</details>';
 }
 
 function pIco(kind,r){return cdot(CMAP[r.cat]||(kind==='i'?CMAP.salary:CMAP.other))}
@@ -4160,12 +4141,10 @@ function settingsSheet(){
    grp('Деньги')+
    '<div class="srow"><div class="grow"><b>🎯 План трат на день</b><span class="ss">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'пока не задан')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="planOpen">'+(pi.v?'Изменить':'Задать')+'</button></div>'+
    '<div class="srow"><div class="grow"><b>💱 Валюта</b><span class="ss">'+esc(sym()+' · '+CUR[baseCur()][1])+(fxCurs().length?', ещё '+fxCurs().map(function(c){return sym(c)}).join(' '):'')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="curOpen">Изменить</button></div>'+
-   '<div class="help f" style="gap:8px">'+det('🗓️ Дни зарплаты','<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>',payDays().length?payDays().join(' и ')+' числа':'не заданы')+
+   '<div class="help f" style="gap:8px">'+det('🗓️ Дни зарплаты','<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>'+det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0]),payDays().length?payDays().join(' и ')+' числа':'не заданы')+
 
     det('💸 Нерегулярный доход',irrSetHtml(),S.irreg?'включён':'смены, почасовая, фриланс')+
-    (bankHas()?det('🔔 Траты из уведомлений банка',bankSetHtml(),bankOnNow()?'включено':'только в приложении для Android'):'')+
     det('🌴 Отпуск и больничный',perSetHtml(),(S.periods||[]).some(function(p){return p.to>=T})?'отмечено':'отметить, чтобы прикинуть суммы')+
-    det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0])+
     det('🔁 Регулярные траты',tplListHtml(),tpls().length?tpls().length+' '+plw(tpls().length,'напоминание','напоминания','напоминаний'):'напомнят записать, например продукты раз в неделю')+
     det('🏷️ Мои категории',(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><button type="button" data-a="ccIco" data-id="'+c.id+'" aria-label="Выбрать картинку" style="background:none;border:0;padding:0;cursor:pointer;flex:none">'+cdot(c)+'</button>'+'<div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+(c.inc?' <span class="fine">· доход</span>':'')+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты или дохода.</p>')+(S.ccats.length?'<p class="fine" style="margin:0">Нажми на значок, чтобы выбрать картинку.</p>':'')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Категория трат</button><button type="button" class="btn ghost" data-a="ccAddI">＋ Категория дохода</button>',S.ccats.length?S.ccats.length+' своих':'свои категории трат и доходов')+
    '</div>'+
@@ -4180,6 +4159,7 @@ function settingsSheet(){
       '<div style="display:flex;align-items:center;gap:12px"><span class="fine" style="flex:1">Есть ещё автокопии в браузере и копии в Телеграм - нажми на звёздочку.</span><button type="button" class="ibtn" style="width:40px;height:40px;border-color:var(--accent);color:var(--accent);font:700 30px/1 Arial,sans-serif;padding-top:10px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё способы">*</button></div>'+
       tipBox('bk','<div class="f" style="gap:10px">'+det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
         det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+'</div>'),ydOn()?cloudName()+' подключён':(S.lastBackup?'последний файл '+dlabel(S.lastBackup):'копий ещё нет'))+
+    (bankHas()?det('🔔 Траты из уведомлений банка',bankSetHtml(),bankOnNow()?'включено':'только в приложении для Android'):'')+
     det('📥 Загрузить данные',
       det('Траты из таблицы','<p class="fine" style="margin:0">Своя таблица Excel (.xlsx, .xls) или CSV: нужны хотя бы дата и сумма. Покажу, что получилось, и дам всё проверить перед добавлением.</p><input id="s_xl" type="file" accept=".xlsx,.xls,.csv,.txt"><p class="fine" id="s_xlmsg" hidden></p>')+
       det('Выписка из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+
@@ -4209,7 +4189,6 @@ function uiConfirm(msg,yes,no){return uiAsk(msg,{yes:yes,no:no})}
 function uiPrompt(msg,def){return uiAsk(msg,{input:true,def:def})}
 
 function undoSnap(sn,msg){toast(msg,false,function(){try{S=migrate(JSON.parse(sn));save();render();toast('Возвращено')}catch(e){}})}
-function icoHint(k,txt){try{var o=JSON.parse(localStorage.getItem('sch-ih')||'{}');if(o[k])return;o[k]=1;localStorage.setItem('sch-ih',JSON.stringify(o));setTimeout(function(){toast(txt)},350)}catch(e){}}
 function bigOn(){try{return !!localStorage.getItem('sch-big')}catch(e){return false}}
 function bigApply(){try{document.documentElement.classList.toggle('bigtext',bigOn())}catch(e){}}
 function viewBlock(){return '<div class="srow"><div class="grow"><b>🔤 Крупный текст</b><span class="ss">буквы и кнопки побольше</span></div><button type="button" class="btn sm ghost" style="flex:none" data-a="optBig">'+(bigOn()?'Включён':'Выключен')+'</button></div>'}

@@ -1156,3 +1156,24 @@ test('итоги года в конце декабря и итог недели 
   await expect(page.locator('.monster')).not.toContainText('Итог недели');
   expect(errs).toEqual([]);
 });
+
+test('отпуск: примерные отпускные и зарплата, монстрик не ругает', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    for (let k = 1; k <= 6; k++) { const x = new Date(t.getFullYear(), t.getMonth() - k, 10); d.entries.push({ id: 'in' + k, type: 'i', amt: 60000, cat: 'salary', note: 'ЗП', date: iso(x), acc: '' }); }
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Отпуск и больничный' }).click();
+  await page.click('[data-a=perAdd]');
+  const st = await stored(page);
+  expect(st.periods.length).toBe(1);
+  await expect(page.locator('#ov .sheet')).toContainText('отпускные ≈');
+  await page.locator('#ov [data-a=close]').last().click();
+  await expect(page.locator('body')).toContainText('отпускные ≈');
+  expect(errs).toEqual([]);
+});

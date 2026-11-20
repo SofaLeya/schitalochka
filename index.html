@@ -1063,7 +1063,8 @@ function ymWord(ym){var x=ym.split('-');return MONTHS_P[+x[1]-1]+' '+x[0]}
 /* ---------- «Обновилось»: показать один раз после выхода новой версии ---------- */
 var APP_VER='2026-11-20a';
 /* «Что нового»: только 2-3 свежих коротких пункта; старое - под «Что было раньше», устаревшее удаляем; версию меняем только при настоящих новостях */
-var NEWS=['⚡ Быстрее: долгое нажатие на значок - «Новая трата» или «Сегодня без трат», в «Часто» - «↺ как вчера», а QR-код с чека подставит сумму.',
+var NEWS=['🌴 Отпуск и больничный: ⚙️ → отметь даты, и приложение прикинет отпускные и зарплату, а монстрик в эти дни не будет ругать за траты.',
+ '⚡ Быстрее: долгое нажатие на значок - «Новая трата» или «Сегодня без трат», в «Часто» - «↺ как вчера», а QR-код с чека подставит сумму.',
  '🔔 В приложении для Android: траты из уведомлений банка - ⚙️ → «Траты из уведомлений банка».'];
 var NEWS_OLD=['💼 Нерегулярный доход (смены, почасовая): ⚙️ → «Нерегулярный доход». Покажет, на сколько дней хватит денег.',
  '🔮 «Предсказание» на главной: сколько останется к зарплате.','Мне должны, сам себе зарплата и копилка для налога - для нерегулярного дохода.','Копилка набралась - «Куда дальше?» в копилке с целью.','Карты в «Кошельке», в том числе в другой валюте.','👾 Монстрик по-разному отзывается на нажатие и умеет сальто, а если подержать палец - обнимашки.','💡 Монстрик иногда подсказывает, где можно сэкономить: прогноз до зарплаты, мелочи, похожее на подписки.','У категорий появились картинки, а запись, «История», настройки и помощь стали проще.','«Анализ» без повторов, а редкие настройки плана свёрнуты в «Платежи → План → Ещё планирование».',
@@ -1176,7 +1177,7 @@ function plannedItems(from,days){
    всё, кроме продуктов, кафе, транспорта и такси, от четверти дневного плана. Свои планы (например, продукты по понедельникам)
    добавляются отдельно, а прошлые траты этой категории в этот день недели из темпа убираются, чтобы не посчитать дважды. */
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
-function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()}
+function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()+perNote()}
 function bankCardWrap(h){return h+bankCard()}
 function fcEnd(){if(S.irreg)return null;var nd=nextPayDates(1)[0];if(!nd&&!S.simple&&(S.incomes||[]).length){try{nd=perDay().nextIn}catch(e){}}return nd&&nd>T?nd:null}
 function fcPace(){
@@ -1184,7 +1185,7 @@ function fcPace(){
   (S.noSpend||[]).forEach(function(x){nsM[x]=1});
   var kn=0,all=0,base=0,hugeS=0;
   for(var i=1;i<=14;i++){var dd=iso(addDays(parse(T),-i)),wd=parse(dd).getDay(),l0=S.entries.filter(function(x){return x.date===dd&&!x.demo});
-    if(!l0.length&&!nsM[dd])continue;kn++;
+    if(!l0.length&&!nsM[dd])continue;if(perOn(dd))continue;kn++;
     life(l0).forEach(function(x){
       if(x.type==='e'&&!x.skip){
         if(pl.some(function(q){return q.cat===x.cat&&+q.wd===wd}))return;
@@ -2175,6 +2176,7 @@ function monsterCard(me,net,dnum){
   else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь, запас по плану есть!','Хороший запас! Так держать.','Экономишь как профи!','Месяц идёт лучше плана - красота.'])}
   else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
+  var prd=perOn(PD);if(prd&&(mood==='sad'||mood==='worried'||mood==='think')){if(prd.kind==='sick'){mood='calm';msg=pk(['Выздоравливай! Сейчас главное - ты, а не план.','Болеть дорого, это нормально. Поправляйся!'])}else{mood='happy';msg=pk(['Отпуск! Траты по плану сейчас не считаю - отдыхай.','Отдыхай, на то и отпуск! Вернёмся к плану потом.'])}}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
   var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:(yearTip(PD)||weekTip(PD,hr)||monTip(PD,td,hr));if(tb)mood=tb.mood;
@@ -4113,6 +4115,35 @@ function calSetHtml(){var h=calYears(),ys=Object.keys(h).sort(),need=calNeed(),y
    (need.length?'':'<p class="fine" style="margin:0">На этот и следующий год календарь уже есть. В октябре-декабре приложение само попробует загрузить календарь на следующий год.</p>')+
    [y,y+1,y+2].filter(function(x){return h[x]!=='встроен'}).map(function(x){return '<button type="button" class="btn '+(h[x]?'ghost ':'')+'sm" data-a="calLoad" data-v="'+x+'">'+(h[x]?'Обновить календарь на '+x:'Загрузить новый производственный календарь на '+x)+'</button>'}).join('')+
    '<p class="fine" style="margin:0">Без загруженного календаря работают общие правила праздников.</p>'}
+
+/* ---------- отпуск, за свой счёт, больничный: примерный расчёт по ТК ---------- */
+var PKIND={vac:['🌴','Отпуск'],unpaid:['🏖','За свой счёт'],sick:['🤒','Больничный']};
+function perOn(d){return (S.periods||[]).filter(function(p){return d>=p.from&&d<=p.to})[0]||null}
+/* средний доход в месяц за последние 12 месяцев (только месяцы, где доход был), без возвратов */
+function avgMonthInc(){var cur=T.slice(0,7),tot=0,n=0;for(var k=1;k<=12;k++){var m=nextYM(cur,-k),v=S.entries.reduce(function(a,x){return a+(x.type==='i'&&!x.skip&&!x.demo&&x.cat!=='refund'&&x.date.slice(0,7)===m?x.amt:0)},0);if(v>0){tot+=v;n++}}
+  if(!n){(S.incomes||[]).forEach(function(r){tot+=+r.amt||0});return tot}return tot/n}
+function wdIn(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),c=0;for(var i=1;i<=n;i++)if(isWorkday(ym+'-'+p2(i)))c++;return c||1}
+function perEst(p){var am=avgMonthInc(),ad=am/29.3,miss={},days=0,d=p.from;
+  while(d<=p.to){days++;if(isWorkday(d)){var ym=d.slice(0,7);miss[ym]=(miss[ym]||0)+1}d=iso(addDays(parse(d),1))}
+  var loss=0,lossBy={};Object.keys(miss).forEach(function(ym){var v=am*miss[ym]/wdIn(ym);lossBy[ym]=v;loss+=v});
+  var pay=p.kind==='vac'?ad*days:p.kind==='sick'?ad*days*0.8:0,pd=iso(addDays(parse(p.from),-3));var g=0;while(!isWorkday(pd)&&g<10){pd=iso(addDays(parse(pd),-1));g++}
+  var r100=function(v){return Math.round(v/100)*100};
+  return {am:am,ad:ad,days:days,miss:miss,lossBy:lossBy,loss:r100(loss),pay:r100(pay),payDate:pd}}
+function perLine(p){var e=perEst(p),k=PKIND[p.kind]||PKIND.vac;
+  if(!(e.am>0))return k[0]+' '+k[1]+' '+fdate(p.from)+' - '+fdate(p.to)+': запиши хотя бы месяц доходов, и я прикину суммы.';
+  if(p.kind==='vac')return '🌴 Отпуск '+fdate(p.from)+' - '+fdate(p.to)+' ('+e.days+' '+plw(e.days,'день','дня','дней')+'): отпускные ≈ '+money(e.pay)+' придут ~'+dlabel(e.payDate)+', зарплата за эти дни ≈ на '+money(e.loss)+' меньше.';
+  if(p.kind==='unpaid')return '🏖 За свой счёт '+fdate(p.from)+' - '+fdate(p.to)+': зарплата ≈ на '+money(e.loss)+' меньше, отпускных нет.';
+  return '🤒 Больничный '+fdate(p.from)+' - '+fdate(p.to)+': зарплата ≈ на '+money(e.loss)+' меньше, больничные ≈ '+money(Math.round(e.ad*e.days*0.6/100)*100)+'-'+money(Math.round(e.ad*e.days/100)*100)+' (зависит от стажа), обычно с ближайшей зарплатой.'}
+/* насколько меньше придёт этот плановый доход из-за периодов: потеря за месяц делится между доходами следующего месяца поровну */
+function perIncAdj(r,ym){var tot=0;(S.periods||[]).forEach(function(p){var e=perEst(p),pm=nextYM(ym,-1);[pm,ym].forEach(function(m){if(e.lossBy[m]){var n=(S.incomes||[]).filter(function(x){return +x.amt>0}).length||1;tot+=e.lossBy[m]/n/2}})});return Math.round(tot/100)*100}
+function perNote(){var l=(S.periods||[]).filter(function(p){return p.to>=T&&p.from<=iso(addDays(parse(T),45))});if(!l.length)return '';
+  return '<div class="note info"><span>'+l.map(function(p){return esc(perLine(p))}).join('<br>')+'</span><span class="fine">Это прикидка по среднему доходу за год. Точные суммы - в расчётном листке; когда придут деньги, впиши настоящую сумму в «Пришло».</span></div>'}
+function perSetHtml(){var l=(S.periods||[]).slice().sort(function(a,b){return a.from<b.from?1:-1});
+  return '<p class="fine" style="margin:0">Отметь отпуск, отпуск за свой счёт или больничный. Я примерно посчитаю, сколько придёт, в эти дни не буду ругать за траты и не буду учитывать их в «обычном дне» для прогнозов.</p>'+
+   (l.length?'<div class="list">'+l.map(function(p){return '<div class="row"><div class="grow"><div class="t" style="font-size:14px">'+esc(perLine(p))+'</div></div><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="perDel" data-id="'+p.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'')+
+   '<div class="f"><label for="pr_k">Что</label><select id="pr_k"><option value="vac">🌴 Отпуск (оплачиваемый)</option><option value="unpaid">🏖 За свой счёт</option><option value="sick">🤒 Больничный</option></select></div>'+
+   '<div class="two"><div class="f"><label for="pr_f">С</label><input id="pr_f" type="date" value="'+T+'"></div><div class="f"><label for="pr_t">По</label><input id="pr_t" type="date" value="'+iso(addDays(parse(T),13))+'"></div></div>'+
+   '<button type="button" class="btn ghost" data-a="perAdd">Добавить</button>'}
 function settingsSheet(){
   var json=JSON.stringify(S),pi=planInfo();
   var was={};try{document.querySelectorAll('#ov details[data-k]').forEach(function(d){if(d.open)was[d.getAttribute('data-k')]=1})}catch(e){}
@@ -4133,6 +4164,7 @@ function settingsSheet(){
 
     det('💸 Нерегулярный доход',irrSetHtml(),S.irreg?'включён':'смены, почасовая, фриланс')+
     (bankHas()?det('🔔 Траты из уведомлений банка',bankSetHtml(),bankOnNow()?'включено':'только в приложении для Android'):'')+
+    det('🌴 Отпуск и больничный',perSetHtml(),(S.periods||[]).some(function(p){return p.to>=T})?'отмечено':'отметить, чтобы прикинуть суммы')+
     det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0])+
     det('🔁 Регулярные траты',tplListHtml(),tpls().length?tpls().length+' '+plw(tpls().length,'напоминание','напоминания','напоминаний'):'напомнят записать, например продукты раз в неделю')+
     det('🏷️ Мои категории',(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><button type="button" data-a="ccIco" data-id="'+c.id+'" aria-label="Выбрать картинку" style="background:none;border:0;padding:0;cursor:pointer;flex:none">'+cdot(c)+'</button>'+'<div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+(c.inc?' <span class="fine">· доход</span>':'')+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты или дохода.</p>')+(S.ccats.length?'<p class="fine" style="margin:0">Нажми на значок, чтобы выбрать картинку.</p>':'')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Категория трат</button><button type="button" class="btn ghost" data-a="ccAddI">＋ Категория дохода</button>',S.ccats.length?S.ccats.length+' своих':'свои категории трат и доходов')+
@@ -4268,6 +4300,9 @@ document.addEventListener('click',function(ev){
   else if(a==='partAdd'){var dr=readEntry(),lp=dr.parts[dr.parts.length-1];dr.parts.push({cat:lp&&lp.cat||'',amt:''});entrySheet();setTimeout(function(){var ni=document.getElementById('pa'+(dr.parts.length-1));if(ni)ni.focus({preventScroll:true});partsLive()},60)}
   else if(a==='partDel'){var ds=readEntry();ds.parts.splice(+b.dataset.i,1);if(!ds.parts.length)ds.parts=null;entrySheet();setTimeout(function(){partsLive()},60)}
   else if(a==='qrScan')qrScan();
+  else if(a==='perAdd'){var pf=document.getElementById('pr_f').value,pt=document.getElementById('pr_t').value,pk2=document.getElementById('pr_k').value;if(!pf||!pt||pt<pf){toast('Проверь даты',true);return}
+    S.periods=(S.periods||[]).concat([{id:'pe'+Date.now(),kind:pk2,from:pf,to:pt}]);save();render();settingsSheet();toast('Отмечено')}
+  else if(a==='perDel'){S.periods=(S.periods||[]).filter(function(p){return p.id!==id});save();render();settingsSheet()}
   else if(a==='calLoad'){sh.cal=1;toast('Загружаю…');calLoad(+v)}
   else if(a==='bankSet'){try{AndroidApp.bankSettings()}catch(e){}}
   else if(a==='bankDel'){S.bankQ=(S.bankQ||[]).filter(function(x){return x.id!==id});save();render()}
@@ -4324,7 +4359,7 @@ document.addEventListener('click',function(ev){
         uiConfirm('«'+item.name+'» второй раз не как в плане: было '+money(prev)+', теперь '+money(am)+', а в плане '+money(item.amt)+'. Поставить в план '+money(am)+'?','Поставить','Оставить').then(function(y){if(y){item.amt=am;save();render();toast('В плане теперь '+money(am))}})}
       else toast('Записано: '+item.name+' '+money(am)+' ('+(dv>0?'на '+money(dv)+' больше':'на '+money(-dv)+' меньше')+' плана)')};
     var addNew=function(){
-      uiAsk(isR?'Сколько заплатили: «'+item.name+'»?':'Сколько пришло: «'+item.name+'»?',{input:true,num:true,def:String(item.amt),yes:'Записать'}).then(function(val){
+      uiAsk(isR?'Сколько заплатили: «'+item.name+'»?':'Сколько пришло: «'+item.name+'»?'+(!isR&&perIncAdj(item,ym)>0?' (из-за отпуска/больничного примерно на '+money(perIncAdj(item,ym))+' меньше)':''),{input:true,num:true,def:String(isR?item.amt:Math.max(0,item.amt-perIncAdj(item,ym))),yes:'Записать'}).then(function(val){
         if(val===null)return;var am=num(val);if(!(am>0)){toast('Сумма должна быть больше нуля',true);return}
         var en0={id:uid(),type:isR?'e':'i',amt:am,cat:isR?item.cat:'salary',date:eDate,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en0.acc=item.acc;en0[f]=id;
         S.entries.push(en0);save();render();after(am)})};

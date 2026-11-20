@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_e">Новая трата</string>
+    <string name="sc_i">Новый доход</string>
+    <string name="sc_ns">Сегодня без трат</string>
+</resources>

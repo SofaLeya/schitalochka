@@ -1073,3 +1073,46 @@ test('окно записи: одна кнопка «+ ещё сумма» - в 
   await expect(page.locator('#f_amt')).toHaveValue('100+50');
   expect(errs).toEqual([]);
 });
+
+test('разбор QR-кода чека и уведомлений банка', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  const r = await page.evaluate(() => ({
+    q1: window.qrParse('t=20261120T1907&s=369.00&fn=7380440700000000&i=12345&fp=1234567890&n=1'),
+    q2: window.qrParse('t=20261118T101500&s=1500.50&n=2'),
+    q3: window.qrParse('просто текст'),
+    b1: window.bankParse('Покупка 369 ₽ в ПЯТЁРОЧКА. Баланс 15 279 ₽'),
+    b2: window.bankParse('Зачисление 57 420,00 ₽ от ООО Рога. Доступно 70 000 ₽'),
+    b3: window.bankParse('Ваш код для входа 1234'),
+    b4: window.bankParse('Возврат 300 ₽ ОЗОН'),
+  }));
+  expect(r.q1).toEqual({ amt: 369, date: '2026-11-20', refund: false });
+  expect(r.q2).toEqual({ amt: 1500.5, date: '2026-11-18', refund: true });
+  expect(r.q3).toBeNull();
+  expect(r.b1).toMatchObject({ amt: 369, type: 'e', note: 'ПЯТЁРОЧКА' });
+  expect(r.b2).toMatchObject({ amt: 57420, type: 'i' });
+  expect(r.b3).toBeNull();
+  expect(r.b4).toMatchObject({ amt: 300, type: 'i', refund: true });
+  expect(errs).toEqual([]);
+});
+
+test('как вчера и ярлык «Сегодня без трат»', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const t = new Date(); t.setDate(t.getDate() - 1);
+    const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    d.entries.push({ id: 'y1', type: 'e', amt: 430, cat: 'cafe', note: 'Ужин', date: iso(t), acc: '' });
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.click('.tabs .plus');
+  const chip = page.locator('#ov [data-a=quick][title="Как вчера"]');
+  await expect(chip).toContainText('Ужин');
+  await chip.click();
+  await expect(page.locator('#f_amt')).toHaveValue('430');
+  await page.goto('/index.html?ns=1');
+  await expect.poll(async () => ((await stored(page)).noSpend || []).length).toBe(1);
+  expect(errs).toEqual([]);
+});

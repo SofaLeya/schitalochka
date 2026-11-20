@@ -15,6 +15,7 @@
   ],
   "shortcuts": [
     {"name": "Новая трата", "short_name": "Трата", "url": "./?new=e", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
-    {"name": "Новый доход", "short_name": "Доход", "url": "./?new=i", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
+    {"name": "Новый доход", "short_name": "Доход", "url": "./?new=i", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]},
+    {"name": "Сегодня без трат", "short_name": "Без трат", "url": "./?ns=1", "icons": [{"src": "icon-192.png", "sizes": "192x192"}]}
   ]
 }

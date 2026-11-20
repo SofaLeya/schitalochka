@@ -140,11 +140,28 @@ public class MainActivity extends Activity {
             }
         });
 
-        if (savedInstanceState != null) {
+        String start = startFrom(getIntent());
+        if (savedInstanceState != null && start == null) {
             web.restoreState(savedInstanceState);
         } else {
-            web.loadUrl(START_URL);
+            web.loadUrl(start != null ? start : START_URL);
         }
+    }
+
+    // ярлык с главного экрана приходит как ссылка на сайт с ?new=e / ?new=i / ?ns=1
+    private static String startFrom(Intent i) {
+        if (i == null || i.getData() == null) return null;
+        Uri u = i.getData();
+        if (!HOST.equals(u.getHost())) return null;
+        String q = u.getEncodedQuery();
+        return q == null ? null : START_URL + "?" + q;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String u = startFrom(intent);
+        if (u != null && web != null) web.loadUrl(u);
     }
 
     private static boolean isYandex(String h) {
@@ -275,6 +292,29 @@ public class MainActivity extends Activity {
                 });
             } catch (Exception ignored) {
             }
+        }
+
+        // траты из уведомлений банка
+        @JavascriptInterface
+        public boolean bankOn() {
+            String l = android.provider.Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            return l != null && l.contains(getPackageName());
+        }
+
+        @JavascriptInterface
+        public void bankSettings() {
+            runOnUiThread(() -> {
+                try {
+                    startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(MainActivity.this, "Открой Настройки → Уведомления → Доступ к уведомлениям", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String bankTake() {
+            return BankListener.take(MainActivity.this);
         }
 
         @JavascriptInterface

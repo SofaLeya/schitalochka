@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="new_e" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_e" android:shortcutLongLabel="@string/sc_e">
+        <intent android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.sofaleya.schitalochka"
+            android:targetClass="io.github.sofaleya.schitalochka.MainActivity"
+            android:data="https://sofaleya.github.io/schitalochka/?new=e" />
+    </shortcut>
+    <shortcut android:shortcutId="new_i" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_i" android:shortcutLongLabel="@string/sc_i">
+        <intent android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.sofaleya.schitalochka"
+            android:targetClass="io.github.sofaleya.schitalochka.MainActivity"
+            android:data="https://sofaleya.github.io/schitalochka/?new=i" />
+    </shortcut>
+    <shortcut android:shortcutId="nospend" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_ns" android:shortcutLongLabel="@string/sc_ns">
+        <intent android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.sofaleya.schitalochka"
+            android:targetClass="io.github.sofaleya.schitalochka.MainActivity"
+            android:data="https://sofaleya.github.io/schitalochka/?ns=1" />
+    </shortcut>
+</shortcuts>

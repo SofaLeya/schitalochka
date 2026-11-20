@@ -4729,7 +4729,8 @@ document.addEventListener('submit',function(ev){
       n=Math.round((n-pUsed)*100)/100}
     var fow=document.getElementById('f_owed');if(fow&&fow.checked&&d.type==='i'&&!sh.id){S.owed=(S.owed||[]).concat([{id:'ow'+Date.now(),name:(d.note||'').trim().slice(0,40)||(CMAP[d.cat]?CMAP[d.cat].name:'Доход'),amt:n,date:d.date||T}]);save();closeSheet();render();toast('Добавлено в «Мне должны»: '+money(n));return}
     if(d.type==='t'){if(!d.from||!d.to||d.from===d.to)return showErr('Выбери два разных места.')}
-    else if(!d.cat)return showErr('Выбери категорию.');
+    else if(!d.cat&&d.type==='e'&&d.note&&guess(d.note,'e'))d.cat=guess(d.note,'e'); // заметку набрали, а подбор категории ещё не успел сработать
+    if(!d.cat&&d.type!=='t'&&!(d.parts&&d.parts.length))return showErr('Выбери категорию.');
     if(!d.date)return showErr('Укажи дату.');
     if(d.type==='i'&&!accById(d.acc))d.acc=defAcc();
     if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=natOf(e,sa)})}if(accBalN(sa)+had<needNat(d,n+pUsed)-0.005)return showErr('В «'+sa.name+'» только '+mon(accBalN(sa)+had,accCur(sa))+'. Выбери другой источник или сначала положи туда деньги.')}}

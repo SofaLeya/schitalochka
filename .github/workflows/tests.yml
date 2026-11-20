@@ -22,14 +22,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
       - run: npm install
+      # браузер для тестов кэшируется - не качаем его заново при каждой выкладке
+      - uses: actions/cache@v6
+        id: pwcache
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+        if: steps.pwcache.outputs.cache-hit != 'true'
+      - run: npx playwright install-deps chromium
+        if: steps.pwcache.outputs.cache-hit == 'true'
       - run: npx playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -44,17 +53,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Собрать папку сайта
         run: |
           mkdir _site
           rsync -a --exclude '.git' --exclude '.github' --exclude 'android' --exclude 'tests' \
             --exclude 'node_modules' --exclude '_site' --exclude 'package.json' --exclude 'package-lock.json' \
             --exclude 'playwright.config.js' --exclude 'README.md' --exclude '.gitignore' ./ _site/
+          # номер сборки - чтобы открытое приложение заметило новую версию и предложило обновиться
+          V=${GITHUB_SHA::7}
+          sed -i "s/var BUILD='__BUILD__'/var BUILD='$V'/" _site/index.html
+          echo "$V" > _site/version.txt
           ls _site
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

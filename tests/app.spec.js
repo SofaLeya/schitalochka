@@ -1,5 +1,8 @@
 // Основные сценарии считалОчки. Запуск: npm test
 const { test, expect } = require('@playwright/test');
+// внешний интернет в тестах не нужен: без этого запросы курсов/GitHub висят до таймаута и тесты тормозят.
+// Тесты, которым нужен ответ (курсы, Google Диск), ставят свой page.route позже - он важнее.
+test.beforeEach(async ({ page }) => { await page.route(u => !/^(localhost|127\.0\.0\.1)$/.test(u.hostname), r => r.abort()); });
 
 // чистый старт + пройденный онбординг: на карте 20 000, план 1 500 в день
 async function start(page, errs) {
@@ -1041,5 +1044,14 @@ test('гибкая раскладка: пришло меньше - суммы п
   await page.locator('.po_in[data-rule=r2] + .po_ck').check();
   const k2 = (await stored(page)).entries.filter(e => e.type === 't' && e.to === 'k2');
   expect(k2.map(e => e.amt)).toEqual([300]);
+  expect(errs).toEqual([]);
+});
+
+test('обновление: если на сайте новая сборка - плашка «Есть обновление»', async ({ page }) => {
+  const errs = [];
+  await page.route(/index\.html/, async r => { const res = await r.fetch(); const b = (await res.text()).replace("var BUILD='__BUILD__'", "var BUILD='aaaaaaa'"); r.fulfill({ response: res, body: b }); });
+  await page.route(/version\.txt/, r => r.fulfill({ contentType: 'text/plain', body: 'bbbbbbb\n' }));
+  await start(page, errs);
+  await expect(page.locator('#updbar')).toContainText('Есть обновление', { timeout: 8000 });
   expect(errs).toEqual([]);
 });

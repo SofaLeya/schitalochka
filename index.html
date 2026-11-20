@@ -236,6 +236,9 @@ html.bigtext{zoom:1.14}
 @media (prefers-reduced-motion:no-preference){.dlg .box{animation:pop .18s ease-out}}
 .toast .sub{font-weight:500;font-size:13px}
 .toast[hidden]{display:none}
+#updbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:60;display:flex;gap:10px;align-items:center;background:#a78bfa;color:#1a1033;font-weight:800;border-radius:999px;padding:8px 8px 8px 16px;box-shadow:0 8px 24px rgba(0,0,0,.45);white-space:nowrap}#updbar button{border:0;border-radius:999px;background:#1a1033;color:#fff;font:inherit;font-weight:800;padding:8px 14px;cursor:pointer}
+/* сообщение не мешает нажимать то, что под ним; кнопки внутри (например «Отменить») нажимаются как обычно */
+.toast{pointer-events:none}.toast button,.toast a{pointer-events:auto}
 @media (prefers-reduced-motion:no-preference){.toast.show{animation:pop .25s ease-out}@keyframes pop{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}}
 
@@ -4974,6 +4977,15 @@ bigApply();render();try{onbMaybe()}catch(e){}try{rtFetch()}catch(e){}try{remSync
   if(q){try{history.replaceState(null,'',location.pathname)}catch(e){}
     if(!S.onb){S.onb=1;saveLocal()}var dr=newDraft(q==='i'?'i':'e');if(q==='i')dr.acc=defAcc();sh={id:null,d:dr};entrySheet();return}})();
 })();
+/* Новая версия на сайте: GitHub при выкладке вписывает номер сборки в BUILD и в version.txt.
+   Если на сайте номер другой - показываем плашку «Есть обновление» с одной кнопкой. */
+var BUILD='__BUILD__';
+function updCheck(){if(BUILD.indexOf('__')===0||document.getElementById('updbar'))return;
+  fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){t=(t||'').trim();if(!t||t===BUILD||!/^[0-9a-f]{7,40}$/.test(t))return;
+    var b=document.createElement('div');b.id='updbar';b.innerHTML='✨ Есть обновление <button type="button">Обновить</button>';
+    b.querySelector('button').onclick=function(){b.querySelector('button').textContent='…';var go=function(){location.reload()};try{caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}).then(go,go)}catch(e){go()}};
+    document.body.appendChild(b)}).catch(function(){})}
+setTimeout(updCheck,4000);setInterval(updCheck,20*60*1000);document.addEventListener('visibilitychange',function(){if(!document.hidden)updCheck()});
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script>
 

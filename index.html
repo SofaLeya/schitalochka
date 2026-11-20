@@ -886,10 +886,10 @@ function poIncome(day,ym){var pl=0,ac=0,mk=false;(S.incomes||[]).forEach(functio
 function poNextDate(after){var best=null;S.rules.forEach(function(r){for(var k=0;k<3;k++){var d=payDateIn(nextYM(after.slice(0,7),k),r.day);if(d>after){if(!best||d<best)best=d;break}}});return best}
 function payoutSheet(day,ym){var p=pendingPayouts().filter(function(x){return x.day===+day&&x.ym===ym})[0];if(!p)return;sh={id:'po',day:+day,ym:ym};
   var inc=poIncome(day,ym),cr=(S.carry||[]).filter(function(c){return accById(c.acc)}),nd=poNextDate(p.date);
-  var row=function(nm,acc,plan,attrs,sub){var a=accById(acc);return '<div class="row" style="padding-block:6px"><span class="cico" style="--cc:'+ACOL.save+'">'+accIco(a)+'</span><div class="grow"><div class="t">'+esc(accName(a))+'</div><div class="s">'+sub+'</div></div><input class="po_in" '+attrs+' data-plan="'+plan+'" inputmode="decimal" value="'+plan+'" style="width:100px;text-align:right;background:rgba(255,255,255,.06);border:1.5px solid rgba(167,139,250,.35);border-radius:12px;color:inherit;padding:8px 10px;font:inherit;font-weight:700" oninput="poUpd()"></div>'};
+  var row=function(nm,acc,plan,attrs,sub){var a=accById(acc);return '<div class="row" style="padding-block:6px"><span class="cico" style="--cc:'+ACOL.save+'">'+accIco(a)+'</span><div class="grow"><div class="t">'+esc(accName(a))+'</div><div class="s">'+sub+'</div></div><input class="po_in" '+attrs+' data-plan="'+plan+'" inputmode="decimal" value="'+plan+'" style="width:100px;text-align:right;background:rgba(255,255,255,.06);border:1.5px solid rgba(167,139,250,.35);border-radius:12px;color:inherit;padding:8px 10px;font:inherit;font-weight:700" oninput="poUpd()"><input type="checkbox" class="po_ck" title="Уже отложено" aria-label="Уже отложено" onchange="poTick(this)" style="width:26px;height:26px;flex:none;margin:0 0 0 8px;accent-color:#7ee2a8"></div>'};
   openSheet('<h3>💰 Разложить выплату '+dlabel(p.date)+'</h3>'+
    '<div class="f"><label for="po_inc">Сколько пришло</label><input id="po_inc" inputmode="decimal" value="'+Math.round(inc.act)+'" oninput="poUpd()"><span class="fine">'+(inc.plan?'По плану '+money(inc.plan)+'.':'')+(inc.plan&&!inc.marked?' Доход ещё не отмечен - не забудь нажать «Пришло» в списке.':'')+'</span></div>'+
-   '<div class="list">'+p.rules.map(function(r){return row(r.name,r.acc,r.amt,'data-rule="'+r.id+'" data-acc="'+r.acc+'"','по плану '+money(r.amt))}).join('')+
+   '<p class="fine" style="margin:4px 0 0">Перевела в банке - отметь галочкой справа, сумма сразу запишется. Можно по одной.</p><div class="list">'+p.rules.map(function(r){return row(r.name,r.acc,r.amt,'data-rule="'+r.id+'" data-acc="'+r.acc+'"','по плану '+money(r.amt))}).join('')+
    cr.map(function(c){return row('',c.acc,c.amt,'data-carry="'+c.id+'" data-acc="'+c.acc+'"','↪ не дошло с '+dlabel(c.from))}).join('')+'</div>'+
    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button type="button" class="btn ghost sm" onclick="poFill(\'plan\')">По плану</button><button type="button" class="btn ghost sm" onclick="poFill(\'fit\')">Уложиться в пришедшее</button><button type="button" class="btn ghost sm" onclick="poFill(\'order\')">По порядку сверху</button><button type="button" class="btn ghost sm" onclick="poFill(\'zero\')">Обнулить</button></div>'+
    '<p class="fine" id="po_tot" style="margin:4px 0"></p>'+
@@ -905,8 +905,15 @@ window.poUpd=function(){var ins=document.querySelectorAll('.po_in'),t=0,miss=0;i
   if(el)el.innerHTML='Раскладываю <b>'+money(t)+'</b> из пришедших '+money(inc)+(t>inc+0.5?' - <span style="color:var(--out)">больше на '+money(t-inc)+', это возьмётся из свободных денег</span>':t<inc-0.5?' - останется '+money(inc-t)+' на жизнь':'');
   var pt=0;ins.forEach(function(e){pt+=+e.dataset.plan||0});var short=Math.max(miss,pt-inc),cl=document.getElementById('po_cl'),ct=document.getElementById('po_ct');
   if(cl)cl.style.display=short>0.5?'flex':'none';if(ct)ct.textContent=(pt-inc>0.5?'Пришло на '+money(pt-inc)+' меньше плана.':'Не по плану: '+money(miss)+'.')+' Что с недостающим?'}
+window.poTick=function(ck){var row=ck.parentNode,inp=row.querySelector('.po_in'),pd=payDateIn(sh.ym,sh.day);
+  if(ck.checked){var v=Math.round((+String(inp.value).replace(',','.')||0)*100)/100;if(!(v>0)){ck.checked=false;toast('Сначала впиши сумму');return}
+    var rr=S.rules.filter(function(x){return x.id===inp.dataset.rule})[0],tr={id:uid(),type:'t',amt:v,cat:'',date:pd,note:rr?rr.name+' · по плану':'докинуто с прошлой выплаты',cls:'',from:defAcc(),to:inp.dataset.acc};if(rr)tr.rule=rr.id;
+    S.entries.push(tr);if(inp.dataset.carry)S.carry=(S.carry||[]).filter(function(c){return c.id!==inp.dataset.carry});
+    inp.dataset.done=tr.id;inp.readOnly=true;row.style.opacity='.55';save();render();toast('Отложено '+money(v))}
+  else{var did=inp.dataset.done;S.entries=S.entries.filter(function(e){return e.id!==did});delete inp.dataset.done;inp.readOnly=false;row.style.opacity='';save();render();toast('Отметка снята')}
+  var all=[].every.call(document.querySelectorAll('.po_in'),function(e){return e.dataset.done});var b=document.querySelector('[data-a=poDo]');if(b)b.textContent=all?'Готово':'Разложить остальное';if(!document.querySelector('.po_in[data-done]')&&b)b.textContent='Разложить'}
 window.poMode=function(m){window.poFill(m==='free'?'plan':'fit')}
-window.poFill=function(m){var ins=[].slice.call(document.querySelectorAll('.po_in')),inc=+String((document.getElementById('po_inc')||{}).value||'').replace(',','.')||0,tot=ins.reduce(function(a,e){return a+(+e.dataset.plan||0)},0),r10=function(v){return Math.floor(v/10)*10};
+window.poFill=function(m){var dn=[].slice.call(document.querySelectorAll('.po_in[data-done]')),ins=[].slice.call(document.querySelectorAll('.po_in:not([data-done])')),inc=Math.max(0,(+String((document.getElementById('po_inc')||{}).value||'').replace(',','.')||0)-dn.reduce(function(a,e){return a+(+e.value||0)},0)),tot=ins.reduce(function(a,e){return a+(+e.dataset.plan||0)},0),r10=function(v){return Math.floor(v/10)*10};
   if(m==='plan')ins.forEach(function(e){e.value=e.dataset.plan});
   else if(m==='zero')ins.forEach(function(e){e.value=0});
   else if(m==='fit'){var k=tot>0?Math.min(1,inc/tot):0,sm=0;ins.forEach(function(e){var v=r10((+e.dataset.plan||0)*k);e.value=v;sm+=v});
@@ -4215,10 +4222,11 @@ document.addEventListener('click',function(ev){
   else if(a==='applyP'){payoutSheet(+id,k)}
   else if(a==='poDo'){var pd0=sh.day,pym=sh.ym,pdate=payDateIn(pym,pd0),carryOn=((document.querySelector('input[name=po_m]:checked')||{}).value==='carry'),cnt=0,nc=[];S.ruleZero=S.ruleZero||{};
     document.querySelectorAll('.po_in').forEach(function(e){var v=Math.round((+String(e.value).replace(',','.')||0)*100)/100,pl=+e.dataset.plan||0,acc=e.dataset.acc;
-      if(v>0){var tr={id:uid(),type:'t',amt:v,cat:'',date:pdate,note:(e.dataset.rule?'по плану':'докинуто с прошлой выплаты'),cls:'',from:defAcc(),to:acc};if(e.dataset.rule)tr.rule=e.dataset.rule;var rr=S.rules.filter(function(x){return x.id===e.dataset.rule})[0];if(rr)tr.note=rr.name+' · по плану';S.entries.push(tr);cnt++}
+      if(e.dataset.done){}
+      else if(v>0){var tr={id:uid(),type:'t',amt:v,cat:'',date:pdate,note:(e.dataset.rule?'по плану':'докинуто с прошлой выплаты'),cls:'',from:defAcc(),to:acc};if(e.dataset.rule)tr.rule=e.dataset.rule;var rr=S.rules.filter(function(x){return x.id===e.dataset.rule})[0];if(rr)tr.note=rr.name+' · по плану';S.entries.push(tr);cnt++}
       else if(e.dataset.rule)S.ruleZero[e.dataset.rule+'|'+pym]=1;
       if(carryOn&&pl-v>0.5)nc.push({id:'cr'+Date.now()+Math.random().toString(36).slice(2,6),acc:acc,amt:Math.round(pl-v),from:pdate})});
-    var used={};document.querySelectorAll('.po_in[data-carry]').forEach(function(e){used[e.dataset.carry]=1});
+    var used={};document.querySelectorAll('.po_in[data-carry]').forEach(function(e){used[e.dataset.carry]=1});var cntD=document.querySelectorAll('.po_in[data-done]').length;cnt+=cntD;
     S.carry=(S.carry||[]).filter(function(c){return !used[c.id]}).concat(nc);
     save();closeSheet();render();toast('Разложено: '+cnt+' '+plw(cnt,'копилка','копилки','копилок')+(nc.length?' · докинуть потом '+money(nc.reduce(function(a,c){return a+c.amt},0)):''))}
   else if(a==='skipP'){S.skips.push(id+'|'+k);save();render()}

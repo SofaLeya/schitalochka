@@ -1023,7 +1023,12 @@ test('гибкая раскладка: пришло меньше - суммы п
   // по порядку: первая полностью, вторая - сколько осталось
   await page.locator('#ov button', { hasText: 'По порядку' }).click();
   await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('100');
+  // галочка «уже отложено» сразу записывает перевод, повторно при «Разложить» он не пишется
+  await page.locator('.po_in[data-rule=r1] + .po_ck').check();
+  expect((await stored(page)).entries.filter(e => e.type === 't' && e.to === 'k1').length).toBe(1);
+  await expect(page.locator('[data-a=poDo]')).toHaveText('Разложить остальное');
   await page.click('[data-a=poDo]');
+  expect((await stored(page)).entries.filter(e => e.type === 't' && e.to === 'k1').length).toBe(1);
   const st = await stored(page);
   expect(st.entries.filter(e => e.type === 't' && e.to === 'k1')[0].amt).toBe(1500);
   expect(st.entries.filter(e => e.type === 't' && e.to === 'k2')[0].amt).toBe(100);

@@ -320,7 +320,7 @@ html.bigtext{zoom:1.14}
 @media (prefers-reduced-motion:no-preference){.onbpic>svg{animation:bob 2.6s ease-in-out infinite}.onbm .bub{animation:onbpop .25s ease-out}@keyframes onbpop{from{transform:scale(.94);opacity:.4}to{transform:none;opacity:1}}}
 #un_in{background:var(--surface);color:var(--text,inherit);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:15px;min-height:38px}.card.monster.hasbg #un_in{background:rgba(18,8,40,.42);border-color:rgba(255,255,255,.38);color:#fff}.card.monster.hasbg #un_in::placeholder{color:rgba(255,255,255,.7)}
 .sgrp{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.65;margin:8px 0 -6px}
-.srow{display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:14px;padding:12px 14px}.srow .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.srow{display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:14px;padding:12px 14px}.srow .grow{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .help summary .st{display:flex;flex-direction:column;gap:2px;min-width:0}.ss{font-weight:400;font-size:13px;opacity:.7}
 @media (prefers-reduced-motion:no-preference){.firstrec .tabs .plus{animation:plpulse 1.8s ease-in-out infinite}@keyframes plpulse{0%,100%{box-shadow:0 4px 14px rgba(106,69,232,.4),0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}50%{box-shadow:0 4px 14px rgba(106,69,232,.4),0 0 0 12px color-mix(in srgb,var(--accent) 0%,transparent)}}}
 .seg.st4 button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 2px 7px;font-size:12.5px;line-height:1.1;white-space:nowrap}
@@ -1084,6 +1084,7 @@ function vis(x){return !x.demo||!!S.demo}
 function realCount(){return S.entries.filter(function(e){return !e.demo}).length}
 function backupNote(){
   if(S.demo||realCount()<10)return '';
+  if(!ydOn()&&!ydHidden()&&realDays()>=3)return ''; // сверху уже есть кнопка «Подключить Диск» - второе напоминание не нужно
   if(ydOn()&&YD.st!=='err')return ''; // Яндекс Диск подключён и работает — данные уже в облаке, напоминание не нужно
   var d=bkDays();if(d!==null&&d<7)return '';
   try{var tl=JSON.parse(localStorage.getItem('tgbk-last:schitalochka')||'{}');if(tl.t&&Date.now()-tl.t<7*864e5)return ''}catch(e){}
@@ -2156,7 +2157,7 @@ function monsterCard(me,net,dnum){
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
   var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:monTip(PD,td,hr);if(tb)mood=tb.mood;
-  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+(lim?'':'<span class="fine">План не задан · <button class="fine" data-a="planOpen" style="text-decoration:underline">задать</button></span>')+'</div></div>'+planAsk();
+  return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'</div></div>'+planAsk();
 }
 function oneNote(){return apkNote()||newsNote()||backupNote()||''}
 function viewHomeSimple(){
@@ -2197,7 +2198,7 @@ function viewHome(){
   var upHtml='<div class="card">'+fhead('up','🗓️ Ближайшее',null,up.length?esc(up[0].name)+' · '+dlabel(up[0].date):null)+(uiFold('up')?'':upBody)+'</div>';
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи и свободные деньги ниже показаны для знакомства. Когда захочешь, очисти их.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
   var pend=pendingPayouts(),nudge=pend.length?'<div class="note info"><b>Разложить по плану</b><span>Выплат ждёт раскладки: '+pend.length+', всего '+money(pend.reduce(function(a,p){return a+p.sum},0))+' в копилки.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="tab" data-v="plan">Открыть</button></div></div>':'';
-  return demo+oneNote()+fcHero(hero)+monsterCard(me,lifeNet(me),dnum)+nudge+tplCard()+progCard()+accountsCard()+main+upHtml;
+  return demo+oneNote()+fcHero(hero)+monsterCard(me,lifeNet(me),dnum)+nudge+tplCard()+progCard()+accountsCard(); // «Главное сейчас» и «Ближайшее» убраны: это уже есть в плитке «Можно», «Предсказании» и вкладке «Платежи»
 }
 
 
@@ -3184,7 +3185,7 @@ function g2Goals(g){
 }
 function progCard(){
   var lim=dayLimit();
-  if(!lim)return '<div class="card"><h2>Прогресс</h2><p class="fine">Игра считает хорошие дни и сэкономленное относительно плана. Сначала посчитай, сколько можно тратить в день.</p><div class="btns"><button class="btn sm" data-a="planOpen">Посчитать план</button></div></div>';
+  if(!lim)return ''; // без плана считать нечего; план задаётся в плитке «В среднем» на главной
   var g=g2(),pct=Math.round((g.stars-g.fl)/(g.nx-g.fl)*100),goals=g2Goals(g);
   var bar=function(x){var p=Math.max(0,Math.min(100,x.v/x.of*100)),bad=x.rev&&x.v>x.of,col=bad?'var(--out)':x.rev?(p>85?'var(--warn)':'var(--in)'):'var(--accent)';
     return '<div class="pgoal"><div class="row"><div class="grow t" style="font-size:14px">'+esc(x.t)+'</div>'+(x.reward?'<span class="prew">'+x.reward+' ★</span>':'')+'</div><div class="bar"><i style="width:'+p+'%;background:'+col+'"></i></div><span class="fine">'+x.hint+'</span></div>'};
@@ -3389,6 +3390,7 @@ function viewAn(){
     return '<span style="color:var('+(dv>0?'--out':'--in')+')">'+(dv>0?'↑':'↓')+' '+money(Math.abs(dv))+'</span>'}
   var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<button type="button" data-a="catHist" data-v="'+k+'" style="display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer"><div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+[lm?'из '+money(lm)+(cat[k]>lm?' · сверху '+money(cat[k]-lm):''):(catSum?Math.max(1,Math.round(cat[k]/catSum*100))+'% трат':''),arrow(k)].filter(Boolean).join(' · ')+'</div></div><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(catSum?cat[k]/catSum*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></button>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
   var catTip='Траты на жизнь со свободных денег, после вычета возвратов. Платежи и траты из копилок вынесены в отдельное меню ниже. '+'Процент - какая доля всех трат на жизнь за месяц пришлась на категорию, полоска показывает то же. Если у категории есть лимит («План по категориям»), вместо процента видно «из суммы лимита». '+(hasP?'Стрелка - насколько больше или меньше, чем в прошлом месяце'+(isCur?' к этому же числу':'')+'. ':'')+'Нажми на категорию, чтобы открыть эти траты в «Истории».';
+  if(!me.some(function(x){return x.type==='e'||x.type==='i'}))return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div><div class="card"><h2>📊 Тут будет разбор месяца</h2><p class="fine">'+(isCur?'Как только появятся записи, здесь будут траты по дням и по категориям, сравнение с планом и подсказки.':'В этом месяце записей нет.')+'</p>'+(isCur?'<div class="btns"><button class="btn sm" data-a="newEntry">Записать трату</button></div>':'')+'</div>';
   return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div>'+reviewCard()+
    
    (dayLimit()>0&&vym<=T.slice(0,7)?'':lifeCard(me,n))+dayCard+
@@ -3471,7 +3473,7 @@ function rulesCard(part){
   var doneCard=donePo.length?'<div class="card"><h2>✅ Разложено</h2>'+donePo.map(function(p){return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.n+' '+plw(p.n,'копилка','копилки','копилок')+' · '+money(p.sum)+'</div></div><button class="btn sm ghost" data-a="editP" data-id="'+p.day+'" data-k="'+p.ym+'">Изменить</button></div>'}).join('')+'</div>':'';
   if(part==='pend'){if(!pend.length)return doneCard;return doneCard+'<div class="card"><h2>Разложить сейчас</h2>'+pend.map(function(p){
       var crs=(S.carry||[]).reduce(function(a,c){return a+(accById(c.acc)?c.amt:0)},0);
-      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.length+' '+plw(p.rules.length,'копилка','копилки','копилок')+' · '+money(p.sum)+(crs>0?' · ↪ + '+money(crs)+' с прошлой':'')+(function(){var x=p.rules.reduce(function(a,r){return a+(bigAcc(r)?0:r.amt)},0);return x&&x!==p.sum?'<br>из них на отдельные счета '+money(x):''})()+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить</button><button class="btn sm ghost" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'">Пропустить</button></div></div>'}).join('')+'</div>'}
+      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.length+' '+plw(p.rules.length,'копилка','копилки','копилок')+' · '+money(p.sum)+(crs>0?' · ↪ + '+money(crs)+' с прошлой':'')+(function(){var x=p.rules.reduce(function(a,r){return a+(bigAcc(r)?0:r.amt)},0);return x&&x!==p.sum?'<br>из них на отдельные счета '+money(x):''})()+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить</button><button class="fine" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'" style="text-decoration:underline;background:none;border:0;cursor:pointer">пропустить</button></div></div>'}).join('')+'</div>'}
   // правила, сгруппированные по дню выплаты
   var byDay={};S.rules.forEach(function(r){(byDay[r.day]=byDay[r.day]||[]).push(r)});
   var days=Object.keys(byDay).map(Number).sort(function(a,b){return a-b}),tot=0;S.rules.forEach(function(r){if(ruleOn(r))tot+=r.amt});
@@ -3784,9 +3786,10 @@ function entAccCur(d){ // валюта счёта, с которого плат�
 function entCur(d){ // в какой валюте вводится сумма записи: можно платить с рублёвой карты в евро
   if(d.type!=='t'&&d.cur&&CUR[d.cur])return d.cur;
   return entAccCur(d)}
+function multiCur(){var b=baseCur();return S.accounts.some(function(a){return a.cur&&a.cur!==b})||S.entries.some(function(e){return e.cur&&e.cur!==b})||!!S.curOn}
 function needNat(d,tot){ // сколько уйдёт со счёта в его валюте
   var ec=entCur(d),ac=entAccCur(d);if(ec===ac)return tot;var c=sumAmt(d.chg);if(c>0)return c;return tot*rateOf(ec)/rateOf(ac)}
-function curPick(d){var ac=entAccCur(d),ec=entCur(d),b=baseCur(),seen={},ks=[ac,b].concat(Object.keys(CUR)).filter(function(k){if(seen[k])return false;seen[k]=1;return true});
+function curPick(d){if(!multiCur()&&!d.curShow&&entCur(d)===baseCur())return '<button type="button" class="btn ghost" data-a="curShow" aria-label="Другая валюта" title="Другая валюта" style="flex:none;padding-inline:14px">'+CUR[baseCur()][0]+'</button>';var ac=entAccCur(d),ec=entCur(d),b=baseCur(),seen={},ks=[ac,b].concat(Object.keys(CUR)).filter(function(k){if(seen[k])return false;seen[k]=1;return true});
   return '<select id="f_cur" class="curpick" aria-label="Валюта суммы">'+ks.map(function(k){return '<option value="'+k+'"'+(k===ec?' selected':'')+'>'+CUR[k][0]+(CUR[k][0]===k?'':' '+k)+'</option>'}).join('')+'</select>'}
 function fxHint(){ // подсказка «≈ сколько в основной валюте» под суммой
   var el=document.getElementById('f_fx'),fa=document.getElementById('f_amt');if(!el||!fa||!sh||!sh.d)return;
@@ -4089,7 +4092,7 @@ function savedMsg(r,isNew){
 function toast(m,bad,undo){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:99;padding:14px 16px;border-radius:14px;font-weight:600;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);color:#fff';document.body.appendChild(t)}
   t.style.background=bad?'#c0392b':'#1e9e5a';t.textContent='';var sp=document.createElement('span');sp.textContent=(bad?'✕ ':'✓ ')+m;t.appendChild(sp);
   if(undo){var ub=document.createElement('button');ub.type='button';ub.textContent='Отменить';ub.style.cssText='margin-left:12px;background:rgba(255,255,255,.25);color:#fff;font:inherit;font-weight:700;border-radius:10px;padding:8px 14px;min-height:36px';ub.onclick=function(){clearTimeout(t._h);t.style.display='none';undo()};t.appendChild(ub)}
-  t.hidden=false;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},undo?7000:4000)}
+  t.hidden=false;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},undo?7000:2800)}
 function delEntryUndo(id){var ix=-1,en=null;S.entries.forEach(function(e,i){if(e.id===id){ix=i;en=e}});if(!en)return;
   S.entries=S.entries.filter(function(e){return e.id!==id});save();render();
   toast('Запись удалена',false,function(){S.entries.splice(Math.min(ix,S.entries.length),0,en);save();render();toast('Запись возвращена')})}
@@ -4133,7 +4136,7 @@ document.addEventListener('click',function(ev){
   var b=ev.target.closest('[data-a]');
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
-  if(a==='tab'){if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
+  if(a==='tab'){var tt=document.getElementById('toast');if(tt&&!tt.querySelector('button'))tt.style.display='none';if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
   else if(a==='tip'){var tb=document.getElementById('tip_'+v);if(tb){tb.hidden=!tb.hidden;b.setAttribute('aria-expanded',tb.hidden?'false':'true')}}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}
@@ -4178,6 +4181,7 @@ document.addEventListener('click',function(ev){
   else if(a==='pctDel'){S.pct=(S.pct||[]).filter(function(r){return r.id!==id});save();render();irrBack()}
   else if(a==='cuSave'){S.cushion=document.getElementById('cu_acc').value||'';save();render();settingsSheet();toast(S.cushion?'Подушка выбрана':'Подушка убрана')}
   else if(a==='pctDo'){var px=S.entries.filter(function(e){return e.id===id})[0];if(px){var pids=[];pctParts(px).forEach(function(o){var t={id:uid(),type:'t',amt:o.v,cat:'',date:px.date,note:o.r.pct+'% с дохода',cls:'',from:px.acc||defAcc(),to:o.r.acc,pctOf:px.id};S.entries.push(t);pids.push(t.id)});save();closeSheet();render();toast('Разложено',false,function(){S.entries=S.entries.filter(function(e){return pids.indexOf(e.id)<0});save();render();toast('Отменено')})}}
+  else if(a==='curShow'){readEntry();sh.d.curShow=1;entrySheet()}
   else if(a==='fcOpen'){sh={id:'fc',fc:1};fcSheet()}
   else if(a==='fcAdd'){var fa=+String(document.getElementById('fc_amt').value||'').replace(',','.').replace(/\s/g,'');if(!(fa>0)){toast('Впиши сумму');return}
     S.fcPlans=(S.fcPlans||[]).concat([{id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked}]);save();fcSheet()}
@@ -4263,7 +4267,7 @@ document.addEventListener('click',function(ev){
   else if(a==='petHide'){S.nopet=true;save();closeSheet();render();toast('Скрыто. Вернуть можно яркой кнопкой вверху, рядом с "?"',false,function(){S.nopet=false;save();render()})}
   else if(a==='petShow'){S.nopet=false;save();render()}
   else if(a==='optBig'){var bg=!bigOn();try{localStorage.setItem('sch-big',bg?'1':'')}catch(e){}bigApply();settingsSheet()}
-  else if(a==='settings'){icoHint('set','Настройки');sh={confirm:false};settingsSheet()}
+  else if(a==='settings'){sh={confirm:false};settingsSheet()}
   else if(a==='splitDone'){var sx=S.entries.filter(function(e){return e.id===id})[0];if(sx){sh={sp:true,id:sx.id};
     openSheet('<h3>Сколько вернули?</h3><p class="fine">'+esc(sx.note||(CMAP[sx.cat]||CMAP.other).name)+' · трата '+money(sx.amt)+', ждали '+money(sx.split)+'</p><div class="f"><label for="f_spgot">Пришло, '+sym()+'</label><input id="f_spgot" inputmode="decimal" value="'+String(sx.split).replace('.',',')+'"><span class="fine">Можно больше или меньше, чем ждали.</span></div><p class="fine" id="f_sperr" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="splitSave">Записать</button></div>')}}
   else if(a==='splitSave'){var sz=sh&&S.entries.filter(function(e){return e.id===sh.id})[0],gv=num(document.getElementById('f_spgot').value);
@@ -4342,7 +4346,7 @@ document.addEventListener('click',function(ev){
   else if(a==='ccIcoSet'){var cs=S.ccats.filter(function(c){return c.id===id})[0];if(cs){if(v)cs.ico=v;else delete cs.ico;save();syncCats();render();window._ccOpen=1;settingsSheet();window._ccOpen=0;try{var dc=[].filter.call(document.querySelectorAll('#ov details'),function(x){return x.open&&x.textContent.indexOf('Мои категории')>=0})[0];if(dc)dc.scrollIntoView({block:'start'})}catch(e){}}}
   else if(a==='ccRen'){var c1=S.ccats.filter(function(c){return c.id===id})[0];if(c1){uiPrompt('Новое название',c1.name).then(function(n2){if(n2&&n2.trim()){c1.name=n2.trim().slice(0,40);save();syncCats();settingsSheet();render()}})}}
   else if(a==='ccDel'){var c2=S.ccats.filter(function(c){return c.id===id})[0];if(c2)uiConfirm('Удалить категорию «'+c2.name+'»? Записи из неё перейдут в «Прочее».').then(function(y){if(!y)return;S.ccats=S.ccats.filter(function(c){return c.id!==id});S.entries.forEach(function(x){if(x.cat===id)x.cat=c2.inc?'other_in':'other'});if(S.learn)Object.keys(S.learn).forEach(function(k){if(S.learn[k]===id)delete S.learn[k]});save();syncCats();settingsSheet();render()})}
-  else if(a==='help'){icoHint('help','Помощь: как пользоваться');sh={hp:true};helpSheet()}
+  else if(a==='help'){sh={hp:true};helpSheet()}
   else if(a==='copyPrompt'){var ta=document.getElementById('h_prompt');var done=function(){toast('Запрос скопирован')};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done()})}else{ta.select();document.execCommand('copy');done()}}catch(e){toast('Не получилось, выдели текст вручную',true)}}
   else if(a==='setMode'){if((v==='simple')!==!!S.simple){S.simple=v==='simple';if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render();toast(S.simple?'Простой режим':'Полный режим')}}
   else if(a==='payPut'){var ppx=payPraise();if(!ppx)return;var ptg=payTarget();

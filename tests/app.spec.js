@@ -367,7 +367,7 @@ test('валюта: трата в евро с рублёвой карты, с с
   await start(page, errs);
   await page.click('.tabs .plus');
   await page.fill('#f_amt', '20');
-  await page.selectOption('#f_cur', 'EUR');
+  await page.click('[data-a=curShow]').catch(() => {}); await page.selectOption('#f_cur', 'EUR');
   await expect(page.locator('#f_fx')).toContainText('≈ 2 000 ₽');
   await page.fill('#f_note', 'Пятёрочка Рим');
   await page.fill('#f_chg', '2100');
@@ -377,7 +377,7 @@ test('валюта: трата в евро с рублёвой карты, с с
   // без суммы списания - по курсу
   await page.click('.tabs .plus');
   await page.fill('#f_amt', '5');
-  await page.selectOption('#f_cur', 'EUR');
+  await page.click('[data-a=curShow]').catch(() => {}); await page.selectOption('#f_cur', 'EUR');
   await page.fill('#f_note', 'Пятёрочка кофе');
   await page.locator('#fm button[type=submit]').click();
   await expect(page.locator('#ov .sheet')).toBeHidden();

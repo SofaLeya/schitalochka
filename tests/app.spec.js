@@ -1033,5 +1033,13 @@ test('гибкая раскладка: пришло меньше - суммы п
   expect(st.entries.filter(e => e.type === 't' && e.to === 'k1')[0].amt).toBe(1500);
   expect(st.entries.filter(e => e.type === 't' && e.to === 'k2')[0].amt).toBe(100);
   expect(st.carry).toEqual([expect.objectContaining({ acc: 'k2', amt: 400 })]);
+  // после раскладки можно открыть и поправить: снять галочку у Клоды, поменять сумму, поставить снова
+  await page.click('[data-a=editP]');
+  await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('100');
+  await page.locator('.po_in[data-rule=r2] + .po_ck').uncheck();
+  await page.fill('.po_in[data-rule=r2]', '300');
+  await page.locator('.po_in[data-rule=r2] + .po_ck').check();
+  const k2 = (await stored(page)).entries.filter(e => e.type === 't' && e.to === 'k2');
+  expect(k2.map(e => e.amt)).toEqual([300]);
   expect(errs).toEqual([]);
 });

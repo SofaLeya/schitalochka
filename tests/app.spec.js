@@ -1116,3 +1116,43 @@ test('как вчера и ярлык «Сегодня без трат»', async
   await expect.poll(async () => ((await stored(page)).noSpend || []).length).toBe(1);
   expect(errs).toEqual([]);
 });
+
+test('производственный календарь: загрузка на новый год', async ({ page }) => {
+  const errs = [];
+  const y = new Date().getFullYear() + 2;
+  const n = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
+  const str = Array.from({ length: n }, (_, i) => (i < 8 ? '1' : '0')).join('');
+  await page.route(/isdayoff\.ru/, r => r.fulfill({ contentType: 'text/plain', body: str, headers: { 'access-control-allow-origin': '*' } }));
+  await start(page, errs);
+  await page.click('[data-a=settings]');
+  await page.locator('#ov summary', { hasText: 'Производственный календарь' }).click();
+  await page.click(`[data-a=calLoad][data-v="${y}"]`);
+  await expect.poll(async () => ((await stored(page)).rucal || {})[y]).toBe(str);
+  expect(errs).toEqual([]);
+});
+
+test('страховка: если приложение упало при запуске - можно скачать данные', async ({ page }) => {
+  await page.route(/index\.html/, async r => { const res = await r.fetch(); const b = (await res.text()).replace('window.__schOk=true;', 'throw new Error("boom");'); r.fulfill({ response: res, body: b }); });
+  await page.goto('/index.html');
+  await expect(page.locator('#rescue')).toContainText('Что-то пошло не так');
+  await expect(page.locator('#rsDl')).toBeVisible();
+});
+
+test('итоги года в конце декабря и итог недели в воскресенье вечером', async ({ page }) => {
+  const errs = [];
+  await page.clock.install({ time: new Date('2026-12-27T19:00:00') });
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    const iso = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    for (let i = 1; i <= 60; i++) { const x = new Date(2026, 11, 27); x.setDate(x.getDate() - i); d.entries.push({ id: 'z' + i, type: 'e', amt: 300 + i, cat: 'cafe', note: 'Ужин', date: iso(x), acc: '' }); }
+    d.unameAsked = 1; localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  await expect(page.locator('.monster')).toContainText('Итоги 2026 года');
+  await page.click('[data-a=yrOk]');
+  await expect(page.locator('.monster')).toContainText('Итог недели');
+  await page.click('[data-a=wkOk]');
+  await expect(page.locator('.monster')).not.toContainText('Итог недели');
+  expect(errs).toEqual([]);
+});

@@ -450,6 +450,24 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 
 <script src="tgbk.js"></script>
 <script>
+/* Страховка: если основной код упал при запуске - вместо пустого экрана показываем выход: скачать данные и перезапустить */
+(function(){window.__schOk=false;var shown=false;
+  function rescue(why){if(shown||window.__schOk)return;shown=true;try{
+    var d=document.createElement('div');d.id='rescue';d.style.cssText='position:fixed;inset:0;z-index:9999;background:#14111c;color:#fff;font:16px/1.45 system-ui,sans-serif;padding:28px 22px;display:flex;flex-direction:column;gap:14px;justify-content:center';
+    d.innerHTML='<div style="font-size:44px">🙈</div><b style="font-size:20px">Что-то пошло не так</b><div>Приложение не смогло открыться. Твои данные на месте - их можно сохранить файлом и потом загрузить обратно (⚙️ → Копии → Загрузить из файла).</div>'+
+      '<button id="rsDl" style="padding:14px;border-radius:14px;border:0;background:#a78bfa;color:#1a1033;font:inherit;font-weight:800">💾 Скачать мои данные</button>'+
+      '<button id="rsRe" style="padding:14px;border-radius:14px;border:0;background:#2a2140;color:#fff;font:inherit;font-weight:700">↻ Перезапустить</button>'+
+      '<div style="opacity:.6;font-size:12px">'+String(why||'').replace(/[<>&]/g,'').slice(0,160)+'</div>';
+    document.body.appendChild(d);
+    document.getElementById('rsRe').onclick=function(){try{caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}).then(function(){location.reload()},function(){location.reload()})}catch(e){location.reload()}};
+    document.getElementById('rsDl').onclick=function(){var raw='';try{raw=localStorage.getItem('podkopka-v1')||''}catch(e){}if(!raw){alert('Данных в этом браузере нет');return}
+      var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([raw],{type:'application/json'}));a.download='schitalochka-spasenie-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click()};
+  }catch(e){}}
+  window.addEventListener('error',function(e){if(!window.__schOk)rescue(e&&e.message)});
+  window.addEventListener('load',function(){setTimeout(function(){if(!window.__schOk)rescue('не запустилось')},6000)});
+})();
+</script>
+<script>
 (function(){
 'use strict';
 var KEY='podkopka-v1';
@@ -2050,7 +2068,8 @@ function ruFixedOff(y){ // без календаря: Новый год 1-8.01, 
   return set}
 var RUFB={};
 function isWorkday(d){
-  var y=+d.slice(0,4),c=RUCAL[y],w=parse(d).getDay();
+  var y=+d.slice(0,4),c=RUCAL[y],w=parse(d).getDay(),lc=(typeof S!=='undefined'&&S&&S.rucal)?S.rucal[y]:null;
+  if(lc){var doy=Math.round((parse(d)-new Date(y,0,1))/864e5),ch=lc.charAt(doy);if(ch)return ch!=='1'}
   if(c){if(c.work.indexOf(d)>=0)return true;if(ruInRanges(d,c.off))return false;return w!==0&&w!==6}
   if(!RUFB[y])RUFB[y]=ruFixedOff(y);
   return w!==0&&w!==6&&!RUFB[y][d]}
@@ -2158,7 +2177,7 @@ function monsterCard(me,net,dnum){
   else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
-  var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:(weekTip(PD,hr)||monTip(PD,td,hr));if(tb)mood=tb.mood;
+  var sb=splitBub(),na=pp||sb?'':nameAsk(),tb=pp||sb||na?null:(yearTip(PD)||weekTip(PD,hr)||monTip(PD,td,hr));if(tb)mood=tb.mood;
   return '<div class="card monster'+(petSize()==='l'?' big':'')+(petBgOn()?' hasbg':'')+'">'+stage(mood,hr,lim?g2().L:0,pp?'pay':(mood==='sad'&&lim&&r>1.3?'shrug':''))+'<div class="mt"><b style="display:flex;justify-content:space-between;gap:8px;align-items:center">'+esc(petName())+'<button class="fine" data-a="petPick" style="text-decoration:underline">сменить</button></b>'+(sb||na||(tb&&tb.html)||'<div class="bub">'+esc(msg)+'</div>')+nsBtn+'</div></div>'+planAsk();
 }
 function oneNote(){return apkNote()||newsNote()||backupNote()||''}
@@ -2514,6 +2533,18 @@ document.addEventListener('pointerdown',function(ev){var b=ev.target.closest&&ev
 try{window.tipsNow=function(){return tipsNow()}}catch(e){}
 try{window.fcCalc=function(){return fcCalc()}}catch(e){}
 /* итог недели: в воскресенье вечером (или в понедельник до обеда, если не видели) - один раз за неделю */
+/* итоги года: с 25 декабря по 10 января, один раз */
+function yearTip(PD){var m=+PD.slice(5,7),d=+PD.slice(8,10);if(!((m===12&&d>=25)||(m===1&&d<=10)))return null;var y=m===12?+PD.slice(0,4):+PD.slice(0,4)-1;if(S.yrSeen===y)return null;
+  var LK=refLinks(),lim=dayLimit(),tot=0,byM={},inPlan=0,saved=0,nsp=0,ns={};(S.noSpend||[]).forEach(function(x){ns[x]=1});
+  var ye=S.entries.filter(function(x){return !x.demo&&x.date.slice(0,4)===String(y)});if(ye.length<30)return null;
+  var byD={};ye.forEach(function(x){(byD[x.date]=byD[x.date]||[]).push(x)});
+  Object.keys(byD).forEach(function(dd){var v=Math.max(0,lifeNetL(life(byD[dd]),LK));tot+=v;byM[dd.slice(5,7)]=(byM[dd.slice(5,7)]||0)+v;if(lim&&v<=lim)inPlan++;if(v===0)nsp++});
+  Object.keys(ns).forEach(function(dd){if(dd.slice(0,4)===String(y)&&!byD[dd]){nsp++;if(lim)inPlan++}});
+  ye.forEach(function(x){if(x.type==='t'){var to=accById(x.to);if(to&&to.type==='save')saved+=x.amt;var fr=accById(x.from);if(fr&&fr.type==='save')saved-=x.amt}});
+  var ms=Object.keys(byM).filter(function(k){return byM[k]>0}),best=ms.sort(function(a,b){return byM[a]-byM[b]})[0],MN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],MN1=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  var txt='🎄 Итоги '+y+' года: на жизнь ушло '+money(tot)+(saved>0?', отложено в копилки '+money(saved):'')+(lim?', в плане '+inPlan+' '+plw(inPlan,'день','дня','дней'):'')+(nsp?', без трат '+nsp+' '+plw(nsp,'день','дня','дней'):'')+(best&&ms.length>1?'. Самый экономный месяц - '+MN1[+best-1]:'')+'. С наступающим!';
+  if(m===1)txt=txt.replace('С наступающим!','С Новым годом!');
+  return {mood:'happy',html:'<div class="bub">'+esc(txt)+'<div style="margin-top:8px"><button class="btn sm" data-a="yrOk" data-v="'+y+'">Ура!</button></div></div>'}}
 function weekTip(PD,hr){var d=parse(PD),wd=d.getDay();if(!(wd===0&&hr>=18)&&!(wd===1&&hr<14))return null;
   var sun=wd===0?d:addDays(d,-1),mon=addDays(sun,-6),key=iso(mon);if(S.wkSeen===key)return null;
   var LK=refLinks(),lim=dayLimit(),tot=0,inPlan=0,rec=0,byCat={},ns={};(S.noSpend||[]).forEach(function(x){ns[x]=1});
@@ -4058,6 +4089,30 @@ function bankSetHtml(){var on=bankOnNow();
   return '<p class="fine" style="margin:0">Приложение само замечает уведомления банка о покупках и зачислениях и предлагает записать их одним нажатием. Сумма, дата и магазин подставятся сами. Уведомления читаются только на этом телефоне и никуда не отправляются.</p>'+
    (on?'<p style="margin:0">✅ Доступ включён</p><button type="button" class="btn ghost sm" data-a="bankSet">Выключить в настройках Android</button>':'<button type="button" class="btn" data-a="bankSet">Включить доступ к уведомлениям</button><p class="fine" style="margin:0">Откроются настройки Android: найди там «считалОчка» и включи.</p>')}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)bankPull()});setTimeout(bankPull,1500);
+
+/* загрузка производственного календаря на новый год: isdayoff.ru (строка 0/1 на каждый день), запасной - xmlcalendar на GitHub */
+function calYears(){var o={};Object.keys(RUCAL).forEach(function(y){o[y]='встроен'});Object.keys(S.rucal||{}).forEach(function(y){o[y]='загружен'});return o}
+function calNeed(){var y=+T.slice(0,4),h=calYears(),out=[];[y,y+1].forEach(function(x){if(!h[x])out.push(x)});return out}
+function calValid(str,y){var n=(y%4===0&&y%100!==0)||y%400===0?366:365;return typeof str==='string'&&str.length===n&&/^[0-4]+$/.test(str)}
+function calFetch(y){
+  return fetch('https://isdayoff.ru/api/getdata?year='+y+'&cc=ru',{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){t=(t||'').trim();if(calValid(t,y))return t;throw 0})
+  .catch(function(){return fetch('https://raw.githubusercontent.com/xmlcalendar/data/master/ru/'+y+'/calendar.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+    var n=(y%4===0&&y%100!==0)||y%400===0?366:365,a=[];for(var i=0;i<n;i++){var dd=new Date(y,0,1+i);a.push(dd.getDay()===0||dd.getDay()===6?'1':'0')}
+    var seen=false;(j.months||[]).forEach(function(m){String(m.days||'').split(',').forEach(function(x){x=x.trim();if(!x)return;seen=true;var day=parseInt(x,10),off=!/\*/.test(x),doy=Math.round((new Date(y,m.month-1,day)-new Date(y,0,1))/864e5);if(doy>=0&&doy<n)a[doy]=off?'1':'0'})});
+    if(!seen)throw 0;
+    /* в xmlcalendar перечислены только нерабочие дни: выходные, не попавшие в список, - рабочие (перенос) */
+    var listed={};(j.months||[]).forEach(function(m){String(m.days||'').split(',').forEach(function(x){x=x.trim();if(x)listed[m.month+'-'+parseInt(x,10)]=1})});
+    for(var k=0;k<n;k++){var d2=new Date(y,0,1+k);if((d2.getDay()===0||d2.getDay()===6)&&!listed[(d2.getMonth()+1)+'-'+d2.getDate()])a[k]='0'}
+    return a.join('')})})}
+function calLoad(y,quiet){return calFetch(y).then(function(str){S.rucal=S.rucal||{};S.rucal[y]=str;save();RUFB={};render();if(!quiet)toast('Календарь на '+y+' загружен');if(sh&&sh.cal)settingsSheet();return true}).catch(function(){if(!quiet)toast('Календарь на '+y+' пока не нашла. Обычно его публикуют осенью',true);return false})}
+/* тихо раз в неделю пробуем подтянуть календарь на следующий год (с октября) */
+setTimeout(function(){try{var y=+T.slice(0,4),m=+T.slice(5,7),k='sch-calTry';if(m<10||calYears()[y+1])return;var last=+localStorage.getItem(k)||0;if(Date.now()-last<7*864e5)return;localStorage.setItem(k,String(Date.now()));calLoad(y+1,true)}catch(e){}},8000);
+function calSetHtml(){var h=calYears(),ys=Object.keys(h).sort(),need=calNeed(),y=+T.slice(0,4);
+  return '<p class="fine" style="margin:0">Нужен, чтобы зарплата, выпавшая на праздник или выходной, считалась в ближайший рабочий день до него.</p>'+
+   '<p style="margin:0">'+ys.map(function(x){return x+' - '+h[x]}).join(', ')+'</p>'+
+   (need.length?'':'<p class="fine" style="margin:0">На этот и следующий год календарь уже есть. В октябре-декабре приложение само попробует загрузить календарь на следующий год.</p>')+
+   [y,y+1,y+2].filter(function(x){return h[x]!=='встроен'}).map(function(x){return '<button type="button" class="btn '+(h[x]?'ghost ':'')+'sm" data-a="calLoad" data-v="'+x+'">'+(h[x]?'Обновить календарь на '+x:'Загрузить новый производственный календарь на '+x)+'</button>'}).join('')+
+   '<p class="fine" style="margin:0">Без загруженного календаря работают общие правила праздников.</p>'}
 function settingsSheet(){
   var json=JSON.stringify(S),pi=planInfo();
   var was={};try{document.querySelectorAll('#ov details[data-k]').forEach(function(d){if(d.open)was[d.getAttribute('data-k')]=1})}catch(e){}
@@ -4078,6 +4133,7 @@ function settingsSheet(){
 
     det('💸 Нерегулярный доход',irrSetHtml(),S.irreg?'включён':'смены, почасовая, фриланс')+
     (bankHas()?det('🔔 Траты из уведомлений банка',bankSetHtml(),bankOnNow()?'включено':'только в приложении для Android'):'')+
+    det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0])+
     det('🔁 Регулярные траты',tplListHtml(),tpls().length?tpls().length+' '+plw(tpls().length,'напоминание','напоминания','напоминаний'):'напомнят записать, например продукты раз в неделю')+
     det('🏷️ Мои категории',(S.ccats.length?'<div class="list">'+S.ccats.map(function(c){return '<div class="row"><button type="button" data-a="ccIco" data-id="'+c.id+'" aria-label="Выбрать картинку" style="background:none;border:0;padding:0;cursor:pointer;flex:none">'+cdot(c)+'</button>'+'<div class="grow t" style="overflow-wrap:normal;word-break:normal">'+esc(c.name)+(c.inc?' <span class="fine">· доход</span>':'')+'</div><button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="ccRen" data-id="'+c.id+'" aria-label="Переименовать">✎</button><button type="button" class="btn danger sm" style="flex:none;padding:7px 10px" data-a="ccDel" data-id="'+c.id+'" aria-label="Удалить">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока нет. Можно добавить здесь или при записи траты или дохода.</p>')+(S.ccats.length?'<p class="fine" style="margin:0">Нажми на значок, чтобы выбрать картинку.</p>':'')+'<button type="button" class="btn ghost" data-a="ccAdd">＋ Категория трат</button><button type="button" class="btn ghost" data-a="ccAddI">＋ Категория дохода</button>',S.ccats.length?S.ccats.length+' своих':'свои категории трат и доходов')+
    '</div>'+
@@ -4212,6 +4268,7 @@ document.addEventListener('click',function(ev){
   else if(a==='partAdd'){var dr=readEntry(),lp=dr.parts[dr.parts.length-1];dr.parts.push({cat:lp&&lp.cat||'',amt:''});entrySheet();setTimeout(function(){var ni=document.getElementById('pa'+(dr.parts.length-1));if(ni)ni.focus({preventScroll:true});partsLive()},60)}
   else if(a==='partDel'){var ds=readEntry();ds.parts.splice(+b.dataset.i,1);if(!ds.parts.length)ds.parts=null;entrySheet();setTimeout(function(){partsLive()},60)}
   else if(a==='qrScan')qrScan();
+  else if(a==='calLoad'){sh.cal=1;toast('Загружаю…');calLoad(+v)}
   else if(a==='bankSet'){try{AndroidApp.bankSettings()}catch(e){}}
   else if(a==='bankDel'){S.bankQ=(S.bankQ||[]).filter(function(x){return x.id!==id});save();render()}
   else if(a==='bankClear'){S.bankQ=[];save();render()}
@@ -4376,6 +4433,7 @@ document.addEventListener('click',function(ev){
   else if(a==='planManual'){var pv=num(document.getElementById('pl_v').value);if(pv>0){S.dayLimit=Math.round(pv);delete S.planCalc;S.planAsked=1;save();closeSheet();render();toast('План: '+money(S.dayLimit)+' в день')}}
   else if(a==='planClear'){delete S.dayLimit;delete S.planCalc;S.planAsked=1;save();closeSheet();render()}
   else if(a==='planKeep'){S.planAsked=1;S.dayLimit=+v;save();render();toast('План оставлен: '+money(+v)+' в день')}
+  else if(a==='yrOk'){S.yrSeen=+v;save();render()}
   else if(a==='wkOk'){S.wkSeen=v;save();render()}
   else if(a==='noSpend'){var pd0=petDay();S.noSpend=(S.noSpend||[]).filter(function(d){return d>=iso(addDays(parse(T),-400))});if(S.noSpend.indexOf(pd0)<0)S.noSpend.push(pd0);save();render();toast('Отмечено: день без трат')}
   else if(a==='noSpendY'){var yy=iso(addDays(parse(T),-1));S.noSpend=S.noSpend||[];if(S.noSpend.indexOf(yy)<0)S.noSpend.push(yy);save();render();toast('Вчера засчитано: день без трат')}
@@ -5049,6 +5107,7 @@ function updCheck(){if(BUILD.indexOf('__')===0||document.getElementById('updbar'
     var b=document.createElement('div');b.id='updbar';b.innerHTML='✨ Есть обновление <button type="button">Обновить</button>';
     b.querySelector('button').onclick=function(){b.querySelector('button').textContent='…';var go=function(){location.reload()};try{caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}).then(go,go)}catch(e){go()}};
     document.body.appendChild(b)}).catch(function(){})}
+window.__schOk=true;
 setTimeout(updCheck,4000);setInterval(updCheck,20*60*1000);document.addEventListener('visibilitychange',function(){if(!document.hidden)updCheck()});
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 </script>

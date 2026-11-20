@@ -27,16 +27,11 @@ jobs:
         with:
           node-version: '22'
       - run: npm install
-      # браузер для тестов кэшируется - не качаем его заново при каждой выкладке
-      - uses: actions/cache@v6
-        id: pwcache
-        with:
-          path: ~/.cache/ms-playwright
-          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
-        if: steps.pwcache.outputs.cache-hit != 'true'
-      - run: npx playwright install-deps chromium
-        if: steps.pwcache.outputs.cache-hit == 'true'
+      # на раннере GitHub уже стоит Google Chrome - тесты идут в нём, ничего не скачиваем (это было самое долгое)
+      - name: Браузер для тестов
+        run: |
+          if [ -x /usr/bin/google-chrome ]; then echo "CHROME_PATH=/usr/bin/google-chrome" >> "$GITHUB_ENV"
+          else npx playwright install --with-deps chromium; fi
       - run: npx playwright test
       - uses: actions/upload-artifact@v7
         if: failure()

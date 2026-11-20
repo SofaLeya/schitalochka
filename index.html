@@ -893,13 +893,19 @@ function payoutSheet(day,ym){var p=pendingPayouts().filter(function(x){return x.
    cr.map(function(c){return row('',c.acc,c.amt,'data-carry="'+c.id+'" data-acc="'+c.acc+'"','↪ не дошло с '+dlabel(c.from))}).join('')+'</div>'+
    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button type="button" class="btn ghost sm" onclick="poFill(\'plan\')">По плану</button><button type="button" class="btn ghost sm" onclick="poFill(\'fit\')">Уложиться в пришедшее</button><button type="button" class="btn ghost sm" onclick="poFill(\'order\')">По порядку сверху</button><button type="button" class="btn ghost sm" onclick="poFill(\'zero\')">Обнулить</button></div>'+
    '<p class="fine" id="po_tot" style="margin:4px 0"></p>'+
-   (nd?'<label id="po_cl" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="po_carry" checked onchange="poUpd()"> <span id="po_ct">Недостающее докинуть с выплаты '+dlabel(nd)+'</span></label>':'')+
+   '<div id="po_cl" class="f" style="gap:6px"><b id="po_ct" style="font-size:14px"></b>'+
+    (nd?'<label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;text-align:left;font-size:14px;cursor:pointer"><input type="radio" style="width:20px;height:20px;flex:none;margin:0;accent-color:#a78bfa" name="po_m" value="carry" checked onchange="poMode(this.value)"> Докинуть с выплаты '+dlabel(nd)+'</label>':'')+
+    '<label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;text-align:left;font-size:14px;cursor:pointer"><input type="radio" style="width:20px;height:20px;flex:none;margin:0;accent-color:#a78bfa" name="po_m" value="free"'+(nd?'':' checked')+' onchange="poMode(this.value)"> Взять из свободных денег сейчас (есть '+money(balance())+')</label>'+
+    '<label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;text-align:left;font-size:14px;cursor:pointer"><input type="radio" style="width:20px;height:20px;flex:none;margin:0;accent-color:#a78bfa" name="po_m" value="none" onchange="poMode(this.value)"> Не докидывать</label>'+
+    '<span class="fine">Суммы выше всё равно можно поправить руками.</span></div>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="button" class="btn" data-a="poDo">Разложить</button></div>');
   setTimeout(function(){var i=+(document.getElementById('po_inc')||{}).value||0,t=0;document.querySelectorAll('.po_in').forEach(function(e){t+=+e.dataset.plan||0});if(i>0&&i<t)poFill('fit');else poUpd()},0)}
 window.poUpd=function(){var ins=document.querySelectorAll('.po_in'),t=0,miss=0;ins.forEach(function(e){var v=+String(e.value).replace(',','.')||0;t+=v;miss+=Math.max(0,(+e.dataset.plan||0)-v)});
   var inc=+String((document.getElementById('po_inc')||{}).value||'').replace(',','.')||0,el=document.getElementById('po_tot');
   if(el)el.innerHTML='Раскладываю <b>'+money(t)+'</b> из пришедших '+money(inc)+(t>inc+0.5?' - <span style="color:var(--out)">больше на '+money(t-inc)+', это возьмётся из свободных денег</span>':t<inc-0.5?' - останется '+money(inc-t)+' на жизнь':'');
-  var cl=document.getElementById('po_cl'),ct=document.getElementById('po_ct');if(cl)cl.style.display=miss>0.5?'flex':'none';if(ct)ct.textContent='Недостающее ('+money(miss)+') докинуть с выплаты '+ct.textContent.replace(/^.*с выплаты /,'')}
+  var pt=0;ins.forEach(function(e){pt+=+e.dataset.plan||0});var short=Math.max(miss,pt-inc),cl=document.getElementById('po_cl'),ct=document.getElementById('po_ct');
+  if(cl)cl.style.display=short>0.5?'flex':'none';if(ct)ct.textContent=(pt-inc>0.5?'Пришло на '+money(pt-inc)+' меньше плана.':'Не по плану: '+money(miss)+'.')+' Что с недостающим?'}
+window.poMode=function(m){window.poFill(m==='free'?'plan':'fit')}
 window.poFill=function(m){var ins=[].slice.call(document.querySelectorAll('.po_in')),inc=+String((document.getElementById('po_inc')||{}).value||'').replace(',','.')||0,tot=ins.reduce(function(a,e){return a+(+e.dataset.plan||0)},0),r10=function(v){return Math.floor(v/10)*10};
   if(m==='plan')ins.forEach(function(e){e.value=e.dataset.plan});
   else if(m==='zero')ins.forEach(function(e){e.value=0});
@@ -4205,7 +4211,7 @@ document.addEventListener('click',function(ev){
   else if(a==='later'){S.planLater=1;save();render()}
   else if(a==='connect'){var t0=new Date();sh={cn:true,d:{map:{},from:iso(new Date(t0.getFullYear(),t0.getMonth(),1))}};connectSheet()}
   else if(a==='applyP'){payoutSheet(+id,k)}
-  else if(a==='poDo'){var pd0=sh.day,pym=sh.ym,pdate=payDateIn(pym,pd0),carryOn=!!(document.getElementById('po_carry')||{}).checked,cnt=0,nc=[];S.ruleZero=S.ruleZero||{};
+  else if(a==='poDo'){var pd0=sh.day,pym=sh.ym,pdate=payDateIn(pym,pd0),carryOn=((document.querySelector('input[name=po_m]:checked')||{}).value==='carry'),cnt=0,nc=[];S.ruleZero=S.ruleZero||{};
     document.querySelectorAll('.po_in').forEach(function(e){var v=Math.round((+String(e.value).replace(',','.')||0)*100)/100,pl=+e.dataset.plan||0,acc=e.dataset.acc;
       if(v>0){var tr={id:uid(),type:'t',amt:v,cat:'',date:pdate,note:(e.dataset.rule?'по плану':'докинуто с прошлой выплаты'),cls:'',from:defAcc(),to:acc};if(e.dataset.rule)tr.rule=e.dataset.rule;var rr=S.rules.filter(function(x){return x.id===e.dataset.rule})[0];if(rr)tr.note=rr.name+' · по плану';S.entries.push(tr);cnt++}
       else if(e.dataset.rule)S.ruleZero[e.dataset.rule+'|'+pym]=1;

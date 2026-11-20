@@ -1006,6 +1006,13 @@ test('гибкая раскладка: пришло меньше - суммы п
   await expect(page.locator('.po_in[data-rule=r1]')).toHaveValue('1200');
   await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('400');
   await expect(page.locator('#po_tot')).toContainText('1 600');
+  await expect(page.locator('#po_cl')).toContainText('на 400 ₽ меньше плана');
+  // «из свободных денег» - суммы по плану, потом снова «докинуть» - под пришедшее
+  await page.check('input[name=po_m][value=free]');
+  await expect(page.locator('.po_in[data-rule=r1]')).toHaveValue('1500');
+  await expect(page.locator('#po_tot')).toContainText('свободных денег');
+  await page.check('input[name=po_m][value=carry]');
+  await expect(page.locator('.po_in[data-rule=r1]')).toHaveValue('1200');
   // по порядку: первая полностью, вторая - сколько осталось
   await page.locator('#ov button', { hasText: 'По порядку' }).click();
   await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('100');

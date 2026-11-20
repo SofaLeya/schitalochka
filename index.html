@@ -645,7 +645,7 @@ function refreshDemo(o){
       if(!o.accounts.some(function(a){return a.demo}))o.accounts.push(f.accounts[1])}
   }catch(e){}
   return o}
-var lastRaw=null; // что последним прочитали/записали в хранилище — чтобы другое окно не затёрло данные
+var lastRaw=null; // что последним прочитали/записали в хранилище - чтобы другое окно не затёрло данные
 function load(){
   try{var raw=localStorage.getItem(KEY);lastRaw=raw;if(raw){var o=JSON.parse(raw);if(o&&o.entries)return refreshDemo(migrate(o))}}catch(e){canSave=false}
   return seed();
@@ -724,8 +724,8 @@ function parseLoose(txt){ // терпимо к тексту из Телегра�
 }
 function backupErr(txt){txt=String(txt||'').trim();
   if(!txt)return 'Поле пустое. Вставь текст копии.';
-  if(txt.charAt(0)!=='{'&&txt.indexOf('{"v"')<0)return 'Это не начало копии: текст должен начинаться с {"v". Телеграм делит длинный текст на несколько сообщений — выдели их все (зажми первое, потом отметь остальные), скопируй вместе и вставь.';
-  return 'Копия неполная: похоже, вставлена только часть. Телеграм делит длинный текст на несколько сообщений — выдели их все, скопируй вместе и вставь. Надёжнее — файлом через «Восстановить из файла».'}
+  if(txt.charAt(0)!=='{'&&txt.indexOf('{"v"')<0)return 'Это не начало копии: текст должен начинаться с {"v". Телеграм делит длинный текст на несколько сообщений - выдели их все (зажми первое, потом отметь остальные), скопируй вместе и вставь.';
+  return 'Копия неполная: похоже, вставлена только часть. Телеграм делит длинный текст на несколько сообщений - выдели их все, скопируй вместе и вставь. Надёжнее - файлом через «Восстановить из файла».'}
 /* восстановление копии: всё из копии + записи, которых в копии нет (сделаны позже) */
 function applyBackup(o){if(isPlanFile(o))return applyPlan(o);snapTake('pre',true);
   var ids={};o.entries.forEach(function(e){ids[e.id]=1});
@@ -765,7 +765,7 @@ function snapTake(why,force){try{
   // оставить: по одной на каждый из последних 10 дней + до 3 снимков «перед восстановлением»
   var seen={},keep=[],pre=0;a.forEach(function(x){if(x.why!=='day'){if(pre<3){keep.push(x);pre++}return}if(!seen[x.d]&&Object.keys(seen).length<10){seen[x.d]=1;keep.push(x)}});
   SNAPS=keep;snapPut(keep)}catch(e){}}
-function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока нет — появятся сами после первых записей.</p>';
+function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока нет - появятся сами после первых записей.</p>';
   return '<div class="list">'+a.map(function(x,i){var dt=new Date(x.t);return '<div class="row"><div class="grow"><div class="t" style="font-size:14px">'+dlabel(x.d)+', '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')+'</div><div class="s">'+(x.why==='day'?'':'перед восстановлением · ')+x.n+' '+(x.n%10===1&&x.n%100!==11?'запись':x.n%10>=2&&x.n%10<=4&&(x.n%100<10||x.n%100>=20)?'записи':'записей')+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="snapBack" data-v="'+i+'">Вернуть</button></div>'}).join('')+'</div>'}
 function isPlanFile(o){return o&&o.app==='schitalochka-plan'}
 function okBackup(o){return isPlanFile(o)||(o&&Array.isArray(o.entries))}
@@ -1097,12 +1097,12 @@ function realCount(){return S.entries.filter(function(e){return !e.demo}).length
 function backupNote(){
   if(S.demo||realCount()<10)return '';
   if(!ydOn()&&!ydHidden()&&realDays()>=3)return ''; // сверху уже есть кнопка «Подключить Диск» - второе напоминание не нужно
-  if(ydOn()&&YD.st!=='err')return ''; // Яндекс Диск подключён и работает — данные уже в облаке, напоминание не нужно
+  if(ydOn()&&YD.st!=='err')return ''; // Яндекс Диск подключён и работает - данные уже в облаке, напоминание не нужно
   var d=bkDays();if(d!==null&&d<7)return '';
   try{var tl=JSON.parse(localStorage.getItem('tgbk-last:schitalochka')||'{}');if(tl.t&&Date.now()-tl.t<7*864e5)return ''}catch(e){}
   return '<div class="note warn"><b>Сделай копию данных</b><span>'+(d===null?'Копию ещё не делали.':'Последняя копия была '+d+' дн. назад.')+' Данные лежат только в этом браузере.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="settings">Сделать копию</button></div></div>';
 }
-/* сжатая копия текстом: SCH1: + base64(gzip(json)) — короче в несколько раз, Телеграм её не портит */
+/* сжатая копия текстом: SCH1: + base64(gzip(json)) - короче в несколько раз, Телеграм её не портит */
 function packBackup(json){
   if(!window.CompressionStream)return Promise.resolve(json);
   try{var st=new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
@@ -1143,7 +1143,7 @@ function planStats(){
   }
   return res;
 }
-// платёж раз в N месяцев: every (1 — каждый месяц), from — месяц первого платежа 'ГГГГ-ММ'
+// платёж раз в N месяцев: every (1 - каждый месяц), from - месяц первого платежа 'ГГГГ-ММ'
 function ymDiff(a,b){var x=a.split('-'),y=b.split('-');return (+y[0]-+x[0])*12+(+y[1]-+x[1])}
 function dueIn(r,ym){var ev=+r.every||1;if(ev<=1)return true;var f=r.from||ym;var d=ymDiff(f,ym);return d>=0&&d%ev===0}
 function perMonth(r){return (+r.amt||0)/(+r.every||1)}
@@ -1234,7 +1234,7 @@ function fcSheet(){
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   else{var r=function(v){return money(Math.round(v/lc(100))*lc(100))};
     body='<div class="fcbig">'+(f.left>=0?'К '+dt+' останется примерно<b>'+r(f.left)+'</b>':'К '+dt+' не хватит примерно<b>'+r(-f.left)+'</b>')+'</div>'+
-    '<p class="fine">Если тратить как обычно: около '+money(f.pace)+' в день, ещё '+f.dl+' '+plw(f.dl,'день','дня','дней')+(f.pc>0?', плюс свои планы '+money(f.pc):'')+'.'+(f.left<0&&f.dl?' Чтобы дотянуть - до '+money(Math.max(0,(f.avail-f.pc)/f.dl))+' в день.':'')+'</p>'+
+    '<p class="fine">Если тратить как обычно: около '+money(f.pace)+' в день, ещё '+f.dl+' '+plw(f.dl,'день','дня','дней')+(f.pc>0?', плюс свои планы '+money(f.pc):'')+'.'+(f.left<0&&f.dl?(f.avail-f.pc>0?' Чтобы дотянуть - до '+money((f.avail-f.pc)/f.dl)+' в день.':' Свободных денег уже не хватает на платежи до зарплаты - стоит взять из копилки или отложить что-то из трат.'):'')+'</p>'+
     (f.leftB-f.left>=lc(100)?'<div class="note info" style="margin-top:10px"><span>Если обойдёшься без крупных покупок - '+(f.leftB>=0?'останется ~'+r(f.leftB):'не хватит ~'+r(-f.leftB))+'</span></div>':'')}
   openSheet(h+body+fcPlansHtml(f.prow)+
    '<p class="fine" style="margin-top:14px">Как считается: свободные деньги сейчас ('+money(balance())+')'+(f.due>0?' минус платежи до зарплаты ('+money(f.due)+')':'')+', минус обычные траты по последним 2 неделям. Сегодняшние траты уже учтены. Очень крупные покупки (от '+money(f.huge)+') в «обычный день» не входят.</p>'+
@@ -1281,7 +1281,7 @@ function planByHistory(){var cur=T.slice(0,7),tot=0,days=0,months=0;
   if(!months||tot<=0)return 0;return Math.round(tot/days/lc(50))*lc(50)}
 function planCalcVal(c){if(!c)return 0;var free=(+c.inc||0)-(+c.fixed||0)-(+c.save||0)-(+c.irr||0);return free>0?rstep(free/30.4,50):0}
 // план в полном режиме: со свободных денег уходят платежи «со свободных» и раскладка в копилки;
-// платежи из копилки покрываются тем, что в неё откладывается (если откладывается меньше — недостающее тоже вычитается)
+// платежи из копилки покрываются тем, что в неё откладывается (если откладывается меньше - недостающее тоже вычитается)
 /* редкие траты (полный режим): список на год, в план на день идёт 1/12 суммы */
 function rareList(){return S.rare||[]}
 function rareMonthly(){return rareList().reduce(function(a,r){return a+(+r.amt||0)},0)/12}
@@ -1350,14 +1350,14 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
    (full?
      '<div class="note info" style="gap:6px"><b>Берётся из вкладки «Платежи»</b><span class="fine">Тратить на жизнь можно то, что остаётся в свободных деньгах. Платежи из копилок оплачиваются тем, что ты туда откладываешь.</span>'+
        ro('pc_inc','Доход в месяц',fp.inc,S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'))+
-       ro('pc_fix','Платежи со свободных денег',fp.fixed,fp.fromAcc?'ещё '+money(fp.fromAcc)+' платится из копилок — см. ниже':(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет'))+
+       ro('pc_fix','Платежи со свободных денег',fp.fixed,fp.fromAcc?'ещё '+money(fp.fromAcc)+' платится из копилок - см. ниже':(S.recur.length?S.recur.length+' '+plw(S.recur.length,'платёж','платежа','платежей'):'пока нет'))+
        ro('pc_sav','Откладывать в копилки',fp.save,(S.rules.length?'по правилам раскладки':'правил раскладки нет')+(fp.gap?', плюс '+money(fp.gap)+' на платежи из копилок, которые правилами не пополняются':''))+
        '<button type="button" class="btn ghost sm" style="align-self:flex-start" data-a="goPlanTab">Изменить в «Платежах»</button></div>'
    :
    fld('pc_inc','Доход в месяц, '+sym()+'','Зарплата и другие регулярные поступления, сколько приходит на руки.',df.inc)+
    fld('pc_fix','Обязательные платежи в месяц, '+sym()+'','Жильё, коммуналка, связь, кредиты, подписки.',df.fixed)+
-   fld('pc_sav','Откладывать в месяц, '+sym()+'','Копилки, подушка, цели.'+(ph.save>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_sav" data-v="'+ph.save+'"><br>'+cap(ph.label)+' отложено около '+money(ph.save)+(ph.label==='в этом месяце'?'':' в месяц')+' — подставить</button>':''),df.save))+
-   fld('pc_irr','Редкие расходы в среднем за месяц, '+sym()+'','Врачи, одежда, подарки, платежи раз в несколько месяцев: годовую сумму раздели на 12.'+(ph.irr>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_irr" data-v="'+ph.irr+'"><br>'+cap(ph.label)+' на одежду, красоту, здоровье, подарки, технику и поездки — около '+money(ph.irr)+(ph.label==='в этом месяце'?'':' в месяц')+' — подставить</button>':''),df.irr)+
+   fld('pc_sav','Откладывать в месяц, '+sym()+'','Копилки, подушка, цели.'+(ph.save>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_sav" data-v="'+ph.save+'"><br>'+cap(ph.label)+' отложено около '+money(ph.save)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.save))+
+   fld('pc_irr','Редкие расходы в среднем за месяц, '+sym()+'','Врачи, одежда, подарки, платежи раз в несколько месяцев: годовую сумму раздели на 12.'+(ph.irr>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_irr" data-v="'+ph.irr+'"><br>'+cap(ph.label)+' на одежду, красоту, здоровье, подарки, технику и поездки - около '+money(ph.irr)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.irr)+
    '<div class="f"><label>Не сравнивать с планом на день</label><span class="fine">Траты в этих категориях уже заложены в «обязательные» и «редкие», поэтому монстрик и прогресс их не считают. В «Потрачено за месяц» они остаются.</span><div id="pc_out_cats" style="display:flex;flex-wrap:wrap;gap:6px">'+pcCatsHtml()+'</div></div>'+
    '<div id="pc_out" class="note info"></div>'+
    (h?'<p class="fine">Для сравнения: в прошлые месяцы ты тратишь в среднем около '+money(h)+' в день.</p>':'')+
@@ -1372,16 +1372,16 @@ function planOutDefault(c){var o=[];c=c||{};if(+c.fixed>0)o=o.concat(FIXCATS);if
 function planOutSet(){var pi=planInfo(),l;
   if(pi.src==='calc'||pi.src==='full')l=Array.isArray(S.planOut)?S.planOut:planOutDefault(pi.src==='full'?pi.c:S.planCalc);
   else if(pi.src==='income')l=FIXCATS; // полный режим: платежи вычтены из плана по списку регулярных
-  else return null; // своя сумма или нет плана — всё как раньше
+  else return null; // своя сумма или нет плана - всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
-  // полный режим с планом из «Платежей»: на жизнь — только траты со свободных денег, без отмеченных платежей
+  // полный режим с планом из «Платежей»: на жизнь - только траты со свободных денег, без отмеченных платежей
   if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isLiveId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isLiveId(accOf(x)))})}
   var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return life(list).reduce(function(a,x){if(x.type==='e'&&!x.skip)return a+netOf(x,LK);if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return a-x.amt;return a},0)}
 function lifeNet(list){var l=life(list);return sum(l,'e')-refunds(l)}
-/* средние за прошлые месяцы — подсказки для расчёта плана */
+/* средние за прошлые месяцы - подсказки для расчёта плана */
 function planHints(){var cur=T.slice(0,7),ms=[];
   for(var k=1;k<=3;k++){var m=nextYM(cur,-k);if(S.entries.filter(function(x){return !x.demo&&x.date.slice(0,7)===m}).length>=5)ms.push(m)}
   var label=ms.length?(ms.length===1?'в прошлом месяце':'в среднем за '+ms.length+' мес.'):'в этом месяце';if(!ms.length)ms=[cur];
@@ -2114,7 +2114,7 @@ function monsterCard(me,net,dnum){
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
-  function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше — до '+money(perLeft)+' в день.':' До конца месяца — только нужное.'):''}
+  function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше - до '+money(perLeft)+' в день.':' До конца месяца - только нужное.'):''}
   var pp=hr<7?null:payPraise();
   if(hr<7){mood='hungry';
     msg=!td.length
@@ -2141,22 +2141,22 @@ function monsterCard(me,net,dnum){
     var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' Сегодня можно до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
     if(uName()&&!(hsh(PD+'gm')%2))gm=gm.replace(/!$/,', '+uName()+'!');
-    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера — без трат. Отличный старт!'+tday}
-    else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было — внеси.'+tday}
+    if(!yd.n&&yns){mood='joy';msg=gm+' Вчера - без трат. Отличный старт!'+tday}
+    else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было - внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
-    else if(!lim){mood='happy';msg=gm+' Вчера — '+money(yd.v)+'.'}
-    else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' — с запасом.'+tday}
-    else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' — в плане.'+tday}
+    else if(!lim){mood='happy';msg=gm+' Вчера - '+money(yd.v)+'.'}
+    else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' - с запасом.'+tday}
+    else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - в плане.'+tday}
     else if(yd.v<=lim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - совсем немного сверху, не страшно.'+tday}
     else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', побольше плана.'+tday}
-    else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' — крупный день.'+tday}
+    else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' - крупный день.'+tday}
   }
   else if(!td.length&&!ns&&!S.entries.some(function(x){return !x.demo})){mood='joy';msg=pk(['Привет, я '+petName()+'! Жду первую трату: нажми "+" внизу.','Я '+petName()+', будем знакомы! Начнём с первой записи - кнопка "+" внизу.'])}
   else if(!td.length&&!ns){mood='think';msg=pk(['Как прошёл день? Запиши траты или отметь, что их не было.','Жду записи за сегодня. Если трат не было - отметь.','Пока пусто. Если что-то тратили - внеси, а если нет - отметь день без трат.']);nsBtn=hr>=21?'<button class="btn sm" style="align-self:flex-start" data-a="noSpend">Сегодня без трат ⭐</button>':''}
-  else if(!td.length&&ns){mood='joy';msg=pk(['День без трат — красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
+  else if(!td.length&&ns){mood='joy';msg=pk(['День без трат - красота!','Ни рубля за день? Горжусь!','День без трат! Так держать.']);nsBtn='<button class="fine" style="align-self:flex-start;text-decoration:underline" data-a="noSpendUndo">отменить «без трат»</button>'}
   else if(!lim){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+'.','Запись есть! Сегодня '+money(tn)+'.'])}
-  else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет — красота!'}
+  else if(net<=0){mood='joy';msg=dnum<=3?'Новый месяц, трат пока нет. Хорошее начало!':'В этом месяце трат пока нет - красота!'}
   else if(dnum<=3&&r>1){mood='think';msg='Месяц только начался: в среднем '+money(avg)+' в день. Посмотрим, как пойдёт.'}
   else if(r>1.3){mood='sad';msg=pk(['Заметно выше плана: '+money(avg)+' в день.','Сильно выбиваемся: '+money(avg)+' в день вместо '+money(lim)+'.'])+tail()}
   else if(r>1.1){mood='worried';msg=pk(['Выше плана на '+money(over)+' в день.','Немного выбиваемся из плана. Завтра можно полегче.'])+tail()}
@@ -2167,7 +2167,7 @@ function monsterCard(me,net,dnum){
   else if(tn<=0){mood='happy';msg='Записи есть, а трат за сегодня нет - отлично!'}
   else if(r<=0.8){mood='joy';msg=pk(['Отлично идёшь, запас по плану есть!','Хороший запас! Так держать.','Экономишь как профи!','Месяц идёт лучше плана - красота.'])}
   else if(tn<=lim*0.7){mood='happy';msg=pk(['Спасибо за запись! Сегодня '+money(tn)+' из '+money(lim)+'.','Всё в плане: сегодня '+money(tn)+' из '+money(lim)+'.'])}
-  else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' — почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
+  else{mood='calm';msg=pk(['Сегодня '+money(tn)+' из '+money(lim)+' - почти весь план.','План на сегодня почти выбран. Дальше спокойно.'])}
   var prd=perOn(PD);if(prd&&(mood==='sad'||mood==='worried'||mood==='think')){if(prd.kind==='sick'){mood='calm';msg=pk(['Выздоравливай! Сейчас главное - ты, а не план.','Болеть дорого, это нормально. Поправляйся!'])}else{mood='happy';msg=pk(['Отпуск! Траты по плану сейчас не считаю - отдыхай.','Отдыхай, на то и отпуск! Вернёмся к плану потом.'])}}
   if(!pp&&S.entries.some(function(x){return !x.demo})){var Yb=iso(addDays(parse(PD),-1));
     if(!dayNet(Yb).n&&(S.noSpend||[]).indexOf(Yb)<0&&S.entries.some(function(x){return !x.demo&&x.date<Yb}))nsBtn+='<button class="btn sm" style="align-self:flex-start" data-a="noSpendY">Вчера без трат: забрать ⭐</button>'}
@@ -2228,7 +2228,7 @@ function goalPace(a){ // чистый приток за последние 30 д
 }
 function goalLine(a){if(!(a.goal>0))return '';var gc=isFx(a)?a.cur:baseCur(),gk=isFx(a)?1/rateOf(a.cur):1,b=accBalN(a),p=Math.max(0,Math.min(100,b/a.goal*100)),left=a.goal-b,eta='';
   var se=+a.monthly>0?null:ruleEta(a);
-  if(left<=0)eta='цель достигнута!';else if(se)eta='по плану — к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][+se.slice(5)-1]+' '+se.slice(0,4);else{var pl=goalPlan(a)*gk,pc=pl>0?pl:goalPace(a)*gk;if(pc>0){var dd=addDays(parse(petDay()),Math.ceil(left/pc*30.4));eta=(pl>0?'по плану':'при темпе последнего месяца')+' — к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][dd.getMonth()]+' '+dd.getFullYear()}else eta='пока нет пополнений за последний месяц'}
+  if(left<=0)eta='цель достигнута!';else if(se)eta='по плану - к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][+se.slice(5)-1]+' '+se.slice(0,4);else{var pl=goalPlan(a)*gk,pc=pl>0?pl:goalPace(a)*gk;if(pc>0){var dd=addDays(parse(petDay()),Math.ceil(left/pc*30.4));eta=(pl>0?'по плану':'при темпе последнего месяца')+' - к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][dd.getMonth()]+' '+dd.getFullYear()}else eta='пока нет пополнений за последний месяц'}
   var nx=S.simple?'':wizSumTxt(a.id);
   return '<div class="s">цель '+mon(a.goal,gc)+' · '+Math.round(p)+'% · '+(left>0?'осталось '+mon(left,gc)+', ':'')+eta+(nx?'<br>потом → '+nx:'')+'</div><div class="bar" style="margin-top:6px"><i style="width:'+p+'%;background:var(--accent)"></i></div>'}
 var FOLD_DEF={rules:1,pf:1,p3:1,plfile:1,debt:0,payout:1,prog:1,up:1};
@@ -2666,14 +2666,14 @@ function reviewCard(){
   /* 6. подсказки */
   if(cur&&lim>0&&left>0){var remP=planM-spent;
     var pdT=null;if(!S.simple&&(S.incomes||[]).length){try{pdT=perDay()}catch(e){}}
-    tips.push(remP>0?'До конца месяца по плану: '+money(remP)+(pdT&&pdT.nextIn?'. До зарплаты можно до '+money(pdT.val)+' в день.':', это '+money(remP/left)+' в день.'):'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
+    tips.push(remP>0?'До конца месяца по плану: '+money(remP)+(pdT&&pdT.nextIn?(pdT.val>0?'. До зарплаты можно до '+money(pdT.val)+' в день.':'. Но свободных денег до зарплаты уже не хватает.'):', это '+money(remP/left)+' в день.'):'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
   else if(cur&&base&&left>0){var rem=base-spent;
     tips.push(rem>0?'Чтобы уложиться в свой обычный месяц ('+money(base)+'), до конца месяца тратить не больше '+money(rem/left)+' в день.':'Уже потрачено больше, чем в обычный месяц ('+money(base)+')'+(bigSum?', в том числе из-за крупных покупок на '+money(bigSum):'')+'. До конца месяца лучше оставить только обязательное.')}
   var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+nv(x)});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
   if(false&&tu&&prev.length)tips.push('Сильнее всего выросли «'+cname(tu.k)+'»: +'+money(tu.df)+' к обычному. Загляни в эти траты в «Истории», что из них можно было пропустить.');
   var eat=(curCat.cafe||0),eatB=(baseCat.cafe||0),bTo=baseTo||0;
   if(spent>3000&&eat/spent>0.2){var sh2=eat/spent,shB=bTo?eatB/bTo:0;
-    tips.push('Кафе и доставка — '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле — это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
+    tips.push('Кафе и доставка - '+pct(sh2)+' трат'+(shB&&shB<sh2-0.03?' (обычно '+pct(shB)+'). Вернуть к обычной доле - это примерно '+money(eat-shB*spent)+' за месяц.':'. Это первое место, где обычно получается сэкономить без потерь.'))}
   if(!S.simple){var imp=totN(list.filter(function(x){return x.cls==='imp'}));
     if(spent>0&&imp/spent>0.15)tips.push('Спонтанные покупки - '+pct(Math.min(1,imp/spent))+' трат на жизнь. Попробуй правило суток: хочешь что-то незапланированное - подожди день.')}
   if(rvCands.length&&!S.simple)tips.push('Добавь регулярные траты в «Платежи», тогда «доступно в день» и прогноз будут их учитывать заранее.');
@@ -3205,7 +3205,7 @@ function g2Goals(g){
   out.push({t:'Месяц в бюджете',v:Math.max(0,spent),of:lim*nd,rev:true,hint:spent<=lim*nd?'можно потратить ещё '+money(lim*nd-spent)+' и уложиться':'уже на '+money(spent-lim*nd)+' больше',reward:'+200'});
   var dt=parse(PD),ws=addDays(dt,-((dt.getDay()+6)%7)),wsI=iso(ws),wl=life(S.entries.filter(function(x){return vis(x)&&x.date>=wsI&&x.date<=PD})),ws_=wl.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(s,x){return s+x.amt},0)-refunds(wl);
   out.push({t:'Неделя в плане',v:Math.max(0,ws_),of:lim*7,rev:true,hint:ws_<=lim*7?'на этой неделе можно ещё '+money(lim*7-ws_):'на этой неделе уже на '+money(ws_-lim*7)+' больше',reward:'+50'});
-  var cl=catLimits(ym),lsp=limSpent(ym);Object.keys(cl).forEach(function(k){if(!CMAP[k])return;var v=Math.round(lsp[k]||0);out.push({t:CMAP[k].name+' — до '+money(cl[k]),v:v,of:cl[k],rev:true,hint:v<=cl[k]?'осталось '+money(cl[k]-v):'сверх '+money(v-cl[k]),reward:''})});
+  var cl=catLimits(ym),lsp=limSpent(ym);Object.keys(cl).forEach(function(k){if(!CMAP[k])return;var v=Math.round(lsp[k]||0);out.push({t:CMAP[k].name+' - до '+money(cl[k]),v:v,of:cl[k],rev:true,hint:v<=cl[k]?'осталось '+money(cl[k]-v):'сверх '+money(v-cl[k]),reward:''})});
   var sp=g2SavePlan();if(sp>0){var sv=g2Saved(ym);out.push({t:'Отложить '+money(sp),v:sv,of:sp,hint:sv>=sp?'готово!':'осталось отложить '+money(sp-sv),reward:'+100'})}
   return out;
 }
@@ -3228,11 +3228,11 @@ function g2HowSheet(){
   openSheet('<h3>Как это работает</h3><div class="f" style="gap:8px;font-size:14px">'+
    '<p>Звёзды даются за результат, а не за количество записей. Записи нужны только для того, чтобы приложение видело картину.</p>'+
    '<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">'+
-   '<li><b>День без трат</b> — +20 ★</li><li><b>День в плане</b> (потрачено не больше плана на день) — +10 ★</li><li><b>Каждые 7 хороших дней подряд</b> — +30 ★</li>'+
-   '<li><b>Неделя в плане</b> (пн–вс, траты не больше 7 дневных планов) — +50 ★</li><li><b>Месяц в бюджете</b> — +200 ★</li>'+(g2SavePlan()>0?'<li><b>Отложено в копилки сколько запланировано</b> за календарный месяц, по всем выплатам (копилка на платежи не считается) — +100 ★</li>':'')+'</ul>'+
+   '<li><b>День без трат</b> - +20 ★</li><li><b>День в плане</b> (потрачено не больше плана на день) - +10 ★</li><li><b>Каждые 7 хороших дней подряд</b> - +30 ★</li>'+
+   '<li><b>Неделя в плане</b> (пн–вс, траты не больше 7 дневных планов) - +50 ★</li><li><b>Месяц в бюджете</b> - +200 ★</li>'+(g2SavePlan()>0?'<li><b>Отложено в копилки сколько запланировано</b> за календарный месяц, по всем выплатам (копилка на платежи не считается) - +100 ★</li>':'')+'</ul>'+
    '<p><b>Без наказаний.</b> Перерасход не отнимает звёзды. Если день дорогой, но в среднем за месяц ты в рамках, серия не прерывается. Прерывает её только день сверх плана, когда и месяц уже идёт выше плана.</p>'+
    '<p><b>Дни без записей</b> не считаются ни хорошими, ни плохими: серия на них замирает. Если трат не было, отметь «Сегодня без трат», и день засчитается.</p>'+
-   '<p><b>«'+sym()+' к плану»</b> — сколько сэкономлено (или потрачено сверх) в этом месяце по сравнению с планом, за завершённые дни.</p>'+
+   '<p><b>«'+sym()+' к плану»</b> - сколько сэкономлено (или потрачено сверх) в этом месяце по сравнению с планом, за завершённые дни.</p>'+
    '<p class="fine">Сегодняшний день засчитывается, когда закончится (в полночь). Всего: дней в плане '+g.good+', без трат '+g.nospend+', лучшая серия '+g.best+', недель в плане '+g.weeks+', месяцев в бюджете '+g.months+'.</p>'+
    '</div><button type="button" class="btn ghost" data-a="close">Понятно</button>');
 }
@@ -3250,7 +3250,7 @@ function catLimSheet(){
   S.entries.forEach(function(x){if(x.demo||x.type!=='e'||x.skip||x.date<from||x.date>=to)return;avg[x.cat]=(avg[x.cat]||0)+x.amt/3});
   var cats=CATS.filter(function(c){return avg[c.id]>0||lim[c.id]}).sort(function(a,b){return (avg[b.id]||0)-(avg[a.id]||0)});
   if(!cats.length)cats=CATS.slice(0,8);
-  openSheet('<h3>Лимиты по категориям</h3><p class="fine">Сколько в месяц готов тратить на категорию. Пустое поле — без лимита. Лимиты видно в «Анализе» и в «Прогрессе» на главной.</p><form id="fm" class="f" style="gap:10px" autocomplete="off">'+
+  openSheet('<h3>Лимиты по категориям</h3><p class="fine">Сколько в месяц готов тратить на категорию. Пустое поле - без лимита. Лимиты видно в «Анализе» и в «Прогрессе» на главной.</p><form id="fm" class="f" style="gap:10px" autocomplete="off">'+
    cats.map(function(c){return '<div class="row" style="gap:10px">'+cdot(c)+'<div class="grow"><div class="t" style="font-size:14px">'+esc(c.name)+'</div><div class="s">'+(avg[c.id]?'обычно '+money(avg[c.id])+' в месяц':'трат не было')+'</div></div><input data-cl="'+c.id+'" inputmode="decimal" value="'+(lim[c.id]||'')+'" placeholder="нет" style="flex:none;width:32%;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:9px 10px"></div>'}).join('')+
    '<div class="btns" style="margin-top:6px"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div></form>');
 }
@@ -3736,12 +3736,12 @@ function tplCard(){var d=petDay(),due=tpls().filter(function(t){return tplDue(t,
   return '<div class="card"><h2>Сегодня по плану</h2><div class="list">'+due.map(function(t){var c=CMAP[t.cat]||CMAP.other;
     return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(t.note||c.name)+'</div><div class="s">'+(t.amt?'около '+money(t.amt):'')+(t.half?' · делю пополам':'')+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="tplGo" data-id="'+t.id+'">Записать</button><button class="fine" data-a="tplSkip" data-id="'+t.id+'" style="text-decoration:underline">не сегодня</button></div></div>'}).join('')+'</div></div>'}
 function tplSheet(){var t=sh.t;
-  openSheet('<h3>'+(sh.tid?'Регулярная трата':'Новая регулярная трата')+'</h3><p class="fine">В нужный день на главной появится напоминание: одна кнопка — и трата записана, сумму можно поправить.</p><form id="fm" class="f" style="gap:12px" autocomplete="off">'+
+  openSheet('<h3>'+(sh.tid?'Регулярная трата':'Новая регулярная трата')+'</h3><p class="fine">В нужный день на главной появится напоминание: одна кнопка - и трата записана, сумму можно поправить.</p><form id="fm" class="f" style="gap:12px" autocomplete="off">'+
    '<div class="f"><label for="t_note">Название</label><input id="t_note" value="'+esc(t.note||'')+'" placeholder="Например, продукты на неделю"></div>'+
    '<div class="two"><div class="f"><label for="t_amt">Сумма, примерно '+sym()+'</label><input id="t_amt" inputmode="decimal" value="'+esc(t.amt||'')+'"></div><div class="f"><label for="t_cat">Категория</label><select id="t_cat">'+opts(CATS,t.cat||'prod')+'</select></div></div>'+
    '<div class="two"><div class="f"><label for="t_rep">Как часто</label><select id="t_rep"><option value="w"'+(t.rep!=='m'?' selected':'')+'>каждую неделю</option><option value="m"'+(t.rep==='m'?' selected':'')+'>каждый месяц</option></select></div>'+
    '<div class="f"><label for="t_day">'+(t.rep==='m'?'Число':'День')+'</label><select id="t_day">'+(t.rep==='m'?Array.apply(null,{length:31}).map(function(_,i){return '<option value="'+(i+1)+'"'+(+t.dom===i+1?' selected':'')+'>'+(i+1)+'</option>'}).join(''):[1,2,3,4,5,6,0].map(function(i){return '<option value="'+i+'"'+(+t.dow===i?' selected':'')+'>'+WDS[i]+'</option>'}).join(''))+'</select></div></div>'+
-   '<label class="chk"><input type="checkbox" id="t_half"'+(t.half?' checked':'')+'> Делю пополам — жду, что вернут половину</label>'+
+   '<label class="chk"><input type="checkbox" id="t_half"'+(t.half?' checked':'')+'> Делю пополам - жду, что вернут половину</label>'+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p><div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.tid?'<button type="button" class="btn danger" data-a="tplDel">Удалить</button>':'')+'</form>')}
 function tplRead(){var t=sh.t;t.note=document.getElementById('t_note').value.trim();t.amt=num(document.getElementById('t_amt').value)||0;t.cat=document.getElementById('t_cat').value;t.rep=document.getElementById('t_rep').value;var dv=+document.getElementById('t_day').value;if(t.rep==='m')t.dom=dv;else t.dow=dv;t.half=document.getElementById('t_half').checked;return t}
@@ -3985,7 +3985,7 @@ function planSheet(){
    '<div class="f"><label for="p_name">Название</label><input id="p_name" value="'+esc(d.name||'')+'" placeholder="'+(r?'Например, интернет':'Например, аванс')+'"></div>'+
    '<div class="two"><div class="f"><label for="p_amt">Сумма, '+sym()+'</label><input id="p_amt" inputmode="decimal" value="'+(d.amt||'')+'"></div><div class="f"><label for="p_day">Число месяца</label><input id="p_day" inputmode="numeric" value="'+(d.day||'')+'" placeholder="1–31"></div></div>'+
    (r?'<div class="f"><label for="p_cat">Категория</label><select id="p_cat">'+opts(CATS,d.cat||'other')+'</select></div>'+
-     '<div class="two"><div class="f"><label for="p_every">Как часто</label><select id="p_every">'+[[1,'каждый месяц'],[2,'раз в 2 мес.'],[3,'раз в 3 мес.'],[4,'раз в 4 мес.'],[6,'раз в полгода'],[12,'раз в год']].map(function(o){return '<option value="'+o[0]+'"'+((+d.every||1)===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div><div class="f"><label for="p_from">Ближайший — в месяце</label><input id="p_from" type="month" value="'+esc(d.from||T.slice(0,7))+'"></div></div>'+
+     '<div class="two"><div class="f"><label for="p_every">Как часто</label><select id="p_every">'+[[1,'каждый месяц'],[2,'раз в 2 мес.'],[3,'раз в 3 мес.'],[4,'раз в 4 мес.'],[6,'раз в полгода'],[12,'раз в год']].map(function(o){return '<option value="'+o[0]+'"'+((+d.every||1)===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div><div class="f"><label for="p_from">Ближайший - в месяце</label><input id="p_from" type="month" value="'+esc(d.from||T.slice(0,7))+'"></div></div>'+
      '<div class="f"><label for="p_acc">Со счёта</label><select id="p_acc">'+S.accounts.filter(function(a){return a.type!=='debt'}).map(function(a){return '<option value="'+a.id+'"'+((d.acc||defAcc())===a.id?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select><span class="fine">Если платишь из копилки (например, «Платежи»), выбери её: тогда платёж не уменьшит свободные деньги и не испортит прогноз.</span></div>':'')+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
@@ -4157,7 +4157,7 @@ function settingsSheet(){
       det('Синхронизация: '+(ydOn()?cloudName()+' ✅':'Яндекс Диск'+(GD.cid?' или Google Диск':'')),'<div id="yd_box">'+ydPanel()+'</div>')+
       det('Скачать файл на устройство',bkHtml)+
       '<div style="display:flex;align-items:center;gap:12px"><span class="fine" style="flex:1">Есть ещё автокопии в браузере и копии в Телеграм - нажми на звёздочку.</span><button type="button" class="ibtn" style="width:40px;height:40px;border-color:var(--accent);color:var(--accent);font:700 30px/1 Arial,sans-serif;padding-top:10px" data-a="tip" data-v="bk" aria-expanded="false" aria-label="Ещё способы">*</button></div>'+
-      tipBox('bk','<div class="f" style="gap:10px">'+det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало — верни нужный день.</p>'+snapHtml())+
+      tipBox('bk','<div class="f" style="gap:10px">'+det('Автокопии в браузере','<p class="fine" style="margin:0">Снимок раз в день (10 дней) и перед каждым восстановлением. Если что-то пропало - верни нужный день.</p>'+snapHtml())+
         det('Ещё способ: копии в Телеграм'+(tgOn?' ✅':''),'<div class="tgbk-box">'+(window.TGBK?TGBK.panel():'<p class="fine">Не загрузилось. Открой приложение с интернетом.</p>')+'</div>')+'</div>'),ydOn()?cloudName()+' подключён':(S.lastBackup?'последний файл '+dlabel(S.lastBackup):'копий ещё нет'))+
     (bankHas()?det('🔔 Траты из уведомлений банка',bankSetHtml(),bankOnNow()?'включено':'только в приложении для Android'):'')+
     det('📥 Загрузить данные',
@@ -4168,7 +4168,7 @@ function settingsSheet(){
    '</div>'+
    
    ((location.protocol==='content:'||location.protocol==='file:')?'<p class="fine">Сейчас файл открыт напрямую из мессенджера или папки, данные могут потеряться. Открывай приложение по ссылке.</p>':'')+
-   (sh.confirm?'<div class="note bad" style="gap:8px"><b>Точно очистить всё?</b><span>Удалятся все записи, копилки, долги, план, платежи и регулярные траты на этом устройстве.'+(ydOn()?' Яндекс Диск отключится, а копия в нём останется.':'')+' На всякий случай приложение сохранит автокопию — её можно вернуть в «Автокопиях в браузере».</span><div class="btns"><button type="button" class="btn danger" data-a="wipe">Да, очистить всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div></div>':'<button type="button" class="btn danger" data-a="askDel">Очистить всё</button>')+
+   (sh.confirm?'<div class="note bad" style="gap:8px"><b>Точно очистить всё?</b><span>Удалятся все записи, копилки, долги, план, платежи и регулярные траты на этом устройстве.'+(ydOn()?' Яндекс Диск отключится, а копия в нём останется.':'')+' На всякий случай приложение сохранит автокопию - её можно вернуть в «Автокопиях в браузере».</span><div class="btns"><button type="button" class="btn danger" data-a="wipe">Да, очистить всё</button><button type="button" class="btn ghost" data-a="noDel">Отмена</button></div></div>':'<button type="button" class="btn danger" data-a="askDel">Очистить всё</button>')+
    '<button type="button" class="btn ghost" data-a="close">Закрыть</button>');
 }
 // свои тёмные окна вместо системных белых prompt/confirm
@@ -4512,7 +4512,7 @@ document.addEventListener('click',function(ev){
   else if(a==='clearDemo'){var _sn=JSON.stringify(S);S.entries=S.entries.filter(function(e){return !e.demo});S.recur=(S.recur||[]).filter(function(e){return !e.demo});S.incomes=(S.incomes||[]).filter(function(e){return !e.demo});S.start=0;if(S.accounts[0]&&S.accounts[0].demoStart)S.accounts[0].start=0;dropDemoAccs();S.demo=false;save();render();undoSnap(_sn,'Примеры убраны')}
   else if(a==='copyBackup'){
     var ta=document.getElementById('s_out'),m9=document.getElementById('s_msg0');
-    var ok=function(t){markBackup();m9.textContent='Скопировано'+(t.indexOf('SCH1:')===0?' (сжатая копия, '+Math.ceil(t.length/1000)+' тыс. знаков)':'')+'. Вставь в «Избранное» в Телеграме.'+(t.length>4000?' Телеграм разобьёт её на '+Math.ceil(t.length/4000)+' сообщения — при восстановлении скопируй их все вместе.':'');m9.hidden=false};
+    var ok=function(t){markBackup();m9.textContent='Скопировано'+(t.indexOf('SCH1:')===0?' (сжатая копия, '+Math.ceil(t.length/1000)+' тыс. знаков)':'')+'. Вставь в «Избранное» в Телеграме.'+(t.length>4000?' Телеграм разобьёт её на '+Math.ceil(t.length/4000)+' сообщения - при восстановлении скопируй их все вместе.':'');m9.hidden=false};
     var fallback=function(t){ta.value=t;ta.focus();ta.select();try{document.execCommand('copy')}catch(e){}ok(t)};
     // буфер обмена нужно занять сразу в обработчике нажатия, поэтому пишем Promise в ClipboardItem
     var pr=packBackup(ta.value);
@@ -4784,8 +4784,8 @@ document.addEventListener('submit',function(ev){
     if(!nm2)return showErr('Введи название.');
     if(!isFinite(sv))return showErr('Введи сумму числом.');
     var val=ad.type==='debt'?-Math.abs(sv):sv,next=S.accounts.map(function(a){return a});
-    var gl=ad.type==='save'&&ad.goal?num(ad.goal):0;if(ad.goal&&ad.type==='save'&&!(gl>0))return showErr('Цель — сумма числом.');
-    var mo=ad.type==='save'&&ad.monthly?num(ad.monthly):0;if(ad.monthly&&ad.type==='save'&&!(mo>0))return showErr('«Откладываю в месяц» — сумма числом.');
+    var gl=ad.type==='save'&&ad.goal?num(ad.goal):0;if(ad.goal&&ad.type==='save'&&!(gl>0))return showErr('Цель - сумма числом.');
+    var mo=ad.type==='save'&&ad.monthly?num(ad.monthly):0;if(ad.monthly&&ad.type==='save'&&!(mo>0))return showErr('«Откладываю в месяц» - сумма числом.');
     var aic=(document.getElementById('a_ico')||{}).value||'';
     if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(ad.type==='save'&&aic&&aic!=='💰')o.ico=aic;if(ad.cur&&ad.cur!==baseCur())o.cur=ad.cur;if(ad.type==='other'&&ad.live)o.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')o.dk=ad.dk;if(a.adj)o.adj=a.adj.slice();if((o.cur||'')!==(a.cur&&a.cur!==baseCur()?a.cur:'')){o.start=val;delete o.adj;var ob=accBalN(o);o.start=val-(ob-val)}else addAdj(o,val-accBalN(o));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(ad.type==='save'&&aic&&aic!=='💰')no.ico=aic;if(ad.cur&&ad.cur!==baseCur())no.cur=ad.cur;if(ad.type==='other'&&ad.live)no.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')no.dk=ad.dk;if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
     if(!next.some(function(a){return a.type==='main'}))return showErr('Должны остаться свободные деньги.');

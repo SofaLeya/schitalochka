@@ -1380,7 +1380,7 @@ function planOutSet(){var pi=planInfo(),l;
 function life(list){
   // полный режим: план учитывает выбранные карты независимо от их баланса
   if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
-  var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
+  var m=planOutSet();return list.filter(function(x){if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(m&&x.type==='e'&&m[x.cat])})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return life(list).reduce(function(a,x){if(x.type==='e'&&!x.skip)return a+netOf(x,LK);if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return a-x.amt;return a},0)}
 function lifeNet(list){var l=life(list);return sum(l,'e')-refunds(l)}

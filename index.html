@@ -441,6 +441,18 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 @keyframes rxwob{0%,100%{transform:rotate(0)}15%{transform:rotate(-12deg)}35%{transform:rotate(10deg)}55%{transform:rotate(-7deg)}75%{transform:rotate(4deg)}}
 @keyframes rxspin{0%{transform:rotate(0) scale(1)}40%{transform:rotate(200deg) scale(.9) translateY(-10px)}100%{transform:rotate(360deg) scale(1)}}
 @keyframes rxup{0%{transform:translate(-50%,6px) scale(.5);opacity:0}20%{opacity:1;transform:translate(-50%,-4px) scale(1.1)}100%{transform:translate(-50%,-44px) scale(1);opacity:0}}}
+
+/* Раскрывающиеся правила игры и яркие карточки достижений */
+.g2-rules-more{border:1px solid rgba(173,125,255,.28);border-radius:14px;background:rgba(132,80,216,.09);padding:0 12px;margin:4px 0;overflow:hidden}
+.g2-rules-more>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;padding:13px 2px;font-weight:700;color:var(--text,#eee);font-size:15px}
+.g2-rules-more>summary::-webkit-details-marker{display:none}
+.g2-rules-more>summary:after{content:'⌄';margin-left:auto;color:#bd96ff;font-size:22px;line-height:1;transition:transform .2s}
+.g2-rules-more[open]>summary:after{transform:rotate(180deg)}
+.g2-rules-more:not([open])>summary{color:#d7b9ff}
+.g2-rules-more[open]{background:rgba(132,80,216,.05)}
+.g2-achievements{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:5px 0 14px}
+.g2-ach{min-width:0;border:1px solid rgba(184,143,255,.22);background:linear-gradient(145deg,rgba(145,83,234,.23),rgba(78,40,135,.17));border-radius:13px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px}
+.g2-ach-icon{font-size:22px}.g2-ach strong{font-size:27px;line-height:1.1;color:#e8cbff;font-variant-numeric:tabular-nums}.g2-ach>span:last-child{font-size:12px;line-height:1.3;color:#d6c4ed}
 </style>
 
 <div id="app"></div>
@@ -3234,17 +3246,23 @@ function g2HowSheet(){
    '<div class="row"><div class="grow"><b>День в плане</b><div class="fine">Потрачено не больше дневного плана</div></div><b>+10 ★</b></div>'+
    '<div class="row"><div class="grow"><b>7 хороших дней подряд</b></div><b>+30 ★</b></div></div>'+
    '<p style="margin:0"><b>Перерасход не забирает звёзды.</b> Если трат не было, отметь это в приложении. Результат дня засчитывается после полуночи.</p>'+
-   '<details><summary>Другие награды</summary><div class="f" style="gap:6px;padding-top:10px">'+
+   '<details class="g2-rules-more"><summary>🎁 Другие награды</summary><div class="f" style="gap:6px;padding-top:10px">'+
    '<p style="margin:0"><b>+50 ★</b> - неделя в плане: с понедельника по воскресенье траты не превысили 7 дневных планов.</p>'+
    '<p style="margin:0"><b>+200 ★</b> - месяц в бюджете.</p>'+
    (g2SavePlan()>0?'<p style="margin:0"><b>+100 ★</b> - за месяц отложено в копилки всё запланированное (кроме копилки на платежи).</p>':'')+
    '</div></details>'+
-   '<details><summary>Как считается серия и экономия</summary><div class="f" style="gap:6px;padding-top:10px">'+
+   '<details class="g2-rules-more"><summary>🔥 Серия и экономия</summary><div class="f" style="gap:6px;padding-top:10px">'+
    '<p style="margin:0">День без записей не влияет на серию. Если был дорогой день, серия сохраняется, пока общий расход за месяц остаётся в плане.</p>'+
    '<p style="margin:0">Серия прерывается, когда превышены и дневной, и месячный планы.</p>'+
    '<p style="margin:0"><b>«'+sym()+' к плану»</b> - разница между планом и расходами за прошедшие дни месяца.</p>'+
    '</div></details>'+
-   '<details><summary>Мои достижения</summary><p class="fine" style="margin:8px 0 0">Дней в плане: '+g.good+' · Без трат: '+g.nospend+' · Лучшая серия: '+g.best+' · Недель в плане: '+g.weeks+' · Месяцев в бюджете: '+g.months+'</p></details>'+
+   '<details class="g2-rules-more"><summary>🏆 Мои достижения</summary><div class="g2-achievements">'+
+   '<div class="g2-ach"><span class="g2-ach-icon">✨</span><strong>'+g.good+'</strong><span>Дней в плане</span></div>'+
+   '<div class="g2-ach"><span class="g2-ach-icon">🌿</span><strong>'+g.nospend+'</strong><span>Дней без трат</span></div>'+
+   '<div class="g2-ach"><span class="g2-ach-icon">🔥</span><strong>'+g.best+'</strong><span>Лучшая серия</span></div>'+
+   '<div class="g2-ach"><span class="g2-ach-icon">🎯</span><strong>'+g.weeks+'</strong><span>Недель в плане</span></div>'+
+   '<div class="g2-ach"><span class="g2-ach-icon">🏆</span><strong>'+g.months+'</strong><span>Месяцев в бюджете</span></div>'+
+   '</div></details>'+
    '</div><button type="button" class="btn" data-a="close">Понятно</button>');
 }
 

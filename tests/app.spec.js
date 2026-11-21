@@ -1178,3 +1178,61 @@ test('отпуск: примерные отпускные и зарплата, �
   await expect(page.locator('body')).toContainText('отпускные ≈');
   expect(errs).toEqual([]);
 });
+
+
+test('карта вне свободных денег: транспорт в плане, но не в денежном прогнозе', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
+  await page.fill('#a_name', 'ВТБ транспорт');
+  await page.uncheck('#a_live');
+  await expect(page.locator('#a_planSpend')).toBeChecked();
+  await page.fill('#a_start', '500');
+  await page.locator('#fm button[type=submit]').click();
+  const before = await heroNumber(page);
+  const initial = await page.evaluate(() => {
+    const a = S.accounts.find(x => x.name === 'ВТБ транспорт');
+    return { live: isLive(a), plan: isPlan(a), bal: balance(), pace: fcPace().pace };
+  });
+  expect(initial.live).toBe(false);
+  expect(initial.plan).toBe(true);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '65');
+  await page.fill('#f_note', 'Метро');
+  await page.locator('#f_more summary').click();
+  await page.selectOption('#f_acc', await page.locator('#f_acc option', { hasText: 'ВТБ транспорт' }).first().getAttribute('value'));
+  await page.locator('#fm button[type=submit]').click();
+  const result = await page.evaluate(() => {
+    const a = S.accounts.find(x => x.name === 'ВТБ транспорт');
+    return { balance: balance(), accountBalance: accBal(a), plan: dayNet(T).v, cashAvg: avgDaily() };
+  });
+  expect(await heroNumber(page)).toBe(before);
+  expect(result.balance).toBe(initial.bal);
+  expect(result.accountBalance).toBe(435);
+  expect(result.plan).toBe(65);
+  expect(result.cashAvg).toBe(0);
+  expect(errs).toEqual([]);
+});
+
+test('отдельная настройка плана сохраняется и не меняет баланс', async ({ page }) => {
+  await start(page);
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
+  await page.fill('#a_name', 'Отдельная карта');
+  await page.uncheck('#a_live');
+  await page.uncheck('#a_planSpend');
+  await page.fill('#a_start', '300');
+  await page.locator('#fm button[type=submit]').click();
+  const state = await page.evaluate(() => {
+    const a = S.accounts.find(x => x.name === 'Отдельная карта');
+    return { live: isLive(a), plan: isPlan(a), balance: balance() };
+  });
+  expect(state).toEqual({ live: false, plan: false, balance: 20000 });
+  await page.reload();
+  const restored = await page.evaluate(() => {
+    const a = S.accounts.find(x => x.name === 'Отдельная карта');
+    return { live: isLive(a), plan: isPlan(a) };
+  });
+  expect(restored).toEqual({ live: false, plan: false });
+});

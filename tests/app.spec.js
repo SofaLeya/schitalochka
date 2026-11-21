@@ -1178,3 +1178,53 @@ test('отпуск: примерные отпускные и зарплата, �
   await expect(page.locator('body')).toContainText('отпускные ≈');
   expect(errs).toEqual([]);
 });
+
+
+test('карта вне свободных денег: метро входит в план, но не меняет свободный баланс', async ({ page }) => {
+  const errs = [];
+  await start(page, errs);
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
+  await page.fill('#a_name', 'ВТБ транспорт');
+  await page.uncheck('#a_live');
+  await expect(page.locator('#a_planSpend')).toBeChecked();
+  await page.fill('#a_start', '500');
+  await page.locator('#fm button[type=submit]').click();
+  const before = await heroNumber(page);
+  let data = await stored(page);
+  let card = data.accounts.find(a => a.name === 'ВТБ транспорт');
+  expect(card.live).toBeFalsy();
+  expect(card.planSpend).toBe(true);
+  await page.click('.tabs .plus');
+  await page.fill('#f_amt', '65');
+  await page.fill('#f_note', 'Метро');
+  await page.locator('#f_more summary').click();
+  await page.selectOption('#f_acc', await page.locator('#f_acc option', { hasText: 'ВТБ транспорт' }).first().getAttribute('value'));
+  await page.locator('#fm button[type=submit]').click();
+  expect(await heroNumber(page)).toBe(before);
+  data = await stored(page);
+  card = data.accounts.find(a => a.name === 'ВТБ транспорт');
+  expect(data.entries.some(e => e.type === 'e' && e.amt === 65 && e.acc === card.id)).toBe(true);
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('text=65 ₽').first()).toBeVisible();
+  expect(errs).toEqual([]);
+});
+
+test('отдельная настройка плана сохраняется и не меняет баланс', async ({ page }) => {
+  await start(page);
+  await page.click('.hero .penb');
+  await page.click('#ov [data-a=newCard]');
+  await page.fill('#a_name', 'Отдельная карта');
+  await page.uncheck('#a_live');
+  await page.uncheck('#a_planSpend');
+  await page.fill('#a_start', '300');
+  await page.locator('#fm button[type=submit]').click();
+  expect(await heroNumber(page)).toBe(20000);
+  let a = (await stored(page)).accounts.find(x => x.name === 'Отдельная карта');
+  expect(a.live).toBeFalsy();
+  expect(a.planSpend).toBe(false);
+  await page.reload();
+  a = (await stored(page)).accounts.find(x => x.name === 'Отдельная карта');
+  expect(a.live).toBeFalsy();
+  expect(a.planSpend).toBe(false);
+});

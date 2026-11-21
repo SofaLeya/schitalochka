@@ -822,6 +822,9 @@ function accOf(x){return x.acc&&accById(x.acc)?x.acc:defAcc()}
 /* «на жизнь»: основная карта и карты с галочкой «Трачу с неё на жизнь» - входят в свободные деньги и план */
 function isLive(a){return !!a&&(a.type==='main'||(a.type==='other'&&!!a.live))}
 function isLiveId(id){return isLive(accById(id))}
+/* План расходов независим от включения остатка карты в свободные деньги. Старые карты наследуют live. */
+function isPlan(a){return !!a&&(a.type==='main'||(a.type==='other'&&(a.planSpend===undefined?!!a.live:!!a.planSpend)))}
+function isPlanId(id){return isPlan(accById(id))}
 function cardsOn(){return S.accounts.some(function(a){return a.type==='other'})}
 /* поправки остатка с датой: прошлые месяцы не переписываются задним числом */
 function accAdj(a,d,incl){return (a.adj||[]).reduce(function(s,x){return s+((incl?x.date<=d:x.date<d)?+x.amt||0:0)},0)}
@@ -1181,9 +1184,9 @@ function fcPace(){
     life(l0).forEach(function(x){
       if(x.type==='e'&&!x.skip){
         if(pl.some(function(q){return q.cat===x.cat&&+q.wd===wd}))return;
-        var v=netOf(x,LK);if(v>=huge){hugeS+=v;return}
+        if(!isLiveId(accOf(x)))return;var v=netOf(x,LK);if(v>=huge){hugeS+=v;return}
         all+=v;if(EV[x.cat]||v<big)base+=v}
-      else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]){all-=x.amt;base-=x.amt}})}
+      else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]&&isLiveId(accOf(x))){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,hugeS:hugeS,huge:huge,pl:pl}}
 /* нерегулярный доход: на сколько дней хватит денег при нынешнем темпе (с платежами по датам и своими планами) */
 
@@ -1375,8 +1378,8 @@ function planOutSet(){var pi=planInfo(),l;
   else return null; // своя сумма или нет плана - всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
-  // полный режим с планом из «Платежей»: на жизнь - только траты со свободных денег, без отмеченных платежей
-  if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isLiveId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isLiveId(accOf(x)))})}
+  // полный режим: план учитывает выбранные карты независимо от их баланса
+  if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
   var m=planOutSet();if(!m)return list;return list.filter(function(x){return !(x.type==='e'&&m[x.cat])})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return life(list).reduce(function(a,x){if(x.type==='e'&&!x.skip)return a+netOf(x,LK);if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return a-x.amt;return a},0)}
@@ -3946,7 +3949,7 @@ function accSheet(){
    (isM?'<p class="fine" style="margin:0">Основная: на неё приходят выплаты, в её валюте ('+sym()+') считается всё приложение. Валюту меняют в Настройки → «Валюта».</p>':'')+
    (isC?'':'<div class="f"><label for="a_type">Что это</label><select id="a_type">'+Object.keys(ATYPES).filter(function(k){return k==="save"||k==="debt"||d.type===k}).map(function(k){return '<option value="'+k+'"'+(d.type===k?' selected':'')+'>'+ATYPES[k]+'</option>'}).join('')+'</select><span class="fine">'+ATDESC[d.type]+'</span></div>')+
    (isM?'':'<div class="f"><label for="a_cur">Валюта</label><select id="a_cur">'+curOpts(d.cur||baseCur())+'</select>'+((d.cur||baseCur())!==baseCur()?'<span class="fine">Остаток веду в '+sym(d.cur)+', в общие итоги он идёт по курсу: '+rateTxt(d.cur)+'.</span>':'')+'</div>')+
-   (d.type==='other'?'<label class="chk"><input type="checkbox" id="a_live"'+(d.live?' checked':'')+'> Трачу с неё на жизнь</label><span class="fine" style="margin-top:-8px">Остаток входит в «Свободные деньги» и план на день'+((d.cur||baseCur())!==baseCur()?' по курсу':'')+'. Сними, если это запас, а не деньги на каждый день.</span>':'')+
+   (d.type==='other'?'<label class="chk"><input type="checkbox" id="a_live"'+(d.live?' checked':'')+'> Трачу с неё на жизнь</label><span class="fine" style="margin-top:-8px">Остаток входит в «Свободные деньги»'+((d.cur||baseCur())!==baseCur()?' по курсу':'')+'. Сними, если баланс карты не должен увеличивать свободные деньги.</span><label class="chk"><input type="checkbox" id="a_planSpend"'+(d.planSpend===undefined?d.live:d.planSpend?' checked':'')+'> Учитывать траты в дневном плане</label><span class="fine" style="margin-top:-8px">Расходы влияют на план и статистику, но не списываются повторно из свободных денег.</span>':'')+
    '<div class="f"><label for="a_start">'+(d.type==='debt'?'Долг сейчас, '+sym(d.cur)+'':'Сколько там сейчас, '+sym(d.cur)+'')+'</label><input id="a_start" inputmode="decimal" value="'+esc(d.start)+'" placeholder="0"></div>'+
    (d.type==='save'?'<div class="f"><label for="a_goal">Цель, '+sym(d.cur)+' (необязательно)</label><input id="a_goal" inputmode="decimal" value="'+esc(d.goal||'')+'" placeholder="Например, 100000"><span class="fine">Покажу, сколько осталось и когда наберётся: от суммы «Откладываю в месяц», а если её нет, то по раскладке из «Платежей» или по темпу последнего месяца.</span></div>':'')+
    (d.type==='debt'&&sh.id&&!S.simple?(function(){var a=accById(sh.id),rs=(S.rules||[]).filter(function(r){return r.acc===sh.id}),pm=rs.reduce(function(t,r){return t+(+r.amt||0)},0);
@@ -3961,7 +3964,7 @@ function accSheet(){
    (sh.id&&!isM?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delAcc">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+
    '</form>');
 }
-function readAcc(){var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};d.name=g('a_name');d.type=g('a_type')||d.type;if(document.getElementById('a_dk'))d.dk=g('a_dk');d.cur=g('a_cur')||d.cur;var lv=document.getElementById('a_live');if(lv)d.live=lv.checked;d.start=g('a_start');if(document.getElementById('a_goal'))d.goal=g('a_goal');if(document.getElementById('a_mo'))d.monthly=g('a_mo');return d}
+function readAcc(){var d=sh.d,g=function(i){var e=document.getElementById(i);return e?e.value:''};d.name=g('a_name');d.type=g('a_type')||d.type;if(document.getElementById('a_dk'))d.dk=g('a_dk');d.cur=g('a_cur')||d.cur;var lv=document.getElementById('a_live');if(lv)d.live=lv.checked;var ps=document.getElementById('a_planSpend');if(ps)d.planSpend=ps.checked;d.start=g('a_start');if(document.getElementById('a_goal'))d.goal=g('a_goal');if(document.getElementById('a_mo'))d.monthly=g('a_mo');return d}
 function sumAmt(s){var t=String(s||'').replace(/\s/g,'');if(t.indexOf('+')<0)return num(t);var p=t.split('+').filter(Boolean),r=0;for(var i=0;i<p.length;i++){var v=num(p[i]);if(!isFinite(v))return NaN;r+=v}return Math.round(r*100)/100}
 function num(s){var n=parseFloat(String(s).replace(/\s/g,'').replace(',','.'));return isFinite(n)?n:NaN}
 
@@ -4501,10 +4504,10 @@ document.addEventListener('click',function(ev){
       if(navigator.canShare&&window.File){var ff=new File([bl],xn,{type:'text/plain'});if(navigator.canShare({files:[ff]})){navigator.share({files:[ff]}).catch(function(){});say('Выбери, куда отправить файл.');return}}
       var uu=URL.createObjectURL(bl),aa=document.createElement('a');aa.href=uu;aa.download=xn;document.body.appendChild(aa);aa.click();aa.remove();setTimeout(function(){URL.revokeObjectURL(uu)},4000);say('Файл сохранён, ищи в «Загрузках».');
     }catch(e){say('Не получилось. Нажми «Скопировать».')}}
-  else if(a==='newCard'){sh={ac:true,id:null,d:{name:'',type:'other',start:'',cur:baseCur(),live:true}};accSheet()}
+  else if(a==='newCard'){sh={ac:true,id:null,d:{name:'',type:'other',start:'',cur:baseCur(),live:true,planSpend:true}};accSheet()}
   else if(a==='newAcc'){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet()}
   else if(a==='newDebt'){sh={ac:true,id:null,d:{name:'',type:'debt',start:''}};accSheet()}
-  else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{ico:ac.ico||'',goal:ac.goal?String(ac.goal):'',monthly:ac.monthly?String(ac.monthly):'',name:ac.name,type:ac.type,cur:ac.cur&&CUR[ac.cur]?ac.cur:baseCur(),live:!!ac.live,dk:ac.dk||'',start:String(Math.round((ac.type==='debt'?Math.abs(accBalN(ac)):accBalN(ac))*100)/100)}};accSheet()}}
+  else if(a==='editAcc'){var ac=accById(id);if(ac){sh={ac:true,id:id,d:{ico:ac.ico||'',goal:ac.goal?String(ac.goal):'',monthly:ac.monthly?String(ac.monthly):'',name:ac.name,type:ac.type,cur:ac.cur&&CUR[ac.cur]?ac.cur:baseCur(),live:!!ac.live,planSpend:ac.planSpend===undefined?!!ac.live:!!ac.planSpend,dk:ac.dk||'',start:String(Math.round((ac.type==='debt'?Math.abs(accBalN(ac)):accBalN(ac))*100)/100)}};accSheet()}}
   else if(a==='delAcc'){var rest=S.accounts.filter(function(x){return x.id!==sh.id});if(!rest.some(function(x){return x.type==='main'}))return showErr('Должны остаться свободные деньги.');var _sn=JSON.stringify(S);S.accounts=rest;save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='newTransfer'){sh={id:null,d:newDraft('t')};tDefaults(sh.d);entrySheet()}
   else if(a==='newDeposit'||a==='newWithdraw'){var fd=S.accounts.filter(function(x){return x.type==='save'})[0];if(!fd){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
@@ -4787,7 +4790,7 @@ document.addEventListener('submit',function(ev){
     var gl=ad.type==='save'&&ad.goal?num(ad.goal):0;if(ad.goal&&ad.type==='save'&&!(gl>0))return showErr('Цель - сумма числом.');
     var mo=ad.type==='save'&&ad.monthly?num(ad.monthly):0;if(ad.monthly&&ad.type==='save'&&!(mo>0))return showErr('«Откладываю в месяц» - сумма числом.');
     var aic=(document.getElementById('a_ico')||{}).value||'';
-    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(ad.type==='save'&&aic&&aic!=='💰')o.ico=aic;if(ad.cur&&ad.cur!==baseCur())o.cur=ad.cur;if(ad.type==='other'&&ad.live)o.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')o.dk=ad.dk;if(a.adj)o.adj=a.adj.slice();if((o.cur||'')!==(a.cur&&a.cur!==baseCur()?a.cur:'')){o.start=val;delete o.adj;var ob=accBalN(o);o.start=val-(ob-val)}else addAdj(o,val-accBalN(o));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(ad.type==='save'&&aic&&aic!=='💰')no.ico=aic;if(ad.cur&&ad.cur!==baseCur())no.cur=ad.cur;if(ad.type==='other'&&ad.live)no.live=true;if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')no.dk=ad.dk;if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
+    if(sh.id)next=next.map(function(a){if(a.id!==sh.id)return a;var o={id:a.id,name:nm2,type:ad.type,start:+a.start||0};if(ad.type==='save'&&aic&&aic!=='💰')o.ico=aic;if(ad.cur&&ad.cur!==baseCur())o.cur=ad.cur;if(ad.type==='other'){if(ad.live)o.live=true;o.planSpend=!!ad.planSpend;}if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')o.dk=ad.dk;if(a.adj)o.adj=a.adj.slice();if((o.cur||'')!==(a.cur&&a.cur!==baseCur()?a.cur:'')){o.start=val;delete o.adj;var ob=accBalN(o);o.start=val-(ob-val)}else addAdj(o,val-accBalN(o));if(gl>0)o.goal=Math.round(gl);if(mo>0)o.monthly=Math.round(mo);return o});else{var no={id:uid(),name:nm2,type:ad.type,start:val};if(ad.type==='save'&&aic&&aic!=='💰')no.ico=aic;if(ad.cur&&ad.cur!==baseCur())no.cur=ad.cur;if(ad.type==='other'){if(ad.live)no.live=true;no.planSpend=!!ad.planSpend;}if(ad.type==='debt'&&ad.dk&&ad.dk!=='other')no.dk=ad.dk;if(gl>0)no.goal=Math.round(gl);if(mo>0)no.monthly=Math.round(mo);next.push(no)}
     if(!next.some(function(a){return a.type==='main'}))return showErr('Должны остаться свободные деньги.');
     S.accounts=next;save();closeSheet();render();toast('Остаток сохранён');try{rtFetch()}catch(e){}
   }else if(document.getElementById('s_lim')){

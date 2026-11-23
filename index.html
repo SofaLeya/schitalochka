@@ -1909,6 +1909,22 @@ function stkChar(kind,mood,act){
       +'<path d="M91 91 Q96 87 98 81" stroke="#492c9f" stroke-width="4" opacity=".35" stroke-linecap="round" fill="none"/>'
       +'<ellipse cx="55" cy="118" rx="5" ry="3" fill="#e4d8ff" opacity=".6"/><ellipse cx="85" cy="118" rx="5" ry="3" fill="#e4d8ff" opacity=".6"/>'
       +'<path d="M27 108 l-4 -2 M33 102 l-2 -4 M108 103 l3 -4 M115 110 l4 -2" stroke="#e3d6ff" stroke-width="2" stroke-linecap="round" opacity=".7"/>';
+    /* Вупсень v3: многослойная шёрстка и лапки. Движение наследует классы исходных лап. */
+    s+='<path d="M32 58 Q38 47 43 49 Q42 40 51 43 Q56 36 63 40 M79 40 Q87 37 91 44 Q100 42 102 53" stroke="#e4d6ff" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".83"/>'
+      +'<path d="M28 76 Q34 71 36 65 M30 92 Q37 88 39 84 M101 58 Q107 63 109 70 M102 92 Q108 88 111 82" stroke="#d2bbff" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".72"/>'
+      +'<path d="M44 97 Q50 102 57 102 M83 102 Q91 102 97 96" stroke="#6240c1" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".48"/>'
+      +'<path d="M37 18 Q42 23 45 29 M103 18 Q98 23 95 29" stroke="#f8bdac" stroke-width="4" stroke-linecap="round" fill="none" opacity=".8"/>'
+      +'<path d="M39 13 Q42 16 43 19 M101 13 Q98 16 97 19" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".75"/>';
+    function fluffPads(x,anim,delay,transform){
+      return '<g '+(transform?'transform="'+transform+'" ':'')+'class="'+anim+'" style="'+(anim==='ft'?'animation-delay:'+delay+';':'transform-origin:'+x+'px 117px;')+'">'
+        +'<ellipse cx="'+x+'" cy="119" rx="5.4" ry="3.6" fill="#c5b0ff" opacity=".9"/>'
+        +'<circle cx="'+(x-6)+'" cy="112" r="2.3" fill="#dfd1ff" opacity=".86"/>'
+        +'<circle cx="'+x+'" cy="110" r="2.5" fill="#dfd1ff" opacity=".9"/>'
+        +'<circle cx="'+(x+6)+'" cy="112" r="2.3" fill="#dfd1ff" opacity=".86"/>'
+        +'</g>';
+    }
+    s+=fluffPads(56,FL?'arl':'ft','-1.2s',FL)+fluffPads(84,FR?'arr':'ft','-3s',FR);
+    s+='<circle cx="53" cy="46" r="2.4" fill="#fff" opacity=".75"/><circle cx="91" cy="55" r="1.8" fill="#fff" opacity=".55"/>';
     s+=mCheeks([42,98],86,'#ff8fd0')+sEyes(mood,[70],60,19,c)+mMouth(mood,70,90,16,'down');
   }else if(kind==='mouse'){var c='#f5dcb6',p='#ff9fb6';
     s+=tailG('<path d="M104 116 C128 116 132 94 120 90" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="#f0b4be" stroke-width="3" fill="none" stroke-linecap="round"/>',104,116,mood);

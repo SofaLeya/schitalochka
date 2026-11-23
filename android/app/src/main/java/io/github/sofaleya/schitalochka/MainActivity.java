@@ -313,6 +313,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public String bankDiagnostics() {
+            return BankListener.diagnostics(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void bankDiagnosticsClear() {
+            BankListener.clearDiagnostics(MainActivity.this);
+        }
+
+        @JavascriptInterface
         public String bankTake() {
             return BankListener.take(MainActivity.this);
         }

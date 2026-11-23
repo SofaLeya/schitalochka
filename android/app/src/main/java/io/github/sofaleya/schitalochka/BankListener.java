@@ -39,10 +39,37 @@ public class BankListener extends NotificationListenerService {
             CharSequence txt = ex.getCharSequence(Notification.EXTRA_TEXT);
             String text = (big != null ? big : txt != null ? txt : "").toString();
             String all = (title != null ? title + " " : "") + text;
-            if (!MONEY.matcher(all).find() || !WORD.matcher(all).find()) return;
+            boolean money = MONEY.matcher(all).find(), word = WORD.matcher(all).find();
+            diagnostic(this, pkg, title != null ? title.toString() : "", text, money && word ? "В очередь Android" : (!money ? "Не найдена сумма в рублях" : "Не найден тип операции"), sbn.getPostTime());
+            if (!money || !word) return;
             add(this, pkg, title != null ? title.toString() : "", text, sbn.getPostTime());
         } catch (Exception ignored) {
         }
+    }
+
+    // Последние события остаются только на устройстве. Диагностика не отправляется в сеть.
+    static synchronized void diagnostic(Context c, String pkg, String title, String text, String status, long time) {
+        try {
+            SharedPreferences p = c.getSharedPreferences(PREFS, MODE_PRIVATE);
+            JSONArray a = new JSONArray(p.getString("diag", "[]"));
+            JSONObject o = new JSONObject();
+            o.put("pkg", pkg);
+            o.put("title", title);
+            o.put("text", text);
+            o.put("status", status);
+            o.put("t", time);
+            a.put(o);
+            while (a.length() > 20) a.remove(0);
+            p.edit().putString("diag", a.toString()).apply();
+        } catch (Exception ignored) {}
+    }
+
+    static synchronized String diagnostics(Context c) {
+        return c.getSharedPreferences(PREFS, MODE_PRIVATE).getString("diag", "[]");
+    }
+
+    static synchronized void clearDiagnostics(Context c) {
+        c.getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove("diag").apply();
     }
 
     static synchronized void add(Context c, String pkg, String title, String text, long time) throws Exception {

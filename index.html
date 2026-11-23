@@ -459,7 +459,18 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 
 .stat .plan-link{display:block;width:100%;max-width:100%;padding:4px 0;margin:-4px 0 0;background:none;border:0;border-radius:4px;color:inherit;font:inherit;text-align:left;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat .plan-link:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 /* Переключение сегодня/завтра без увеличения плитки */
-.can-switch{cursor:pointer;user-select:none}.can-switch .lbl{font-size:12px}.can-switch:focus-visible{outline:2px solid currentColor;outline-offset:2px}.can-switch .can-head{display:flex;align-items:center;justify-content:space-between;gap:3px}.can-switch .can-head .lbl{min-width:0}.can-switch .can-toggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 25px;width:25px;height:23px;border-radius:8px;background:rgba(255,255,255,.27);border:1px solid rgba(255,255,255,.45);font-size:19px;font-weight:700;line-height:1}.can-switch .can-day,.can-switch .can-date{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.can-switch .can-date{font-size:11px;opacity:.82;margin-top:1px}
+.can-switch{cursor:pointer;user-select:none}.can-switch .lbl{font-size:12px}.can-switch:focus-visible{outline:2px solid currentColor;outline-offset:2px}.can-switch .can-head{display:flex;align-items:center;justify-content:space-between;gap:3px}.can-switch .can-head .lbl{min-width:0}.can-switch .can-toggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.27);border:1px solid rgba(255,255,255,.45);font-size:15px;font-weight:700;line-height:1}.can-switch .can-day,.can-switch .can-date{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.can-switch .can-date{font-size:11px;opacity:.82;margin-top:1px}
+
+/* Ровные заголовки, суммы и нижние подписи трёх плиток */
+.hero .stats>.stat{display:flex;flex-direction:column;align-items:stretch}
+.hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:22px;min-height:22px;box-sizing:border-box}
+.hero .stats>.stat>.can-head{align-items:flex-start}
+.hero .stats>.stat>b{margin-top:3px;line-height:22px;min-height:22px}
+.hero .stats>.stat>.fine:first-of-type{margin-top:auto}
+.hero .stats>.stat>.pbar{margin-top:auto}
+.hero .stats>.stat>.pbar+.fine{margin-top:6px}
+.hero .stats>.stat.can-switch>.can-day{margin-top:auto}
+.hero .stats>.stat.can-switch>.can-date{margin-top:1px}
 </style>
 
 <div id="app"></div>

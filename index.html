@@ -1889,43 +1889,67 @@ function stkChar(kind,mood,act){
     s+=SK([['path','d="M20 62 C10 46 16 28 28 22 C42 26 56 36 60 48 C52 62 30 70 20 62Z"',c,EAR('l',40,56,1.2)],['path','d="M120 62 C130 46 124 28 112 22 C98 26 84 36 80 48 C88 62 110 70 120 62Z"',c,EAR('r',100,56,3.1)],['ellipse','cx="28" cy="94" rx="8" ry="13" transform="'+armR(mood,'l',35,88)+'rotate(20 28 94)"',c],['ellipse','cx="112" cy="94" rx="8" ry="13" transform="'+armR(mood,'r',105,88)+'rotate(-20 112 94)"',c],['ellipse','cx="54" cy="126" rx="10" ry="5"','#f2a7b5'],['ellipse','cx="86" cy="126" rx="10" ry="5"','#f2a7b5'],['path','d="M70 26 C94 26 108 50 107 80 C106 102 96 116 84 122 C78 125 74 128 70 128 C66 128 62 125 56 122 C44 116 34 102 33 80 C32 50 46 26 70 26Z"',c]]);
     s+='<g '+EAR('l',40,56,1.2)+'><path d="M26 56 C20 46 24 36 31 32 C38 35 45 40 47 46 C42 54 33 59 26 56Z" fill="'+p+'"/></g><g '+EAR('r',100,56,3.1)+'><path d="M114 56 C120 46 116 36 109 32 C102 35 95 40 93 46 C98 54 107 59 114 56Z" fill="'+p+'"/></g><path d="M60 30 L66 16 L72 28 L78 16 L82 31" stroke="'+INK+'" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 58 C46 46 54 40 62 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".4"/><ellipse cx="70" cy="104" rx="21" ry="17" fill="'+m+'"/>';
     s+=mCheeks([42,98],84,'#f6a5b8')+sEyes(mood,[54,86],62,10,c)+whisk(92)+'<ellipse cx="70" cy="95" rx="7" ry="5" fill="#ff8fab" stroke="'+INK+'" stroke-width="2"/>'+mMouth(mood,70,104,10,'down');
-  }else if(kind==='fluff'){var c='#8f6bff',d='#6f4be0',l='#b9a2ff';
-    function fz(cx,cy,rx,ry,n,amp){var pts='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-0.5)*2*Math.PI/n;var x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){pts+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}var qx=cx+Math.cos(am)*(rx+amp),qy=cy+Math.sin(am)*(ry+amp);pts+=' Q'+qx.toFixed(1)+' '+qy.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return pts+'Z'}
-    function leg(x){return 'M'+(x-9)+' 100 L'+(x-9)+' 120 Q'+(x-11)+' 128 '+(x-5)+' 127 Q'+(x-3)+' 131 '+x+' 128 Q'+(x+3)+' 131 '+(x+5)+' 127 Q'+(x+11)+' 128 '+(x+9)+' 120 L'+(x+9)+' 100Z'}
-    var FP={happy:['','u'],joy:['u','u'],think:['','h'],worried:['h','h']}[mood]||['',''];
-    function fLeg(k,cx,s){return k==='u'?'translate('+(s*(cx<70?-31:31)).toString().replace('-0','0')+' -44) rotate('+(cx<70?150:-150)+' '+cx+' 117) ':k==='h'?'translate('+(cx<70?-26:26)+' -16) rotate('+(cx<70?60:-60)+' '+cx+' 117) ':''}
-    var FL=fLeg(FP[0],56,1),FR=fLeg(FP[1],84,1);
-    s+='<defs><radialGradient id="fluffBody" cx="32%" cy="24%" r="80%"><stop offset="0%" stop-color="#c7b4ff"/><stop offset="45%" stop-color="#9c7cff"/><stop offset="100%" stop-color="#6845d2"/></radialGradient></defs>';
-    s+=SK([['path','d="'+fz(34,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-0.3s"'],['path','d="'+fz(106,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-2.1s"'],['path','d="'+fz(56,117,11,13,10,3.5)+'"'+(FL?' transform="'+FL+'"':''),c,FL?'class="arl" style="transform-origin:56px 117px"':'class="ft" style="animation-delay:-1.2s"'],['path','d="'+fz(84,117,11,13,10,3.5)+'"'+(FR?' transform="'+FR+'"':''),c,FR?'class="arr" style="transform-origin:84px 117px"':'class="ft" style="animation-delay:-3s"'],
-      ['path','d="M42 42 Q30 24 36 6 Q50 20 58 36Z"','#fff1c9'],['path','d="M98 42 Q110 24 104 6 Q90 20 82 36Z"','#fff1c9'],['path','d="'+fz(70,68,46,40,28,5)+'"','url(#fluffBody)']]);
-    s+='<path d="M40 26 l7 -3 M44 33 l7 -3 M100 26 l-7 -3 M96 33 l-7 -3" stroke="#e2c98a" stroke-width="2.5" stroke-linecap="round"/><path d="M34 66 C36 52 46 42 58 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><path d="M28 120 l2 6 M36 122 l0 6 M52 125 l1 5 M60 125 l-1 5 M80 125 l1 5 M88 125 l-1 5 M104 122 l0 6 M112 120 l-2 6" stroke="'+INK+'" stroke-width="2.5" stroke-linecap="round"/>';
-    /* Мохнатик: деликатный свет и фактура без изменения силуэта, эмоций или анимации */
-    s+='<path d="M44 57 Q50 44 63 43 Q70 42 77 45" stroke="#e2d7ff" stroke-width="3.2" fill="none" stroke-linecap="round" opacity=".52"/>'
-      +'<path d="M99 71 Q107 84 98 98 Q93 106 84 109" stroke="#5132b4" stroke-width="3" fill="none" stroke-linecap="round" opacity=".20"/>'
-      +'<path d="M43 105 Q49 111 55 110 M88 108 Q95 106 99 101" stroke="#d5c5ff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".44"/>'
-      +'<circle cx="39" cy="73" r="2.2" fill="#f4edff" opacity=".43"/><circle cx="100" cy="58" r="1.7" fill="#f4edff" opacity=".38"/>'
-      +'<path d="M34 108 Q38 105 42 109 M103 111 Q107 108 111 112" stroke="#b9a2ff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".45"/>';
-    s+='<path d="M39 51 Q45 42 54 40" stroke="#fff4ff" stroke-width="3.5" opacity=".72" stroke-linecap="round" fill="none"/>'
-      +'<path d="M91 91 Q96 87 98 81" stroke="#492c9f" stroke-width="4" opacity=".35" stroke-linecap="round" fill="none"/>'
-      +'<ellipse cx="55" cy="118" rx="5" ry="3" fill="#e4d8ff" opacity=".6"/><ellipse cx="85" cy="118" rx="5" ry="3" fill="#e4d8ff" opacity=".6"/>'
-      +'<path d="M27 108 l-4 -2 M33 102 l-2 -4 M108 103 l3 -4 M115 110 l4 -2" stroke="#e3d6ff" stroke-width="2" stroke-linecap="round" opacity=".7"/>';
-    /* Вупсень v3: многослойная шёрстка и лапки. Движение наследует классы исходных лап. */
-    s+='<path d="M32 58 Q38 47 43 49 Q42 40 51 43 Q56 36 63 40 M79 40 Q87 37 91 44 Q100 42 102 53" stroke="#e4d6ff" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".83"/>'
-      +'<path d="M28 76 Q34 71 36 65 M30 92 Q37 88 39 84 M101 58 Q107 63 109 70 M102 92 Q108 88 111 82" stroke="#d2bbff" stroke-width="3.2" stroke-linecap="round" fill="none" opacity=".72"/>'
-      +'<path d="M44 97 Q50 102 57 102 M83 102 Q91 102 97 96" stroke="#6240c1" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".48"/>'
-      +'<path d="M37 18 Q42 23 45 29 M103 18 Q98 23 95 29" stroke="#f8bdac" stroke-width="4" stroke-linecap="round" fill="none" opacity=".8"/>'
-      +'<path d="M39 13 Q42 16 43 19 M101 13 Q98 16 97 19" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".75"/>';
-    function fluffPads(x,anim,delay,transform){
-      return '<g '+(transform?'transform="'+transform+'" ':'')+'class="'+anim+'" style="'+(anim==='ft'?'animation-delay:'+delay+';':'transform-origin:'+x+'px 117px;')+'">'
-        +'<ellipse cx="'+x+'" cy="119" rx="5.4" ry="3.6" fill="#c5b0ff" opacity=".9"/>'
-        +'<circle cx="'+(x-6)+'" cy="112" r="2.3" fill="#dfd1ff" opacity=".86"/>'
-        +'<circle cx="'+x+'" cy="110" r="2.5" fill="#dfd1ff" opacity=".9"/>'
-        +'<circle cx="'+(x+6)+'" cy="112" r="2.3" fill="#dfd1ff" opacity=".86"/>'
-        +'</g>';
+  }else if(kind==='fluff'){
+    /* Вупсень: новый послойный SVG по утверждённому референсу.
+       Лапки и ушки анимируются вместе со своими деталями, глаз моргает отдельно. */
+    var c='#9660fa';
+    function fur(cx,cy,rx,ry,n,amp){var p='',a0=-Math.PI/2;for(var i=0;i<=n;i++){var a=a0+i*2*Math.PI/n,am=a0+(i-.5)*2*Math.PI/n,x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;if(!i){p+='M'+x.toFixed(1)+' '+y.toFixed(1);continue}p+=' Q'+(cx+Math.cos(am)*(rx+amp)).toFixed(1)+' '+(cy+Math.sin(am)*(ry+amp)).toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)}return p+'Z'}
+    var flMood={happy:['','u'],joy:['u','u'],think:['','h'],worried:['h','h']}[mood]||['',''];
+    function paw(x,side,move){
+      var tr=move==='u'?'translate('+(side<0?-30:30)+' -42) rotate('+(side<0?145:-145)+' '+x+' 117)':move==='h'?'translate('+(side<0?-23:23)+' -16) rotate('+(side<0?58:-58)+' '+x+' 117)':'';
+      var cl=move?(side<0?'arl':'arr'):'ft';
+      return '<g class="'+cl+'" style="transform-origin:'+x+'px 117px;animation-delay:'+(side<0?'-1.2s':'-3s')+'"'+(tr?' transform="'+tr+'"':'')+'>'
+        +'<path d="'+fur(x,115,13,13,12,3)+'" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>'
+        +'<path d="'+fur(x,115,13,13,12,3)+'" fill="url(#vpaw)" stroke="'+INK+'" stroke-width="3.2" stroke-linejoin="round"/>'
+        +'<ellipse cx="'+x+'" cy="120" rx="6.4" ry="4.2" fill="#d3a0ff" stroke="#7140c3" stroke-width="1.5"/>'
+        +'<circle cx="'+(x-7)+'" cy="110" r="3" fill="#f59cdb"/><circle cx="'+x+'" cy="107" r="3.1" fill="#f59cdb"/><circle cx="'+(x+7)+'" cy="110" r="3" fill="#f59cdb"/>'
+        +'<ellipse cx="'+(x-3)+'" cy="118" rx="2.8" ry="1.5" fill="#fff" opacity=".6"/></g>';
     }
-    s+=fluffPads(56,FL?'arl':'ft','-1.2s',FL)+fluffPads(84,FR?'arr':'ft','-3s',FR);
-    s+='<circle cx="53" cy="46" r="2.4" fill="#fff" opacity=".75"/><circle cx="91" cy="55" r="1.8" fill="#fff" opacity=".55"/>';
-    s+=mCheeks([42,98],86,'#ff8fd0')+sEyes(mood,[70],60,19,c)+mMouth(mood,70,90,16,'down');
+    s+='<defs>'
+      +'<radialGradient id="vbody" cx="30%" cy="18%" r="85%"><stop stop-color="#d7aaff"/><stop offset=".38" stop-color="#aa70ff"/><stop offset=".72" stop-color="#844de9"/><stop offset="1" stop-color="#562bb5"/></radialGradient>'
+      +'<linearGradient id="vpaw" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#bd86ff"/><stop offset="1" stop-color="#6733cb"/></linearGradient>'
+      +'<linearGradient id="viris" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#401b9b"/><stop offset=".55" stop-color="#6134cf"/><stop offset=".78" stop-color="#328efb"/><stop offset="1" stop-color="#59e3ff"/></linearGradient>'
+      +'<linearGradient id="vhalo" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff6a2"/><stop offset=".45" stop-color="#ffc833"/><stop offset="1" stop-color="#ed8c0a"/></linearGradient>'
+      +'</defs>';
+    /* Уши за телом, каждое со своей анимацией */
+    function ear(x,flip){return '<g '+EAR(flip?'r':'l',x,34,flip?4.8:2.1)+'>'
+      +'<path d="M'+(x-15)+' 49 Q'+(x-21)+' 18 '+(x-11)+' 7 Q'+(x+4)+' 12 '+(x+16)+' 42Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>'
+      +'<path d="M'+(x-15)+' 49 Q'+(x-21)+' 18 '+(x-11)+' 7 Q'+(x+4)+' 12 '+(x+16)+' 42Z" fill="#f8e7cc" stroke="'+INK+'" stroke-width="3.4" stroke-linejoin="round"/>'
+      +'<path d="M'+(x-10)+' 40 Q'+(x-15)+' 23 '+(x-9)+' 18 Q'+(x+2)+' 24 '+(x+9)+' 39Z" fill="#ffb2b0"/>'
+      +'<path d="M'+(x-8)+' 32 l7 -4 M'+(x-6)+' 38 l8 -3" stroke="#fff0df" stroke-width="2.5" stroke-linecap="round"/></g>'}
+    s+=ear(44,false)+ear(96,true);
+    /* Задние лапки */
+    s+=paw(29,-1,'')+paw(111,1,'');
+    /* Пушистая голова с белой стикерной обводкой */
+    var silhouette=fur(70,73,46,43,30,7);
+    s+='<path d="'+silhouette+'" fill="#fff" stroke="#fff" stroke-width="11" stroke-linejoin="round"/>'
+      +'<path d="'+silhouette+'" fill="url(#vbody)" stroke="'+INK+'" stroke-width="3.6" stroke-linejoin="round"/>'
+      +'<path d="M34 66 Q39 48 52 44 Q64 38 75 41" stroke="#eed7ff" stroke-width="6" fill="none" stroke-linecap="round" opacity=".9"/>'
+      +'<path d="M32 79 Q36 71 42 69 M38 54 Q46 48 51 50 M44 96 Q53 101 59 99 M82 45 Q91 47 98 54 M102 66 Q110 77 104 88 M88 103 Q95 99 99 94" stroke="#d3a8ff" stroke-width="3.4" fill="none" stroke-linecap="round" opacity=".8"/>'
+      +'<path d="M30 87 Q33 96 41 99 M101 90 Q99 100 92 104" stroke="#4c249f" stroke-width="3" fill="none" stroke-linecap="round" opacity=".35"/>'
+      +'<circle cx="38" cy="74" r="2.5" fill="#fff" opacity=".85"/><circle cx="100" cy="67" r="2" fill="#fff" opacity=".75"/>'
+      +'<path d="M50 39 q5 -7 10 -1 M65 37 q5 -8 11 -1 M82 39 q5 -5 9 1" stroke="#e7caff" stroke-width="3.2" stroke-linecap="round" fill="none"/>';
+    /* Передние лапки поверх туловища: все подушечки движутся с лапой */
+    s+=paw(53,-1,flMood[0])+paw(87,1,flMood[1]);
+    /* Щёчки */
+    if(!SKNOFACE)s+='<ellipse cx="42" cy="87" rx="8" ry="5.5" fill="#ff83c7" opacity=".96"/><ellipse cx="98" cy="87" rx="8" ry="5.5" fill="#ff83c7" opacity=".96"/><ellipse cx="39" cy="85" rx="3" ry="1.6" fill="#ffc5ea" opacity=".7"/>';
+    /* Большой сине-фиолетовый глаз с собственным морганием и реакциями */
+    if(!SKNOFACE){
+      if(mood==='hungry'||mood==='joy')s+=sEyes(mood,[70],65,20,c);
+      else{
+        var dx=mood==='think'?6:0,dy=(mood==='sad'||mood==='worried')?5:0;
+        var eye='<ellipse cx="70" cy="65" rx="23" ry="25" fill="#fff" stroke="'+INK+'" stroke-width="4"/>'
+          +'<circle cx="'+(70+dx)+'" cy="'+(68+dy)+'" r="15" fill="url(#viris)" stroke="#281052" stroke-width="2"/>'
+          +'<circle cx="'+(70+dx)+'" cy="'+(66+dy)+'" r="10" fill="#211044"/>'
+          +'<circle cx="'+(76+dx)+'" cy="'+(59+dy)+'" r="5" fill="#fff"/>'
+          +'<circle cx="'+(65+dx)+'" cy="'+(74+dy)+'" r="2.4" fill="#91f2ff"/>';
+        if(mood==='worried'||mood==='sad')eye+='<path d="M51 40 Q70 31 89 41" stroke="'+INK+'" stroke-width="3" fill="none" stroke-linecap="round"/>';
+        s+=blinkG(eye);
+      }
+    }
+    s+=mMouth(mood,70,96,13,'down');
+    /* Нимб впереди ушек и выше глаза */
+    s+='<g class="ft" style="animation-delay:-1.8s"><ellipse cx="70" cy="10" rx="24" ry="7.5" fill="#fff" stroke="#fff" stroke-width="7"/><ellipse cx="70" cy="10" rx="24" ry="7.5" fill="url(#vhalo)" stroke="'+INK+'" stroke-width="3.2"/><ellipse cx="70" cy="9" rx="15.5" ry="3" fill="#251047"/><path d="M52 7 Q70 0 88 7" stroke="#fff8ba" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>';
   }else if(kind==='mouse'){var c='#f5dcb6',p='#ff9fb6';
     s+=tailG('<path d="M104 116 C128 116 132 94 120 90" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="#f0b4be" stroke-width="3" fill="none" stroke-linecap="round"/>',104,116,mood);
     s+=SK([['circle','cx="31" cy="42" r="24"',c,EAR('l',44,58,0.4)],['circle','cx="109" cy="42" r="24"',c,EAR('r',96,58,2.6)],['ellipse','cx="22" cy="98" rx="9" ry="14" transform="'+armR(mood,'l',30,92)+'rotate(20 22 98)"',c],['ellipse','cx="118" cy="98" rx="9" ry="14" transform="'+armR(mood,'r',110,92)+'rotate(-20 118 98)"',c],['ellipse','cx="54" cy="127" rx="10" ry="6"',p],['ellipse','cx="86" cy="127" rx="10" ry="6"',p],['path','d="M70 44 C96 44 112 64 112 90 C112 114 94 126 70 126 C46 126 28 114 28 90 C28 64 44 44 70 44Z"',c]]);

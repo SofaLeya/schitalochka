@@ -4101,9 +4101,17 @@ function bankPull(){if(!bankHas())return;var raw='[]';try{raw=AndroidApp.bankTak
   if(add){S.bankQ=S.bankQ.slice(-40);save();render()}}
 function bankCard(){var l=S.bankQ||[];if(!l.length)return '';
   return '<div class="card"><h2>🔔 Из уведомлений банка · '+l.length+'</h2><div class="list">'+l.slice(-6).reverse().map(function(x){return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">'+esc(x.note||x.from||'Операция')+'</div><div class="s">'+dlabel(x.date)+' · '+esc(x.raw.slice(0,60))+'</div></div><span class="amt" style="color:var('+(x.type==='i'?'--in':'--out')+')">'+(x.type==='i'?'+':'−')+money(x.amt)+'</span></div><div style="display:flex;gap:8px;justify-content:flex-end;margin:-2px 0 8px"><button class="btn sm" data-a="bankAdd" data-id="'+x.id+'">Записать</button><button class="btn sm ghost" data-a="bankDel" data-id="'+x.id+'">Не надо</button></div>'}).join('')+'</div>'+(l.length>1?'<button class="fine" data-a="bankClear" style="text-decoration:underline;background:none;border:0;cursor:pointer">убрать все</button>':'')+'</div>'}
+function bankDiagHtml(){
+  if(typeof AndroidApp==='undefined'||typeof AndroidApp.bankDiagnostics!=='function')return '<p class="fine">Диагностика появится после установки новой версии Android APK. Обновление сайта не обновляет обработчик уведомлений в установленном APK.</p>';
+  var l=[];try{l=JSON.parse(AndroidApp.bankDiagnostics()||'[]')}catch(e){}
+  return '<details><summary>🛠 Диагностика уведомлений ('+l.length+')</summary><div class="f" style="gap:8px;padding-top:8px">'+
+    '<p class="fine" style="margin:0">Последние 20 уведомлений, проверенных обработчиком Android. Данные хранятся только на телефоне. Если список пуст, уведомления до обработчика не дошли или новая версия ещё не установлена.</p>'+
+    (l.length?l.slice().reverse().map(function(x){return '<div class="card" style="padding:10px"><b>'+esc(x.status||'')+'</b><div class="fine">'+esc(x.pkg||'')+' · '+esc(new Date(+x.t||Date.now()).toLocaleString('ru-RU'))+'</div><div class="fine">'+esc((x.title||'')+' '+(x.text||'')).slice(0,220)+'</div></div>'}).join(''):'<p class="fine">Пока нет событий</p>')+
+    '<div class="btns"><button type="button" class="btn sm ghost" data-a="bankDiagRefresh">Обновить</button><button type="button" class="btn sm ghost" data-a="bankDiagClear">Очистить диагностику</button></div></div></details>'
+}
 function bankSetHtml(){var on=bankOnNow();
   return '<p class="fine" style="margin:0">В Android-приложении считалОчка замечает уведомления банка о покупках и зачислениях. Когда откроешь приложение, она предложит проверить и добавить операцию. Без подтверждения ничего не записывается. Данные остаются на телефоне.</p><p class="fine" style="margin:0">Как включить: настройки Android → Приложения → Специальный доступ → Доступ к уведомлениям → считалОчка. Если появится выбор приложений, разреши свои банки. На iPhone и в браузерной версии функция недоступна.</p>'+
-   (on?'<p style="margin:0">✅ Доступ включён</p><button type="button" class="btn ghost sm" data-a="bankSet">Выключить в настройках Android</button>':'<button type="button" class="btn" data-a="bankSet">Включить доступ к уведомлениям</button><p class="fine" style="margin:0">Откроются настройки Android: найди там «считалОчка» и включи.</p>')}
+   (on?'<p style="margin:0">✅ Доступ включён</p><button type="button" class="btn ghost sm" data-a="bankSet">Выключить в настройках Android</button>':'<button type="button" class="btn" data-a="bankSet">Включить доступ к уведомлениям</button><p class="fine" style="margin:0">Откроются настройки Android: найди там «считалОчка» и включи.</p>')+bankDiagHtml()}
 document.addEventListener('visibilitychange',function(){if(!document.hidden)bankPull()});setTimeout(bankPull,1500);
 
 /* загрузка производственного календаря на новый год: isdayoff.ru (строка 0/1 на каждый день), запасной - xmlcalendar на GitHub */
@@ -4317,6 +4325,8 @@ document.addEventListener('click',function(ev){
   else if(a==='perDel'){S.periods=(S.periods||[]).filter(function(p){return p.id!==id});save();render();settingsSheet()}
   else if(a==='calLoad'){sh.cal=1;toast('Загружаю…');calLoad(+v)}
   else if(a==='bankSet'){try{AndroidApp.bankSettings()}catch(e){}}
+  else if(a==='bankDiagRefresh'){settingsSheet()}
+  else if(a==='bankDiagClear'){try{AndroidApp.bankDiagnosticsClear()}catch(e){}settingsSheet()}
   else if(a==='bankDel'){S.bankQ=(S.bankQ||[]).filter(function(x){return x.id!==id});save();render()}
   else if(a==='bankClear'){S.bankQ=[];save();render()}
   else if(a==='bankAdd'){var bx=(S.bankQ||[]).filter(function(x){return x.id===id})[0];if(bx){var bd=newDraft(bx.type);bd.amt=String(bx.amt).replace('.',',');bd.note=bx.note||'';bd.date=bx.date<=T?bx.date:T;bd.bankId=bx.id;if(bx.type==='i'&&bx.refund)bd.cat='refund';sh={id:null,d:bd};entrySheet()}}

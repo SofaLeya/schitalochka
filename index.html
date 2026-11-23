@@ -457,6 +457,7 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 /* История: поступления за день отдельной строкой, без случайного переноса суммы */
 .hist-day-income{display:block;text-align:right;white-space:nowrap;margin-top:3px}
 
+.stat .plan-link{display:block;width:100%;max-width:100%;padding:4px 0;margin:-4px 0 0;background:none;border:0;border-radius:4px;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stat .plan-link:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 /* Переключение сегодня/завтра без увеличения плитки */
 .can-switch{cursor:pointer;user-select:none}.can-switch .lbl{font-size:12px}.can-switch:focus-visible{outline:2px solid currentColor;outline-offset:2px}.can-switch .can-head{display:flex;align-items:center;justify-content:space-between;gap:3px}.can-switch .can-head .lbl{min-width:0}.can-switch .can-toggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 25px;width:25px;height:23px;border-radius:8px;background:rgba(255,255,255,.27);border:1px solid rgba(255,255,255,.45);font-size:19px;font-weight:700;line-height:1}.can-switch .can-day,.can-switch .can-date{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.can-switch .can-date{font-size:11px;opacity:.82;margin-top:1px}
 </style>
@@ -2207,7 +2208,7 @@ function viewHomeSimple(){
 function irrTile(){var P=fcPace();if(P.kn<5)return statTile('Хватит','…','мало записей',null,'main');var r=fcRun(P.pace);return statTile('Хватит',r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ мес.',r.date?'до '+r.date.slice(8)+'.'+r.date.slice(5,7):'при этом темпе',null,'main')}
 function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+'</div>'}
 function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#7ee2a8':r<=1?'#ffd166':'#ff8f8f';return '<span class="pbar"><i style="width:'+Math.min(100,Math.round(r*100))+'%;background:'+c+'"></i></span>'}
-function planSub(){return dayLimit()?'<button class="fine" data-a="planOpen" style="color:inherit;padding:0;background:none;border:0;font:inherit" aria-label="Изменить план">план '+money(dayLimit())+' ✎</button>':'<button class="fine" data-a="planOpen" style="text-decoration:underline;color:inherit;padding:0">задать план</button>'}
+function planSub(){return dayLimit()?'<button class="fine plan-link" data-a="planOpen" aria-label="Изменить план на день">план '+money(dayLimit())+'</button>':'<button class="fine plan-link" data-a="planOpen">задать план</button>'}
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);

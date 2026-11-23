@@ -1898,6 +1898,12 @@ function stkChar(kind,mood,act){
     s+=SK([['path','d="'+fz(34,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-0.3s"'],['path','d="'+fz(106,112,11,14,10,3.5)+'"',d,'class="ft" style="animation-delay:-2.1s"'],['path','d="'+fz(56,117,11,13,10,3.5)+'"'+(FL?' transform="'+FL+'"':''),c,FL?'class="arl" style="transform-origin:56px 117px"':'class="ft" style="animation-delay:-1.2s"'],['path','d="'+fz(84,117,11,13,10,3.5)+'"'+(FR?' transform="'+FR+'"':''),c,FR?'class="arr" style="transform-origin:84px 117px"':'class="ft" style="animation-delay:-3s"'],
       ['path','d="M42 42 Q30 24 36 6 Q50 20 58 36Z"','#fff1c9'],['path','d="M98 42 Q110 24 104 6 Q90 20 82 36Z"','#fff1c9'],['path','d="'+fz(70,68,46,40,28,5)+'"',c]]);
     s+='<path d="M40 26 l7 -3 M44 33 l7 -3 M100 26 l-7 -3 M96 33 l-7 -3" stroke="#e2c98a" stroke-width="2.5" stroke-linecap="round"/><path d="M34 66 C36 52 46 42 58 38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/><path d="M28 120 l2 6 M36 122 l0 6 M52 125 l1 5 M60 125 l-1 5 M80 125 l1 5 M88 125 l-1 5 M104 122 l0 6 M112 120 l-2 6" stroke="'+INK+'" stroke-width="2.5" stroke-linecap="round"/>';
+    /* Мохнатик: деликатный свет и фактура без изменения силуэта, эмоций или анимации */
+    s+='<path d="M44 57 Q50 44 63 43 Q70 42 77 45" stroke="#e2d7ff" stroke-width="3.2" fill="none" stroke-linecap="round" opacity=".52"/>'
+      +'<path d="M99 71 Q107 84 98 98 Q93 106 84 109" stroke="#5132b4" stroke-width="3" fill="none" stroke-linecap="round" opacity=".20"/>'
+      +'<path d="M43 105 Q49 111 55 110 M88 108 Q95 106 99 101" stroke="#d5c5ff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".44"/>'
+      +'<circle cx="39" cy="73" r="2.2" fill="#f4edff" opacity=".43"/><circle cx="100" cy="58" r="1.7" fill="#f4edff" opacity=".38"/>'
+      +'<path d="M34 108 Q38 105 42 109 M103 111 Q107 108 111 112" stroke="#b9a2ff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".45"/>';
     s+=mCheeks([42,98],86,'#ff8fd0')+sEyes(mood,[70],60,19,c)+mMouth(mood,70,90,16,'down');
   }else if(kind==='mouse'){var c='#f5dcb6',p='#ff9fb6';
     s+=tailG('<path d="M104 116 C128 116 132 94 120 90" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="'+INK+'" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M104 116 C128 116 132 94 120 90" stroke="#f0b4be" stroke-width="3" fill="none" stroke-linecap="round"/>',104,116,mood);

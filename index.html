@@ -456,6 +456,9 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 
 /* История: поступления за день отдельной строкой, без случайного переноса суммы */
 .hist-day-income{display:block;text-align:right;white-space:nowrap;margin-top:3px}
+
+/* Переключение сегодня/завтра без увеличения плитки */
+.can-switch{cursor:pointer;user-select:none}.can-switch .lbl{font-size:12px}.can-switch:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 </style>
 
 <div id="app"></div>
@@ -1424,7 +1427,7 @@ function announce(b,a){return;
 }
 
 /* ---------- ui state ---------- */
-var tab='home',vym=T.slice(0,7),hf='all',sh=null;
+var tab='home',vym=T.slice(0,7),hf='all',sh=null,canTomorrow=false;
 
 var IC={
  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/></svg>',
@@ -2210,7 +2213,7 @@ function viewHome(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday));
   var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на картах на жизнь: основная и те, где стоит «Трачу с неё на жизнь» (другие валюты - по курсу). Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты из копилок и с карт не на жизнь сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
-   '<div class="stats">'+(S.irreg?irrTile():statTile('Можно '+tipBtn('h_can'),money(todayLeft),pd.nextIn?'в день<br>до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день',null,'main'))+
+   '<div class="stats">'+(S.irreg?irrTile():'<div class="stat main can-switch" data-a="canDay" role="button" tabindex="0" aria-label="Показать бюджет на '+(canTomorrow?'сегодня':'завтра')+'"><span class="lbl">Можно '+(canTomorrow?'завтра':'сегодня')+' <span aria-hidden="true">⌄</span></span><b>'+money(canTomorrow?Math.max(0,Math.min(balance(),pd.val)):todayLeft)+'</b><span class="fine">'+(pd.nextIn?'до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'в день')+'</span></div>')+
    statTile('В среднем',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
    statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+tipBox('h_can','<b>Осталось на сегодня</b> - сколько ещё можно потратить сегодня, если распределять доступные деньги до зарплаты равномерно. Сегодня уже потрачено '+money(spentToday)+'.<br><br>Общий бюджет на сегодняшний день (включая уже потраченное): '+money(pd.val)+'. Остаток на сегодня: '+money(todayLeft)+'.<br><br>Это не план на месяц: обязательные платежи до зарплаты учитываются отдельно. Если сегодня потратить больше, на следующие дни останется меньше.')+'</div>';
   var main;
@@ -4295,6 +4298,7 @@ document.addEventListener('click',function(ev){
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
   if(a==='tab'){var tt=document.getElementById('toast');if(tt&&!tt.querySelector('button'))tt.style.display='none';if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
+  else if(a==='canDay'){canTomorrow=!canTomorrow;render()}
   else if(a==='tip'){var tb=document.getElementById('tip_'+v);if(tb){tb.hidden=!tb.hidden;b.setAttribute('aria-expanded',tb.hidden?'false':'true')}}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}

@@ -336,6 +336,8 @@ test('валюта: счёт в другой валюте, трата с нег�
   await page.selectOption('#f_to', await optVal(page, '#f_to', 'Карта в лари'));
   await page.fill('#f_amt', '3000');
   await page.fill('#f_amt2', '95');
+  await expect(page.locator('#f_amt')).toHaveValue('3000');
+  await expect(page.locator('#f_amt2')).toHaveValue('95');
   await page.locator('#fm button[type=submit]').click();
   await expect(page.locator('#ov .sheet')).toBeHidden();
   await expect(row).toContainText('185 ₾');
@@ -681,6 +683,8 @@ test('«Куда дальше?» подхватывает правила «по�
 
 test('предсказание: сколько останется к зарплате, свои планы по дням недели', async ({ page }) => {
   const errs = [];
+  // Сценарий сравнивает два прогноза на несколько дней, а не накануне зарплаты.
+  await page.clock.setFixedTime(new Date(2026, 10, 16, 13, 0));
   await start(page, errs);
   await page.click('[data-a=fcOpen]');
   await expect(page.locator('#ov .sheet h3')).toContainText('Предсказание');
@@ -1227,4 +1231,108 @@ test('отдельная настройка плана сохраняется и
   a = (await stored(page)).accounts.find(x => x.name === 'Отдельная карта');
   expect(a.live).toBeFalsy();
   expect(a.planSpend).toBe(false);
+});
+
+ 
+test('архив: закрытие карты, долга и копилки сохраняет историю, план и остатки', async ({ page }) => {
+  const errs = [];
+  await page.clock.setFixedTime(new Date(2026, 10, 16, 13, 0));
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.unameAsked = 1;
+    d.accounts.push(
+      {id:'closedCard', type:'other', name:'Закрываемая карта', start:600, live:true, planSpend:true},
+      {id:'closedDebt', type:'debt', name:'Закрываемая кредитка', start:-1000, dk:'card'},
+      {id:'closedSave', type:'save', name:'Закрываемая копилка', start:200},
+      {id:'openCard', type:'other', name:'Активная карта', start:100, live:false, planSpend:false}
+    );
+    const date='2026-11-15';
+    d.entries.push(
+      {id:'c-exp', type:'e', acc:'closedCard', amt:600, date, cat:'cafe', note:'Трата по закрываемой карте'},
+      {id:'d-pay', type:'t', from:'a1', to:'closedDebt', amt:1000, date, note:'Погашение кредитки'},
+      {id:'s-exp', type:'e', acc:'closedSave', amt:200, date, cat:'gift', note:'Трата из закрываемой копилки'}
+    );
+    localStorage.setItem('podkopka-v1', JSON.stringify(d));
+  });
+  await page.reload();
+  const snapshot = () => page.evaluate(() => ({ balance:balance(), life:lifeNet(S.entries), entries:JSON.stringify(S.entries), accounts:activeAccounts().map(a=>({id:a.id,b:accBalN(a)})) }));
+  const before = await snapshot();
+  expect(before.life).toBe(600);
+  expect(before.balance).toBe(19000);
+  await page.locator('.hero .hcard', {hasText:'Закрываемая карта'}).click();
+  await page.click('[data-a=askDel]');
+  await page.click('[data-a=delAcc]');
+  await expect(page.locator('#ov .sheet')).toBeHidden();
+  for (const name of ['Закрываемая кредитка','Закрываемая копилка']) {
+    await page.locator('.row[data-a=editAcc]', {hasText:name}).click();
+    await page.click('[data-a=askDel]');
+    await page.click('[data-a=delAcc]');
+    await expect(page.locator('#ov .sheet')).toBeHidden();
+  }
+  const after = await snapshot();
+  expect(after.balance).toBe(before.balance);
+  expect(after.life).toBe(before.life);
+  expect(after.entries).toBe(before.entries);
+  expect(after.accounts).toEqual(before.accounts.filter(a=>!a.id.startsWith('closed')));
+  await expect(page.locator('[data-a=unarchiveAcc]')).toHaveCount(3);
+  await page.reload();
+  expect((await snapshot()).life).toBe(before.life);
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('.row', {hasText:'Погашение кредитки'})).toContainText('Закрываемая кредитка');
+  await expect(page.locator('.row', {hasText:'Трата по закрываемой карте'})).toContainText('Закрываемая карта');
+  await page.click('.tabs .plus');
+  await page.click('[data-a=stype][data-v=t]');
+  for (const sel of ['#f_from','#f_to']) {
+    const values=await page.locator(sel+' option').evaluateAll(o=>o.map(e=>e.value));
+    expect(values).not.toContain('closedCard');
+    expect(values).not.toContain('closedDebt');
+    expect(values).not.toContain('closedSave');
+  }
+  await page.click('#ov [data-a=close]');
+  await page.click('.tabs [data-a=tab][data-v=home]');
+  await page.click('[data-a=unarchiveAcc][data-id=closedCard]');
+  await expect(page.locator('.hero .hcard', {hasText:'Закрываемая карта'})).toBeVisible();
+  expect((await snapshot()).balance).toBe(before.balance);
+  expect((await snapshot()).life).toBe(before.life);
+  expect(errs).toEqual([]);
+});
+
+test('архив: нельзя закрыть ненулевой счёт или счёт с будущим правилом', async ({page}) => {
+  await start(page);
+  await page.evaluate(() => {
+    const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.accounts.push({id:'nonzero',type:'other',name:'С остатком',start:100,live:false},{id:'linked',type:'save',name:'Связанная копилка',start:0});
+    d.rules.push({id:'linkedRule',acc:'linked',name:'В копилку',amt:500,day:25});
+    d.unameAsked=1;
+    localStorage.setItem('podkopka-v1',JSON.stringify(d));
+  });
+  await page.reload();
+  for(const [name, msg] of [['С остатком','Сначала обнули остаток'],['Связанная копилка','Сначала перенеси связанные платежи']]){
+    await page.locator('.row[data-a=editAcc]',{hasText:name}).click();
+    await page.click('[data-a=askDel]');
+    await page.click('[data-a=delAcc]');
+    await expect(page.locator('#f_err')).toContainText(msg);
+    await page.click('#ov [data-a=close]');
+  }
+  expect((await stored(page)).accounts.filter(a=>a.archived)).toHaveLength(0);
+});
+
+test('архив: старые удалённые счета не переносят расходы на основную карту', async ({page}) => {
+  await start(page);
+  await page.evaluate(() => {
+    const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+    const date=T;
+    d.entries.push({id:'old-exp',type:'e',acc:'missing-old',amt:100,date,cat:'tech',note:'Старая покупка'},
+      {id:'old-pay',type:'t',from:'a1',to:'missing-old',amt:100,date,note:'Старый перевод'});
+    d.unameAsked=1;
+    localStorage.setItem('podkopka-v1',JSON.stringify(d));
+  });
+  await page.reload();
+  expect(await page.evaluate(()=>balance())).toBe(19900);
+  expect(await page.evaluate(()=>lifeNet(S.entries))).toBe(0);
+  expect(await page.evaluate(()=>accById('missing-old').archived)).toBe(true);
+  await page.click('.tabs [data-a=tab][data-v=hist]');
+  await expect(page.locator('.row',{hasText:'Старая покупка'})).toContainText('Удалённый счёт');
+  await expect(page.locator('.row',{hasText:'Старый перевод'})).toContainText('Удалённый счёт');
 });

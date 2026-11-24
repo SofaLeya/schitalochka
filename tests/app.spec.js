@@ -1380,7 +1380,7 @@ test('дневной бюджет в день выплаты: до дохода,
   await expect(tile.locator('.can-date')).toHaveText('до 25.11');
   await tile.click();
   await expect(tile.locator('b')).toHaveText('—');
-  await expect(tile.locator('.can-date')).toHaveText('после ЗП');
+  await expect(tile.locator('.can-date')).toHaveText('Ждём доход');
   await tile.click();
   await page.evaluate(() => {
     const d=JSON.parse(localStorage.getItem('podkopka-v1'));

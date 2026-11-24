@@ -1359,3 +1359,45 @@ test('архив: старые удалённые счета не перенос
   await expect(page.locator('.row',{hasText:'Старая покупка'})).toContainText('Удалённый счёт');
   await expect(page.locator('.row',{hasText:'Старый перевод'})).toContainText('Удалённый счёт');
 });
+
+
+test('дневной бюджет в день выплаты: до дохода, после дохода и после раскладки', async ({ page }) => {
+  const errs=[];
+  await page.clock.setFixedTime(new Date(2026, 10, 25, 13, 0));
+  await start(page, errs);
+  await page.evaluate(() => {
+    const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+    Object.assign(d,{simple:false,unameAsked:1,planFrom:'2026-11-01',skips:[],ruleZero:{},
+      accounts:[{id:'a1',name:'Основная карта',type:'main',start:6000},{id:'save1',name:'Накопления',type:'save',start:0}],
+      incomes:[{id:'salary25',name:'Аванс',amt:30000,day:25},{id:'salary10',name:'Зарплата',amt:30000,day:10}],
+      recur:[{id:'bill25',name:'Платёж',amt:1000,day:25,cat:'conn',acc:'a1'}],
+      rules:[{id:'save25',name:'Накопления',amt:18000,day:25,acc:'save1'}],entries:[]});
+    localStorage.setItem('podkopka-v1',JSON.stringify(d));
+  });
+  await page.reload();
+  const tile=page.locator('.can-switch');
+  await expect(tile.locator('b')).toHaveText('5 000 ₽');
+  await expect(tile.locator('.can-date')).toHaveText('до 25.11');
+  await tile.click();
+  await expect(tile.locator('b')).toHaveText('—');
+  await expect(tile.locator('.can-date')).toHaveText('после выплаты');
+  await tile.click();
+  await page.evaluate(() => {
+    const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.entries.push({id:'paid25',type:'i',cat:'salary',amt:30000,date:'2026-11-25',iid:'salary25',acc:'a1'});
+    localStorage.setItem('podkopka-v1',JSON.stringify(d));
+  });
+  await page.reload();
+  await expect(tile.locator('b')).toHaveText('1 133 ₽');
+  await expect(tile.locator('.can-date')).toHaveText('до 10.12');
+  expect(await heroNumber(page)).toBe(36000);
+  await page.evaluate(() => {
+    const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+    d.entries.push({id:'distributed25',type:'t',amt:18000,date:'2026-11-25',from:'a1',to:'save1',rule:'save25'});
+    localStorage.setItem('podkopka-v1',JSON.stringify(d));
+  });
+  await page.reload();
+  await expect(tile.locator('b')).toHaveText('1 133 ₽');
+  expect(await heroNumber(page)).toBe(18000);
+  expect(errs).toEqual([]);
+});

@@ -1,0 +1,3 @@
+# Monster references for Codex
+
+Run `python monster-references/restore.py` from the repository root. The chunks contain the complete two self-contained HTML catalogs; the script also extracts the embedded concept sheets for all 19 characters. Read PROMPT.md and anatomy/monster-anatomy-v3.json. The full 57 MB original ZIP, full-resolution PNGs, standalone GIFs and QA screenshots are not included in this GitHub transfer. Embedded concept sheets are reduced-resolution references. If PROMPT.md lists missing ZIP paths, use the recovered catalogs as available references, and explicitly report any missing material. Preserve main, do not deploy or merge before approval. The anatomy catalog's older approval note about Jelly is historical; the current brief supersedes it.

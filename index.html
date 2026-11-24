@@ -1195,11 +1195,11 @@ function plannedItems(from,days){
   [0,1,2].forEach(function(k){
     var ym=nextYM(ym0,k);
     S.recur.forEach(function(r){if(!dueIn(r,ym))return;var d=planned(ym,r.day);if(d>=from&&d<=end&&!doneFor('rid',r.id,ym))out.push({date:d,kind:'out',name:r.name,amt:r.amt,id:r.id,cat:r.cat,ym:ym,acc:r.acc||''})});
-    S.incomes.forEach(function(r){var d=payDateIn(ym,r.day);if(d>=from&&d<=end&&!doneFor('iid',r.id,ym))out.push({date:d,kind:'in',name:r.name,amt:r.amt,id:r.id,ym:ym})});
+    S.incomes.forEach(function(r){var d=payDateIn(ym,r.day);if(d>=from&&d<=end&&!doneFor('iid',r.id,ym))out.push({date:d,kind:'in',name:r.name,amt:r.amt,id:r.id,ym:ym,payDay:+r.day})});
     if(S.planFrom)S.rules.forEach(function(r){
       if(!accById(r.acc)||ym<planFromYM()||ruleDone(r,ym)||ruleSkipped(r.day,ym)||!ruleOn(r))return;
-      var d=payDateIn(ym,r.day);if(d<S.planFrom)return;if(d<from)d=from;
-      if(d<=end)out.push({date:d,kind:'out',name:'→ '+r.name,amt:ruleCap(r)||r.amt,id:r.id,ym:ym,rule:1});
+      var d=payDateIn(ym,r.day);if(d<S.planFrom)return;var scheduled=d;if(d<from)d=from;
+      if(d<=end)out.push({date:d,kind:'out',name:'→ '+r.name,amt:ruleCap(r)||r.amt,id:r.id,ym:ym,rule:1,payDay:+r.day,scheduled:scheduled});
     });
   });
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
@@ -1252,7 +1252,7 @@ function fcRun(pace,extra){var pl=S.fcPlans||[],m=balance()+(extra||0),outs={},s
 function fcCalc(){
   var nd=fcEnd();if(!nd)return null;
   var P=fcPace(),kn=P.kn,pl=P.pl,huge=P.huge,hugeS=P.hugeS;
-  var due=0;if(!S.simple&&(S.incomes||[]).length){try{var pd=perDay();if(pd.nextIn===nd)due=pd.due;else plannedItems(T,62).forEach(function(e){if(e.date<nd&&e.kind==='out'&&!offMain(e))due+=e.amt})}catch(e){}}
+  var due=0;if(!S.simple&&(S.incomes||[]).length){try{var pd=perDay();if(pd.nextIn===nd)due=pd.due;else plannedItems(T,62).forEach(function(e){if(e.date<nd&&e.kind==='out'&&!offMain(e)&&!waitingPayoutRule(e))due+=e.amt})}catch(e){}}
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
   var avail=balance()-due,pace=P.pace,paceB=P.paceB;
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
@@ -1299,18 +1299,32 @@ function forecast(){
   }
   return {date:null,avg:avg};
 }
+// Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.
+// Проверяем исходный день выплаты, а не перенесённую на сегодня дату просроченного правила.
+function waitingPayoutRule(e){
+  if(!e.rule||e.scheduled!==T)return false;
+  var incomes=(S.incomes||[]).filter(function(r){return +r.day===e.payDay&&payDateIn(e.ym,r.day)===T&&r.amt>0});
+  return incomes.length>0&&incomes.every(function(r){return !doneFor('iid',r.id,e.ym)});
+}
 function perDay(){
-  // до ближайшего поступления, после которого что-то остаётся на жизнь (выплаты, которые целиком уходят в копилки, не в счёт)
+  // До ближайшего поступления, после которого остаются деньги на жизнь.
   var ev=plannedItems(T,62),nextIn=null;
-  for(var i=0;i<ev.length;i++){var e=ev[i];if(e.kind!=='in'||e.date<=T)continue;
+  var todayIn=ev.filter(function(e){return e.kind==='in'&&e.date===T}).reduce(function(a,e){return a+e.amt},0);
+  var todayReserve=ev.filter(waitingPayoutRule).reduce(function(a,e){return a+e.amt},0);
+  if(todayIn>todayReserve)nextIn=T;
+  if(!nextIn)for(var i=0;i<ev.length;i++){var e=ev[i];if(e.kind!=='in'||e.date<=T)continue;
     var toSave=ev.filter(function(x){return x.rule&&x.date===e.date}).reduce(function(a,x){return a+x.amt},0);
     if(e.amt-toSave>0){nextIn=e.date;break}}
   if(!nextIn)nextIn=iso(addDays(parse(T),30));
-  var due=0,inc=0;ev.forEach(function(e){if(e.date>=nextIn)return;if(e.kind==='out'&&!offMain(e))due+=e.amt;else if(e.kind==='in'&&e.date>T)inc+=e.amt});
+  var due=0,inc=0;ev.forEach(function(e){
+    if(nextIn===T?e.date>T:e.date>=nextIn)return;
+    if(e.kind==='out'&&!offMain(e)&&!waitingPayoutRule(e))due+=e.amt;
+    else if(e.kind==='in'&&e.date>T)inc+=e.amt;
+  });
   var days=Math.max(1,diffDays(T,nextIn));
-  // сегодняшний день входит в days, поэтому сегодняшние траты на жизнь возвращаем в сумму - иначе сегодня считается дважды
+  // Сегодняшние траты на жизнь возвращаем в сумму - иначе сегодня считается дважды.
   var tsp=Math.max(0,dayNet(T).v);
-  return {val:(balance()+tsp-due+inc)/days,days:days,nextIn:nextIn,due:due};
+  return {val:(balance()+tsp-due+inc)/days,days:days,nextIn:nextIn,due:due,waitingToday:nextIn===T};
 }
 
 
@@ -2234,7 +2248,7 @@ function viewHome(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday));
   var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+tipBox('h_bal','<b>Свободные деньги</b> - сколько сейчас на картах на жизнь: основная и те, где стоит «Трачу с неё на жизнь» (другие валюты - по курсу). Копилки и долги сюда не входят.<br><br><b>Потрачено</b> - сколько ушло на жизнь с начала месяца, минус возвраты. Регулярные платежи (аренда, связь, подписки) и траты из копилок и с карт не на жизнь сюда не входят, они показаны ниже после «+ платежи».<br><br><b>В среднем</b> - сколько в среднем уходит в день в этом месяце (траты за месяц, поделённые на прошедшие дни). Это не «сегодня» и не «сколько можно». Полоска показывает, сколько это от плана: зелёная - с запасом, жёлтая - почти весь план, красная - выше плана.')+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
-   '<div class="stats">'+(S.irreg?irrTile():'<div class="stat main can-switch" data-a="canDay" role="button" tabindex="0" aria-label="Показать бюджет на '+(canTomorrow?'сегодня':'завтра')+'"><span class="can-head"><span class="lbl">Можно</span><span class="can-toggle" aria-hidden="true">⇄</span></span><b>'+money(canTomorrow?Math.max(0,Math.min(balance(),pd.val)):todayLeft)+'</b><span class="fine can-day">'+(canTomorrow?'Завтра':'Сегодня')+'</span><span class="fine can-date">'+(pd.nextIn?'до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'на день')+'</span></div>')+
+   '<div class="stats">'+(S.irreg?irrTile():'<div class="stat main can-switch" data-a="canDay" role="button" tabindex="0" aria-label="Показать бюджет на '+(canTomorrow?'сегодня':'завтра')+'"><span class="can-head"><span class="lbl">Можно</span><span class="can-toggle" aria-hidden="true">⇄</span></span><b>'+(canTomorrow&&pd.waitingToday?'—':money(canTomorrow?Math.max(0,Math.min(balance(),pd.val)):todayLeft))+'</b><span class="fine can-day">'+(canTomorrow?'Завтра':'Сегодня')+'</span><span class="fine can-date">'+(canTomorrow&&pd.waitingToday?'после выплаты':pd.nextIn?'до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'на день')+'</span></div>')+
    statTile('В среднем',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
    statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'+ платежи<br>'+money(Math.round(exp-sum(life(me),'e'))):'')+'</div>'+tipBox('h_can','<b>Осталось на сегодня</b> - сколько ещё можно потратить сегодня, если распределять доступные деньги до зарплаты равномерно. Сегодня уже потрачено '+money(spentToday)+'.<br><br>Общий бюджет на сегодняшний день (включая уже потраченное): '+money(pd.val)+'. Остаток на сегодня: '+money(todayLeft)+'.<br><br>Это не план на месяц: обязательные платежи до зарплаты учитываются отдельно. Если сегодня потратить больше, на следующие дни останется меньше.')+'</div>';
   var main;

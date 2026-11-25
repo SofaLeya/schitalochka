@@ -123,8 +123,8 @@ test('JSON plan picker survives screen rerender and imports salary via real file
    window.__planPicker=document.getElementById('pl_file');
    window.__rerenderPlan=()=>render();
  });
- await expect(page.locator('label[for="pl_file"]')).toBeVisible();
- const [picked]=await Promise.all([page.waitForEvent('filechooser'),page.locator('label[for="pl_file"]').click()]);
+ await expect(page.locator('button[data-a="choosePlanFile"]')).toBeVisible();
+ const [picked]=await Promise.all([page.waitForEvent('filechooser'),page.locator('button[data-a="choosePlanFile"]').click()]);
  await page.evaluate(()=>window.__rerenderPlan());
  expect(await page.evaluate(()=>window.__planPicker===document.getElementById('pl_file'))).toBe(true);
  const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};

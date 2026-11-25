@@ -98,3 +98,20 @@ test('simple weekly payment form hides payroll settings and previews the schedul
  await expect(page.locator('#is_start')).toBeHidden();
  await expect(page.locator('#is_preview')).toContainText('Без фиксированных дат');
 });
+
+test('targeted income file preserves current transactions, accounts and savings rules', async ({page})=>{
+ const res=await probe(page,()=>{
+   T='2026-11-25';S.rucal={};S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420},{id:'c',name:'Пенсия',day:15,amt:1000}];
+   S.entries=[{id:'today',iid:'a',type:'i',date:T,amt:51678}];S.recur=[{id:'r',name:'Платеж',amt:50,day:1}];S.rules=[{id:'rule',name:'Копилка',amt:100,day:25,acc:'a1'}];S.planFrom='2026-10-01';
+   const keep=()=>JSON.stringify([S.entries,S.recur,S.rules,S.accounts,S.planFrom]);const before=keep();
+   const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};
+   const file={app:'schitalochka-income-update',v:1,sources:[{advanceId:'a',finalId:'b',advanceName:'Аванс',finalName:'Остаток',name:'Работа',source:p}]};
+   const invalid={...file,sources:[...file.sources,{...file.sources[0],advanceId:'missing'}]};
+   const orig=JSON.stringify(S.incomes);let rejected=false;try{prepareIncomeUpdate(invalid)}catch(e){rejected=true}
+   const unchanged=orig===JSON.stringify(S.incomes);
+   S.incomes=prepareIncomeUpdate(file);
+   const rows=incomeRows('2026-12');
+   return {rejected,unchanged,kept:before===keep(),repeat:JSON.stringify(prepareIncomeUpdate(file))===JSON.stringify(S.incomes),rows:rows.map(r=>[r.id,r.amt]),actual:incomeFor(incomeRows('2026-11').find(r=>r.id==='a'),'2026-11')};
+ });
+ expect(res).toEqual({rejected:true,unchanged:true,kept:true,repeat:true,rows:[['a',57420],['b',63162],['c',1000]],actual:51678});
+});

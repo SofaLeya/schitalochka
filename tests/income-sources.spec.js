@@ -287,7 +287,7 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
    const old=amounts.map(a=>a.textContent);
    const results=[];
    for(const values of [['2 708 ₽','123 456 ₽','999 999 ₽'],['123 456 ₽','654 321 ₽','999 999 ₽'],['1 234 567 ₽','-999 999 ₽','99 999 ₽']]){
-    amounts.forEach((a,i)=>a.textContent=values[i]);fitWalletAmounts();
+    amounts.forEach((a,i)=>a.textContent=values[i]);window.dispatchEvent(new Event('resize'));
     results.push(amounts.map((a,i)=>{
      const rect=a.getBoundingClientRect(),tile=tiles[i].getBoundingClientRect(),stars=tiles[i].querySelector('.tile-stars');
      return {text:a.textContent,fit:a.scrollWidth<=a.clientWidth+1&&rect.left>=tile.left&&rect.right<=tile.right&&rect.bottom<=tile.bottom,
@@ -295,7 +295,7 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
       decor:stars.getAttribute('aria-hidden')==='true'&&getComputedStyle(stars).pointerEvents==='none'&&stars.getBoundingClientRect().top>=rect.bottom-2};
     }));
    }
-   amounts.forEach((a,i)=>a.textContent=old[i]);fitWalletAmounts();
+   amounts.forEach((a,i)=>a.textContent=old[i]);window.dispatchEvent(new Event('resize'));
    return results;
   });
   expect(fitted.flat().every(x=>x.fit&&x.oneLine&&x.decor&&x.font>=10)).toBe(true);

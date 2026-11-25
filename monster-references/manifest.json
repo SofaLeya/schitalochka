@@ -1,0 +1,180 @@
+{
+  "characters": [
+    {
+      "name": "Желейник",
+      "concept": "anatomy/images/jelly-concept.jpg",
+      "neutral": "anatomy/images/jelly-pose.png",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Растенник",
+      "concept": "anatomy/images/plant-concept.jpg",
+      "neutral": "anatomy/images/plant-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Рожастик",
+      "concept": "anatomy/images/horn-concept.jpg",
+      "neutral": "anatomy/images/horn-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Одноглазик",
+      "concept": "anatomy/images/one-eye-concept.jpg",
+      "neutral": "anatomy/images/one-eye-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Пухлик",
+      "concept": "anatomy/images/puff-concept.jpg",
+      "neutral": "anatomy/images/puff-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Языкастик",
+      "concept": "anatomy/images/tongue-concept.jpg",
+      "neutral": "anatomy/images/tongue-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Мохнатик",
+      "concept": "anatomy/images/mohnatik-concept.jpg",
+      "neutral": "anatomy/images/mohnatik-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Пушистик",
+      "concept": "anatomy/images/pushistik-concept.jpg",
+      "neutral": "anatomy/images/pushistik-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Вишенка",
+      "concept": "anatomy/images/cherry-concept.jpg",
+      "neutral": "anatomy/images/cherry-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Клубничка",
+      "concept": "anatomy/images/strawberry-concept.jpg",
+      "neutral": "anatomy/images/strawberry-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Лягушонок",
+      "concept": "anatomy/images/frog-concept.jpg",
+      "neutral": "anatomy/images/frog-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Котик",
+      "concept": "anatomy/images/cat-concept.jpg",
+      "neutral": "anatomy/images/cat-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Мышка",
+      "concept": "anatomy/images/mouse-concept.jpg",
+      "neutral": "anatomy/images/mouse-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Крыска",
+      "concept": "anatomy/images/rat-concept.jpg",
+      "neutral": "anatomy/images/rat-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Осьминожка",
+      "concept": "anatomy/images/octopus-concept.jpg",
+      "neutral": "anatomy/images/octopus-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Слизень",
+      "concept": "anatomy/images/slime-concept.jpg",
+      "neutral": "anatomy/images/slime-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Скелетон",
+      "concept": "anatomy/images/skeleton-concept.jpg",
+      "neutral": "anatomy/images/skeleton-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Скелетесса",
+      "concept": "anatomy/images/skeletoness-concept.jpg",
+      "neutral": "anatomy/images/skeletoness-pose.jpg",
+      "anatomy_status": "draft_review"
+    },
+    {
+      "name": "Утёнок",
+      "concept": "anatomy/images/duck-concept.jpg",
+      "neutral": "anatomy/images/duck-pose.jpg",
+      "anatomy_status": "draft_review"
+    }
+  ],
+  "anatomy": "anatomy/monster-anatomy-v3.json",
+  "catalog": "anatomy/monster-anatomy-v3.html",
+  "batch1": {
+    "reference": "batch1/monster-batch1-v2.html",
+    "build": "python3 monster-references/rebuild.py",
+    "status": "prototype; preferred flip reference"
+  },
+  "jelly_animations": [
+    {
+      "reference": "jelly/01-idle.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/02-blink.html",
+      "status": "approved; apply eye-only requirement"
+    },
+    {
+      "reference": "jelly/03-sway.html",
+      "status": "approved; short reaction only"
+    },
+    {
+      "reference": "jelly/04-joy.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/05-jump.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/06-flip.html",
+      "status": "superseded by batch1 flip"
+    },
+    {
+      "reference": "jelly/07-sleep.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/08-happy.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/09-surprise.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/10-interest.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/12-content.html",
+      "status": "approved"
+    },
+    {
+      "reference": "jelly/11-thought.html",
+      "status": "approved; minor eye shift noted; rebuild first"
+    },
+    {
+      "id": "determined",
+      "status": "final playful smirk approved visually; final GIF not transferred; no approved HTML"
+    }
+  ],
+  "transfer_note": "Concept sheets are the actual JPEG copies embedded in the agreed anatomy catalog, not full-resolution original PNGs. The original ZIP, standalone GIFs and rejected QA screenshots are not transferred."
+}

@@ -261,34 +261,32 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  const hero=page.locator('.hero').first(),details=hero.locator('#tip_h_can'),link=hero.locator('.home-detail-link');
  await expect(hero.locator('.stats > .stat')).toHaveCount(3);
  await expect(details).toBeHidden();
- // Measure the collapsed summary against the previous spacing, at the same viewport and data.
- const compactHeight=await hero.evaluate(el=>el.getBoundingClientRect().height);
- const oldSpacing=await page.addStyleTag({content:`
- .hero{padding:14px 12px;gap:6px}
- .hero .stats{margin-top:6px}
- .hero .stat{padding-block:6px}
- .hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:26px;min-height:26px}
- .hero .stats>.stat>b{margin-top:3px;line-height:22px;min-height:22px}
- .hero .stats>.stat>.pbar+.fine{margin-top:6px}
- .hero .home-detail-link{padding:5px 0;min-height:0}
- .hero .fcb{margin-top:12px;height:40px;min-height:0;padding:0}
- `});
- const previousHeight=await hero.evaluate(el=>el.getBoundingClientRect().height);
- await oldSpacing.evaluate(el=>el.remove());
- expect(previousHeight-compactHeight).toBeGreaterThanOrEqual(24);
  await expect(hero.locator('[data-a=fcOpen]')).toBeVisible();
  await expect(hero.locator('.stats > .stat b')).toHaveCount(3);
  await expect(hero.locator('.stats > .stat > .lbl')).toHaveText(['На сегодня','В среднем','За месяц']);
- const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>({
-  top:tile.querySelector('b').getBoundingClientRect().top,
-  height:tile.getBoundingClientRect().height,
-  background:getComputedStyle(tile).backgroundColor,
-  shadow:getComputedStyle(tile).boxShadow,
-  labelFits:tile.querySelector('.lbl').scrollWidth<=tile.querySelector('.lbl').clientWidth+1
- })));
- expect(Math.max(...geometry.map(g=>g.top))-Math.min(...geometry.map(g=>g.top))).toBeLessThanOrEqual(1);
- expect(Math.max(...geometry.map(g=>g.height))-Math.min(...geometry.map(g=>g.height))).toBeLessThanOrEqual(1);
- expect(geometry.every(g=>g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits)).toBe(true);
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:640});
+  const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>{
+   const box=tile.getBoundingClientRect(),amount=tile.querySelector('b'),label=tile.querySelector('.lbl');
+   return {top:amount.getBoundingClientRect().top,height:box.height,width:box.width,
+    background:getComputedStyle(tile).backgroundColor,shadow:getComputedStyle(tile).boxShadow,
+    labelFits:label.scrollWidth<=label.clientWidth+1,amountFits:amount.scrollWidth<=amount.clientWidth+1&&amount.getBoundingClientRect().bottom<=box.bottom,
+    font:parseFloat(getComputedStyle(amount).fontSize),labelFont:parseFloat(getComputedStyle(label).fontSize)};
+  }));
+  expect(Math.max(...geometry.map(g=>g.top))-Math.min(...geometry.map(g=>g.top))).toBeLessThanOrEqual(1);
+  expect(Math.max(...geometry.map(g=>g.height))-Math.min(...geometry.map(g=>g.height))).toBeLessThanOrEqual(1);
+  expect(geometry.every(g=>Math.abs(g.width-g.height)<=1&&g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits&&g.amountFits&&g.font>=15&&g.labelFont>=12)).toBe(true);
+ }
+ await page.setViewportSize({width:320,height:640});
+ // A seven-digit value must remain visible rather than overflow the square.
+ const largeAmount=await hero.locator('.stats > .stat').first().evaluate(tile=>{
+  const amount=tile.querySelector('b'),old=amount.textContent;
+  amount.textContent='1 234 567 ₽';
+  const fits=amount.scrollWidth<=amount.clientWidth+1&&amount.getBoundingClientRect().bottom<=tile.getBoundingClientRect().bottom;
+  amount.textContent=old;
+  return fits;
+ });
+ expect(largeAmount).toBe(true);
 
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
  await expect(link).toHaveText('Подробнее');

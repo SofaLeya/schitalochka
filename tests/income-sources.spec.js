@@ -282,11 +282,11 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  await expect(link).toHaveText('Подробнее');
  await link.click();await expect(details).toBeVisible();
  const labels=await details.locator('.row .grow').allTextContents();
- expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра']);
- await expect(details.locator('[data-a=planOpen]')).toHaveCount(0);
- await expect(details).not.toContainText('В среднем');
+ expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра','В среднем за день','Потрачено за месяц']);
+ await expect(details.locator('[data-a=planOpen]')).toBeVisible();
+ await expect(hero.locator('.stats .fine, .stats .pbar, .stats [data-a]')).toHaveCount(0);
  await expect(details.locator('.budget-period')).toHaveCount(simpleMode?0:1);
- expect(await details.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(180);
+ expect(await details.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(230);
  await link.click();await expect(details).toBeHidden();
  await hero.locator('[data-a=tip][data-v=h_bal]').click();
  await expect(hero.locator('#tip_h_bal')).toContainText('Отпуск');await expect(hero.locator('#tip_h_bal')).toContainText('не входит');
@@ -330,5 +330,21 @@ test('compact budget details retain nonzero payments, waiting income and shortag
  expect(result.waiting).toContain('Ждём доход');
  expect(result.waiting).not.toContain('Будущие платежи');
  expect(result.shortage).toContain('Может не хватить');
+ expect(result.unchanged).toBe(true);
+});
+
+test('minimal wallet tiles keep separate spending and plan editing in details',async ({page})=>{
+ const result=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=false;
+  const before=JSON.stringify(S);
+  const html=homeBudgetDetails({val:500,days:9,nextIn:'2026-12-04',due:0,waitingToday:false},257,243,{avg:1428,total:35711,extra:62500,irrNote:'Хватит при этом темпе'});
+  return {html,unchanged:JSON.stringify(S)===before};
+ });
+ expect(result.html).toContain('В среднем за день');
+ expect(result.html).toContain('Потрачено за месяц');
+ expect(result.html).toContain('Отдельные траты');
+ expect(result.html).toMatch(/62\s500/);
+ expect(result.html).toContain('data-a="planOpen"');
+ expect(result.html).toContain('Хватит при этом темпе');
  expect(result.unchanged).toBe(true);
 });

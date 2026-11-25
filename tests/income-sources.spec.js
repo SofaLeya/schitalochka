@@ -269,3 +269,21 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  expect(await page.evaluate(()=>localStorage.getItem('podkopka-v1'))).toBe(before);
  expect(await hero.locator('.stats').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
 });
+
+test('compact mode switch and help use the same names on small screens',async ({page})=>{
+ await page.setViewportSize({width:320,height:640});
+ await probe(page,()=>{S.demo=false;S.setup=1;S.onb=1;S.simple=true;closeSheet();save();tab='home';render()});
+ const modes=page.locator('.mode-switch');
+ await expect(modes.locator('[data-v=simple]')).toHaveText('Учёт трат');
+ await expect(modes.locator('[data-v=full]')).toHaveText('Планирование');
+ expect(await modes.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ await page.locator('[data-a=tip][data-v=mode]').click();
+ await expect(page.locator('#tip_mode')).toBeVisible();
+ await expect(page.locator('#tip_mode')).toContainText('Планирование');
+ await page.locator('.top [data-a=help]').click();
+ const help=page.locator('#ov');
+ await expect(help.locator('summary',{hasText:'Режимы приложения'})).toBeVisible();
+ await help.locator('summary',{hasText:'Режимы приложения'}).click();
+ await expect(help.locator('details[open]').filter({has:help.locator('summary',{hasText:'Режимы приложения'})})).toContainText('Автопополнение копилок',{ignoreCase:true});
+ await expect(help).not.toContainText('Простой и полный режим');
+});

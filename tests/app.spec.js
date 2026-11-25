@@ -1379,13 +1379,14 @@ test('дневной бюджет в день выплаты: до дохода,
     localStorage.setItem('podkopka-v1',JSON.stringify(d));
   });
   await page.reload();
-  const tile=page.locator('.can-switch');
+  const tile=page.locator('.hero .stat.main'),details=page.locator('#tip_h_can'),link=page.locator('.home-detail-link');
   await expect(tile.locator('b')).toHaveText('5 000 ₽');
-  await expect(tile.locator('.can-date')).toHaveText('до 25.11');
-  await tile.click();
-  await expect(tile.locator('b')).toHaveText('—');
-  await expect(tile.locator('.can-date')).toHaveText('Ждём доход');
-  await tile.click();
+  await expect(tile.locator('.lbl')).toHaveText('На сегодня');
+  await link.click();
+  await expect(details.locator('.row').filter({hasText:'На завтра'}).locator('b')).toHaveText('Ждём доход');
+  await expect(details).toContainText('Доход сегодня ещё не отмечен.');
+  await expect(tile.locator('b')).toHaveText('5 000 ₽');
+  await link.click();
   await page.evaluate(() => {
     const d=JSON.parse(localStorage.getItem('podkopka-v1'));
     d.entries.push({id:'paid25',type:'i',cat:'salary',amt:30000,date:'2026-11-25',iid:'salary25',acc:'a1'});
@@ -1393,7 +1394,9 @@ test('дневной бюджет в день выплаты: до дохода,
   });
   await page.reload();
   await expect(tile.locator('b')).toHaveText('1 133 ₽');
-  await expect(tile.locator('.can-date')).toHaveText('до 10.12');
+  await link.click();
+  await expect(details.locator('.budget-period')).toContainText('До 10 декабря');
+  await expect(details.locator('.row').filter({hasText:'На завтра'}).locator('b')).toHaveText('1 133 ₽');
   expect(await heroNumber(page)).toBe(36000);
   await page.evaluate(() => {
     const d=JSON.parse(localStorage.getItem('podkopka-v1'));

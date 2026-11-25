@@ -3776,12 +3776,13 @@ function rulesCard(part){
       return '<button class="row" data-a="editRule" data-id="'+r.id+'" style="padding-block:8px;text-align:left;width:100%'+(on?'':';opacity:.55')+'"><div class="grow"><div class="t" style="font-size:14px">'+esc(r.name)+'</div><div class="s">→ '+esc(a?a.name:'копилка не выбрана')+(cd?' · '+esc(cd):'')+(on?'':' · сейчас не работает')+'</div></div><span class="amt">'+money(r.amt)+'</span></button>'}).join('')+sepRow(l)+'</div></details>'}).join('')+'</div>'+
     '<div class="btns"><button class="btn ghost sm" data-a="newRule">Добавить правило</button><button class="btn ghost sm" data-a="recon">Сверить с банком</button></div>';
   h+=fcard('rules','Раскладка по копилкам',money(tot)+' в месяц',S.rules.length+' '+plw(S.rules.length,'правило','правила','правил')+' · '+days.length+' '+plw(days.length,'выплата','выплаты','выплат'),body);
+  if(part==='rulesOnly')return h;
+  if(part==='factOnly')h='';
   var ids=Object.keys(st);
   if(ids.length){var miss=0;ids.forEach(function(id){var x=st[id];if(x.plan>x.fact)miss+=x.plan-x.fact});
     h+=fcard('pf','План и факт',null,(miss>0?'не хватает '+money(miss):'всё по плану')+' · с '+dlabel(S.planFrom),'<div class="list">'+ids.map(function(id){
       var a=accById(id);if(!a)return '';var x=st[id],m=x.plan-x.fact;
       return '<div class="row"><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">в копилке '+accMoney(a)+' · отложено '+money(x.fact)+' из '+money(x.plan)+'</div></div>'+(m>0?'<span class="chip late">не хватает '+money(m)+'</span>':'<span class="chip ok">по плану</span>')+'</div>'}).join('')+'</div>')}
-  if(part==='rulesOnly'||part==='factOnly'){var split=h.indexOf('<button type="button" class="foldhead" data-a="fold" data-v="pf"');if(split<0)return part==='rulesOnly'?h:'';var at=h.lastIndexOf('<div class="card">',split);return part==='rulesOnly'?h.slice(0,at):h.slice(at)}
   return h;
 }
 
@@ -4245,7 +4246,7 @@ function incomeSourceSheet(){
  '<div class="f"><label for="is_name">Откуда деньги?</label><input id="is_name" value="'+esc(d.name||'')+'" placeholder="Работа, подработка, пенсия"></div>'+
  '</div>'+
  '<div class="f isGroup">'+
- '<div class="two">'+field('amount','Сколько платят, '+sym(),inp('amount',amount))+field('basis','За какой период?',sel('basis',[['payment','За выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment'))+'</div>'+
+ '<div class="two">'+field('amount','На руки, '+sym(),inp('amount',amount))+field('basis','За какой период?',sel('basis',[['payment','За выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment'))+'</div>'+
  field('quantity','Часов / дней / смен за выплату',inp('quantity',p.quantity||1),'qtybox')+'</div>'+
  '<div class="f isGroup">'+
  field('freq','Как часто платят?',sel('freq',[['daily','Каждый день'],['weekly','Раз в неделю'],['biweekly','Раз в две недели'],['twice','Два раза в месяц'],['monthly','Раз в месяц'],['custom','Свой интервал'],['dates','По числам месяца'],['once','Разовое поступление'],['irregular','Нерегулярно']],q))+
@@ -4302,6 +4303,7 @@ function sourceFormLive(){
  var get=function(id){return document.getElementById('is_'+id)},v=function(id){return get(id).value},hide=function(id,b){get(id).style.display=b?'none':''};
  if(!get('freq'))return;
  var p=sourceFormConfig(),f=p.freq,basis=p.basis,tk=p.kind==='tk',tw=f==='twice',cal=tk&&tw&&basis==='month',method=p.method,monthly=['monthly','twice','dates'].indexOf(f)>=0,rate=['hour','day','shift'].indexOf(basis)>=0,share=tw&&basis==='month'&&(!cal||method==='fixed');
+ var amountLabel=document.querySelector('label[for="is_amount"]');if(amountLabel)amountLabel.textContent=(p.net?'На руки, ':'До налогов, ')+sym();
  hide('taxbox',p.net);hide('taxhint',p.net);get('taxrow').style.gridTemplateColumns=p.net?'minmax(0,1fr)':'';
  hide('qtybox',!rate);hide('datesbox',f!=='monthly'&&!tw);get('datesbox').style.gridTemplateColumns=tw?'':'minmax(0,1fr)';hide('secondbox',!tw);hide('manybox',f!=='dates');hide('custombox',f!=='custom');
  var sb=get('startbox'),mount=get('startmount'),adv=get('advanced');if(monthly&&sb.parentNode!==mount)mount.appendChild(sb);else if(!monthly&&sb.parentNode===mount)get('custombox').after(sb);
@@ -4309,7 +4311,7 @@ function sourceFormLive(){
  hide('calcgroup',!cal&&!share);hide('methodbox',!cal);hide('workbox',method==='fixed');hide('hoursbox',method!=='hours');hide('sharebox',!share);hide('linkbox',!tw||(!sh.id&&get('link').options.length<2)||get('link').options.length<2);hide('shiftbox',f==='irregular');
  get('firstlabel').textContent=tw?(tk?'Аванс, число':'1-я выплата, число'):'Число месяца';get('secondlabel').textContent=tk?'Остаток зарплаты, число':'2-я выплата, число';
  get('workhint').textContent=method==='hours'?'Введи оклад за полный месяц на полной ставке и свои рабочие часы.':'Аванс за первую половину месяца, остаток — за вторую.';
- get('info').textContent=f==='irregular'?'Записывай фактические поступления.':cal&&method!=='fixed'?'Расчёт по рабочему календарю; фактические суммы могут отличаться.':'Фактическую сумму можно уточнить при получении.';
+ get('info').textContent=f==='irregular'?'Записывай фактические поступления.':cal&&method!=='fixed'?'По рабочему календарю.':'Суммы можно уточнить при получении.';
  sourceFormPreview(p);
 }
 function saveIncomeSource(){

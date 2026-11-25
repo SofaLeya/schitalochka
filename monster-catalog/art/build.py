@@ -15,6 +15,8 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
 
+from transitions import atlas, register, settle_between, tween, warp
+
 HERE = Path(__file__).resolve().parent
 REF = HERE.parents[1] / 'monster-references'
 RESAMPLE = Image.Resampling.LANCZOS
@@ -148,7 +150,10 @@ def save(image, directory, label):
     if not bounds:
         raise ValueError(f'Empty image: {directory.name}/{label}')
     x, y, right, bottom = bounds
-    image.crop(bounds).save(directory / f'{label}.png', optimize=True)
+    destination = directory / f'{label}.png'
+    temporary = destination.with_suffix('.png.tmp')
+    image.crop(bounds).save(temporary, format='PNG', optimize=True)
+    temporary.replace(destination)
     asset = {'src': f'art/{directory.name}/{label}.png', 'box': [x, y, right - x, bottom - y]}
     if label in ('neutral', 'body', 'sleep') or label.startswith(('flip', 'thought', 'P')):
         alpha = np.array(image)[:, :, 3]
@@ -214,10 +219,198 @@ def eye_layers(clean, shape, donor, donor_shape, same_crop=False):
     return lid_image, blank, mask
 
 
+def progressive_lid(clean, lid, skin, shape, mask):
+    """Cover the painted eye from the lids toward the closing line."""
+    x, y, rx, ry = shape
+    base, closed, blank = (np.array(image)[:, :, :3].astype(np.float32) for image in (clean, lid, skin))
+    yy, xx = np.indices(mask.shape)
+    center = y + ry * .18 + ry * .12 * ((xx - x) / rx) ** 2
+    frames = []
+    for i in range(17):
+        t = i / 16
+        upper = y - ry * 1.08 + (center - y + ry * 1.08) * t
+        lower = y + ry * 1.08 - (y + ry * 1.08 - center) * t
+        reveal = np.clip(np.maximum(upper - yy, yy - lower) + .5, 0, 1)
+        reveal *= np.clip(t * 6, 0, 1)
+        # The reference lid stroke is revealed as the aperture disappears.
+        finish = np.clip((t - .80) / .20, 0, 1)
+        mix = base * (1 - reveal[:, :, None]) + blank * reveal[:, :, None]
+        mix = mix * (1 - finish) + closed * finish
+        if not i:
+            mix = base
+        frames.append(Image.fromarray(np.uint8(np.dstack((mix, mask)))))
+    return frames
+
+
+def gaze_layer(clean, shape, mask, direction):
+    """Move only the painted pupil and its reflections inside the original iris."""
+    x, y, rx, ry = shape
+    rgba = np.array(clean)
+    rgb = rgba[:, :, :3].copy()
+    yy, xx = np.indices(mask.shape)
+    u, v = (xx - x) / rx, (yy - y) / ry
+    # Select the connected dark center while excluding the outer eye contour.
+    aperture = (u * u + v * v < .78 ** 2) & (mask == 255)
+    luma = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    dark = aperture & (luma < np.percentile(luma[aperture], 42))
+    pupil = ndi.binary_fill_holes(components(dark, biggest=True))
+    size = pupil.sum()
+    if size < 12 or size > aperture.sum() * .62:
+        return mask_part(clean, mask)
+    pupil = ndi.binary_dilation(pupil, iterations=1) & aperture
+    skin = cv2.inpaint(rgb, np.uint8(pupil) * 255, 3, cv2.INPAINT_TELEA)
+    ux, uy = direction
+    dx, dy = rx * ux, ry * uy
+    weight = np.clip((.79 - np.hypot(u, v)) * 14, 0, 1)
+    alpha = ndi.gaussian_filter(pupil.astype(np.float32), .55)
+    moved = warp(alpha, xx - dx, yy - dy) * weight
+    painted = warp(rgb, xx - dx, yy - dy)
+    composed = skin * (1 - moved[:, :, None]) + painted * moved[:, :, None]
+    return Image.fromarray(np.uint8(np.dstack((composed, mask))))
+
+
+def joint_flex(image, part, folder):
+    pivot = np.array(part['joint'])
+    tip = np.array(part['tip'])
+    direction = tip - pivot
+    length = max(1, np.linalg.norm(direction))
+    x, y, r, b = image.getbbox()
+    margin = 18
+    region = (x - margin, y - margin, r + margin, b + margin)
+    source = np.array(image.crop(region))
+    yy, xx = np.indices(source.shape[:2], dtype=np.float32)
+    dx, dy = xx + region[0] - pivot[0], yy + region[1] - pivot[1]
+    weight = np.clip((dx * direction[0] + dy * direction[1]) / length / 11, 0, 1)
+    frames = []
+    for degrees in np.linspace(-1, 1, 25) * max(map(abs, part['range'])) * .32:
+        angle = np.radians(-degrees) * weight
+        rx = dx * (np.cos(angle) - 1) - dy * np.sin(angle)
+        ry = dx * np.sin(angle) + dy * (np.cos(angle) - 1)
+        frames.append(Image.fromarray(warp(source, xx + rx, yy + ry)))
+    return atlas(folder, f'flex-{part["id"]}', frames, region[:2])
+
+
+def register_mouth(clean, donor, shape, selection):
+    x, y, rx, ry = shape
+    dx, dy, drx, dry = selection
+    sx, sy = drx / rx, dry / ry
+    aligned = donor.convert('RGB').transform(clean.size, Image.Transform.AFFINE,
+        (sx, 0, dx - x * sx, 0, sy, dy - y * sy), Image.Resampling.BICUBIC)
+    pixels = np.asarray(aligned).astype(np.float32)
+    original = np.array(clean)
+    yy, xx = np.indices(pixels.shape[:2])
+    radius = np.hypot((xx - x) / rx, (yy - y) / ry)
+    rim = (radius > .76) & (radius < .98) & (original[:, :, 3] == 255)
+    delta = np.median(original[:, :, :3][rim].astype(np.float32) - pixels[rim], axis=0)
+    pixels = np.clip(pixels + np.clip(delta, -28, 28), 0, 255)
+    alpha = np.clip((1 - radius) * 6, 0, 1)[:, :, None]
+    rgb = pixels * alpha + original[:, :, :3] * (1 - alpha)
+    return Image.fromarray(np.uint8(np.dstack((rgb, original[:, :, 3]))))
+
+
+def mouth_variants(clean, ellipse, donor, folder, i, only=None):
+    x, y, rx, ry = ellipse
+    mask = eye_mask(clean.size, ellipse, clean)
+    base = mask_part(clean, mask)
+    variants = {}
+    left, top, right, bottom = base.getbbox()
+    region = (left, top, right, bottom)
+    neutral = base.crop(region)
+    yy, xx = np.indices(mask.shape)
+    u, v = (xx - x) / rx, (yy - y) / ry
+    falloff = np.clip((1 - u * u - v * v), 0, 1) ** 2
+    transforms = {'surprise': (.46, -.49, 0), 'content': (-.08, .30, .06),
+                  'joy': (-.10, -.17, .15), 'determined': (.08, .16, .06),
+                  'thought': (.15, .22, -.07), 'interest': (0, .10, .08)}
+    for state, (narrow, height, curl) in transforms.items():
+        if only is not None and state not in only:
+            continue
+        if state in donor:
+            target = mask_part(donor[state], mask).crop(region)
+            frames = tween(neutral, target, 12, silhouette=False)
+        else:
+            frames = []
+            pixels = np.array(clean)[:, :, :3]
+            for j in range(9):
+                t = j / 8
+                sx = xx + (xx - x) * narrow * falloff * t
+                sy = yy + ((yy - y) * height + ry * curl * (u * u - .3)) * falloff * t
+                rgb = warp(pixels, sx, sy)
+                frames.append(Image.fromarray(np.dstack((rgb, mask))).crop(region))
+        variants[state] = atlas(folder, f'mouth-{state}-{i}', frames, (left, top))
+    return variants
+
+
+def read_asset(folder, asset):
+    return Image.open(folder / Path(asset['src']).name).convert('RGBA')
+
+
+def pose_atlases(clean, rig, metadata, folder):
+    """Use the original painted key poses and register them around the same center."""
+    w, h = clean.size
+    factor = min(1, 174 / max(w, h))
+    size = (round(w * factor) + 72, round(h * factor) + 72)
+    center = (size[0] / 2, size[1] / 2)
+    left, top, right, bottom = clean.getbbox()
+    cx, cy = (left + right) / 2, (top + bottom) / 2
+    neutral = register(clean, size, (cx, cy), center, factor)
+    flip = [neutral]
+    for label, angle in zip(('flip1', 'flip2'), metadata['flipAngles'], strict=True):
+        image = read_asset(folder, rig['views'][label])
+        inverse = image.rotate(angle, expand=True, resample=Image.Resampling.BICUBIC)
+        l, t, r, b = inverse.getbbox()
+        # Align based on size after unrolling, before continuous rotation.
+        view_factor = min((right-left) / (r-l), (bottom-top) / (b-t)) * factor
+        flip.append(register(image, size, (image.width / 2, image.height / 2), center, view_factor, -angle))
+    flip.append(neutral)
+    segments = [tween(a, b, 16) for a, b in zip(flip, flip[1:])]
+    frames = [frame for segment in segments[:-1] for frame in segment[:-1]] + segments[-1]
+    # Store atlas pixels and world coordinates separately. World scale is
+    # restored with the same neutral pose scale as the other states.
+    art = atlas(folder, 'turn', frames, quality=94)
+    art.update({'anchor': list(center), 'pixelsPerUnit': factor, 'angles': [0, *metadata['flipAngles'], 360], 'samples': 16})
+    rig['turn'] = art
+
+    stand_center = (center[0], center[1] + (bottom - cy) * factor)
+    sleeper = read_asset(folder, rig['views']['sleep'])
+    # Keep the supplied sleeping proportions and place the lowest painted pixel on the ground.
+    sleep_factor = min((right-left) * 1.05 / sleeper.width, (bottom-top) / sleeper.height) * factor
+    sleep = register(sleeper, size, (sleeper.width / 2, sleeper.height), stand_center, sleep_factor)
+    if 'sleepEyes' in metadata:
+        ex, ey = np.mean([eye['shape'][:2] for eye in rig['eyes']], axis=0)
+        neutral_head = (center[0] + (ex - cx) * factor, center[1] + (ey - cy) * factor)
+        sx, sy = metadata['sleepEyes']
+        sleep_head = (stand_center[0] + (sx - sleeper.width / 2) * sleep_factor,
+                      stand_center[1] + (sy - sleeper.height) * sleep_factor)
+        settling = settle_between(neutral, sleep, neutral_head, sleep_head, stand_center[1], 18)
+    else:
+        settling = tween(neutral, sleep, 18)
+    rest = atlas(folder, 'settle', settling, quality=94)
+    rest.update({'anchor': list(stand_center), 'pixelsPerUnit': factor})
+    rig['rest'] = rest
+    if rig['id'] == 'jelly':
+        keyframes = [neutral]
+        for index in range(1, 7):
+            asset = rig['views'][f'thought{index}']
+            image = read_asset(folder, asset)
+            x, y, _, _ = asset['box']
+            keyframes.append(register(image, size, (cx-x, cy-y), center, factor))
+        keyframes.append(neutral)
+        frames = [
+            frame
+            for a, b in zip(keyframes, keyframes[1:])
+            for frame in tween(a, b, 8)[:-1]
+        ] + [neutral]
+        thought = atlas(folder, 'ponder', frames)
+        thought.update({'anchor': list(stand_center), 'pixelsPerUnit': factor, 'samples': 8})
+        rig['ponder'] = thought
+
+
 def build():
     manifest = read_data(REF / 'manifest.json')
     anatomy = read_data(REF / manifest['anatomy'])
     source = read_data(HERE / 'sources.json')
+    anatomy_roles = read_data(HERE / 'anatomy.json')
     batch = (REF / manifest['batch1']['reference']).read_text()
     batch = json.loads(re.search(r'const DATA\s*=\s*(\{.*?\}), MOVES=', batch, re.S)[1])
     jelly = {}
@@ -226,11 +419,13 @@ def build():
         images = re.findall(r'data:image/\w+;base64,[\w+/=]+', file.read_text())
         jelly[status] = uri_image(images[-1])
     rigs = []
+    cv2.setNumThreads(1)
     for char, notes in zip(manifest['characters'], anatomy, strict=True):
         name = char['name']
         assert name == notes['name']
         ident = Path(char['neutral']).stem.removesuffix('-pose')
         cfg = source[ident]
+        metadata = anatomy_roles[ident]
         folder = HERE / ident
         folder.mkdir(exist_ok=True)
         original = Image.open(REF / char['neutral'])
@@ -244,11 +439,10 @@ def build():
             'notes': notes['description'], 'motionRule': notes['motion_rule'],
             'size': list(clean.size), 'anchor': [(l + r) / 2, b],
             'neutral': save(clean, folder, 'neutral'), 'views': {},
-            'limbs': [], 'gestures': ['jump', 'joy', 'happy'] if cfg['limbs'] else [], 'occluded': [p['id'] for p in notes['hidden'] if p['id'] not in cfg['limbs']],
-            'details': [p['name'] for p in notes['details'] if p['name'] not in ['глаз', 'рот']],
+            'limbs': [], 'occluded': [p['id'] for p in notes['hidden'] if p['id'] not in cfg['limbs']],
+            'details': [p for p in notes['details'] if p['name'] not in ['глаз', 'рот']],
+            'hiddenReferences': [p for p in notes['hidden'] if p['id'] not in cfg['limbs']],
         }
-        if ident == 'jelly':
-            rig['gestures'].append('thought')
         limbs = np.zeros((clean.height, clean.width), np.uint8)
         for joint, (pivot, tip, low, high, *vertices) in cfg['limbs'].items():
             role = 'лапка'
@@ -258,11 +452,21 @@ def build():
                 role = 'видимое щупальце'
             elif ident.startswith('skeleton'):
                 role = 'рука' if joint in ('P1', 'P2') else 'нога'
-            part = {'id': joint, 'role': role, 'pivot': pivot, 'tip': tip, 'range': [low, high], 'layer': len(rig['limbs']) + 2}
+            assignment = metadata['limbs'][joint]
+            part = {
+                'id': joint, 'role': role, 'function': assignment['role'], 'pivot': pivot, 'tip': tip,
+                'range': assignment.get('range', [low, high]), 'motion': assignment['motion'],
+                'layer': len(rig['limbs']) + 2, 'visibility': 'painted' if vertices else 'integrated'
+            }
+            if 'joint' in assignment:
+                part['joint'] = assignment['joint']
             if vertices:
                 mask = polygon(clean.size, vertices[0])
                 mask[limbs != 0] = 0
-                part['art'] = save(mask_part(clean, mask), folder, joint)
+                separated = mask_part(clean, mask)
+                part['art'] = save(separated, folder, joint)
+                if 'joint' in part:
+                    part['flex'] = joint_flex(separated, part, folder)
                 limbs |= mask
             rig['limbs'].append(part)
         # Keep the original neutral pose pixel-exact within the matte. Only
@@ -279,7 +483,7 @@ def build():
                     continue
                 px, py = part['pivot']
                 cv2.circle(patches, (px, py), 12 if ident == 'jelly' else 9, 255, -1)
-            rgba[:, :, 3][(limbs != 0) & ((patches == 0) | (inner > 12))] = 0
+            rgba[:, :, 3][(limbs != 0) & ((patches == 0) | (inner > 12) | (rgba[:, :, 3] < 253))] = 0
             rig['body'] = save(Image.fromarray(rgba), folder, 'body')
         else:
             rig['body'] = rig['neutral']
@@ -299,20 +503,34 @@ def build():
         rig['eyes'] = []
         for i, (ellipse, donor_shape) in enumerate(zip(cfg['eyes'], blink['eyes'], strict=True)):
             lid, blank, mask = eye_layers(clean, ellipse, donor, donor_shape, same_crop=ident == 'jelly')
-            rig['eyes'].append({
-                'shape': ellipse, 'cover': save(blank, folder, f'cover-{i}'),
-                'art': save(mask_part(clean, mask), folder, f'eye-{i}'),
-                'closed': save(lid, folder, f'closed-{i}')
-            })
+            region = mask_part(clean, mask).getbbox()
+            origin = region[:2]
+            blink_frames = [frame.crop(region) for frame in progressive_lid(clean, lid, blank, ellipse, mask)]
+            forward = gaze_layer(clean, ellipse, mask, (.095, -.13)).crop(region)
+            pondering = gaze_layer(clean, ellipse, mask, (-.083, -.13)).crop(region)
+            neutral = blink_frames[0]
+            eye = {
+                'shape': ellipse, 'blink': atlas(folder, f'blink-{i}', blink_frames, origin),
+                'interest': atlas(folder, f'interest-eye-{i}', tween(neutral, forward, 8, silhouette=False), origin),
+                'thought': atlas(folder, f'thought-eye-{i}', tween(neutral, pondering, 8, silhouette=False), origin),
+            }
+            if ident == 'jelly':
+                calm = mask_part(jelly['content'], mask).crop(region)
+                eye['content'] = atlas(folder, f'content-eye-{i}', tween(neutral, calm, 10, silhouette=False), origin)
+            rig['eyes'].append(eye)
         rig['mouths'] = []
-        if cfg['mouth']:
-            for i, ellipse in enumerate([cfg['mouth'], *cfg.get('extraMouths', [])]):
-                mask = eye_mask(clean.size, ellipse, clean)
-                mouth = {'shape': ellipse, 'cover': save(mask_part(inpaint(clean, mask), mask), folder, f'mouth-cover-{i}')}
-                if ident == 'jelly':
-                    for expression in ('surprise', 'content', 'joy', 'interest'):
-                        mouth[expression] = save(mask_part(jelly[expression], mask), folder, f'{expression}-mouth-{i}')
-                rig['mouths'].append(mouth)
+        shape = metadata.get('mouthShape', cfg['mouth'])
+        if shape:
+            for i, ellipse in enumerate([shape, *cfg.get('extraMouths', [])]):
+                donors = {id: jelly[id] for id in ('surprise', 'content', 'joy', 'interest')} if ident == 'jelly' else {}
+                for variant, local in metadata.get('mouthSources', {}).items():
+                    donor = uri_image(batch[name]['sprites'][variant])
+                    donors[variant] = register_mouth(clean, donor, ellipse, local)
+                rig['mouths'].append({
+                    'shape': ellipse, 'sources': sorted(donors),
+                    'expressions': mouth_variants(clean, ellipse, donors, folder, i,
+                                                  only=donors if ident == 'one-eye' else None)
+                })
 
         if name in batch:
             for label in ('flip1', 'flip2', 'sleep'):
@@ -346,9 +564,10 @@ def build():
                 rig['views'][label] = save(cleaned, folder, label)
             rig['flipSource'] = ('Два ракурса из концепт-листа' if ident == 'jelly' else
                                  'Воздушная поза и перевёрнутый ракурс из концепт-листа')
+        pose_atlases(clean, rig, metadata, folder)
         rig['review'] = []
         if ident == 'jelly':
-            rig['review'].append('Финальный GIF «Решимость» не перенесён. Ухмылка в каталоге требует сверки с оригиналом.')
+            rig['review'].append('Финальный утверждённый GIF «Решимость» отсутствует. Сохранено исходное выражение до сверки.')
         if ident in ('octopus', 'tongue', 'mohnatik', 'skeletoness') or rig['occluded']:
             rig['review'].append('Скрытые или спорные крепления требуют сверки с исходными видами.')
         for part in rig['limbs']:
@@ -356,8 +575,11 @@ def build():
                 part['layer'] = 0
         rigs.append(rig)
     payload = ',\n'.join('  ' + json.dumps(rig, ensure_ascii=False, separators=(',', ':')) for rig in rigs)
-    (HERE.parent / 'rigs.js').write_text('// Generated by art/build.py from the reference manifest and sources.json.\n'
-                                        'export const rigs = [\n' + payload + '\n];\n')
+    target = HERE.parent / 'rigs.js'
+    temporary = target.with_suffix('.js.tmp')
+    temporary.write_text('// Generated by art/build.py from the reference manifest and sources.json.\n'
+                         'export const rigs = [\n' + payload + '\n];\n')
+    temporary.replace(target)
 
 
 if __name__ == '__main__':

@@ -53,19 +53,26 @@ for (const width of widths) {
           failures.push(`${rig.id}: координаты креплений`);
         }
 
+        const rigFit = renderer.fit(rig);
+        renderer.draw(rig, 'idle', 0);
+        const neutralFrame = canvas.toDataURL();
         for (const [index, state] of states.entries()) {
           document.querySelectorAll('#moves button')[index].click();
           const frames = Array.from({ length: 45 }, (_, i) => i / 44);
-          let fit;
           for (const t of frames) {
             const { bounds, fit: scale } = renderer.draw(rig, state.id, t);
-            fit ??= scale;
+            const geometry = renderer.geometry(rig, state.id, t);
+            if (geometry.silhouette[3] > .01) failures.push(`${rig.id}/${state.id}: ниже земли`);
             const [left, top, right, bottom] = bounds;
-            if (fit !== scale || bounds.some(value => !Number.isFinite(value)) ||
+            if (rigFit !== scale || bounds.some(value => !Number.isFinite(value)) ||
                 left < 9 || top < 9 || right > stage.width - 9 || bottom > stage.height - 9) {
               failures.push(`${rig.id}/${state.id}/${t}: ${bounds.join(',')}`);
             }
           }
+          const endFrame = canvas.toDataURL();
+          renderer.draw(rig, state.id, state.loopFrom);
+          const loopStart = state.loop ? canvas.toDataURL() : neutralFrame;
+          if (endFrame !== loopStart) failures.push(`${rig.id}/${state.id}: шов на конце цикла`);
           if (document.querySelector('#playing').textContent !== state.label) failures.push(`${rig.id}/${state.id}: выбор`);
           combinations++;
         }
@@ -78,12 +85,10 @@ for (const width of widths) {
         let changed = false;
         for (let p = 0; p < blink.length; p += 4) {
           if ([0, 1, 2, 3].every(c => open[p + c] === blink[p + c])) continue;
-          const x = ((p / 4) % canvas.width / ratio - stage.x - transform[4]) / transform[0];
-          const y = (Math.floor(p / 4 / canvas.width) / ratio - stage.ground - transform[5]) / transform[3];
-          const inEye = rig.eyes.some(({ shape, cover }) => {
-            const [ex, ey, ew, eh] = cover.box;
-            return x >= ex - 4 && x <= ex + ew + 4 && y >= ey - 4 && y <= ey + eh + 4 && shape.length === 4;
-          });
+          const x = (((p / 4) % canvas.width / ratio - stage.x) / rigFit - transform[4]) / transform[0];
+          const y = ((Math.floor(p / 4 / canvas.width) / ratio - stage.ground) / rigFit - transform[5]) / transform[3];
+          const inEye = rig.eyes.some(({ shape: [cx, cy, rx, ry] }) =>
+            Math.abs(x - cx) <= rx + 4 && Math.abs(y - cy) <= ry + 4);
           if (!inEye) {
             failures.push(`${rig.id}: изменился пиксель за пределами глаз`);
             break;
@@ -117,7 +122,7 @@ for (const width of widths) {
       }
       const jelly = byId.jelly;
       const joints = renderer.geometry(jelly, 'thought', .55).joints;
-      const p2 = joints.find(joint => joint.id === 'P2');
+      const p2 = joints.find(joint => joint.part.id === 'P2');
       if (joints.length !== 4 || p2.to[1] >= p2.from[1]) failures.push('Желейник: жест P2');
       for (const state of states) {
         const effects = renderer.geometry(byId.tongue, state.id, .55).effects;
@@ -134,7 +139,7 @@ for (const width of widths) {
           }
         }
         const end = renderer.geometry(rig, 'flip', .82);
-        if (!middle.figure.some(part => part.asset.src.includes('/flip')) ||
+        if (!middle.figure.some(part => part.asset.src === rig.turn.src && part.asset.crop) ||
             !middle.effects.some(effect => effect.kind === 'vortex') ||
             end.effects.some(effect => effect.kind === 'vortex')) failures.push(`${rig.id}: сальтуха`);
       }
@@ -171,7 +176,7 @@ test('просмотр, пауза, возврат в дыхание, после
   await page.locator('#dark').check();
   await expect(page.locator('#picture')).toHaveClass('picture dark');
   await page.locator('#guides').check();
-  await page.locator('summary').click();
+  await page.locator('summary').filter({ hasText: 'Исходный концепт' }).click();
   await expect(page.locator('#reference')).toBeVisible();
 });
 
@@ -188,11 +193,21 @@ test('комментарии сохраняются отдельно, импор
   const file = await download;
   expect(file.suggestedFilename()).toBe('monster-review.json');
   const contents = await require('node:fs/promises').readFile(await file.path(), 'utf8');
-  expect(JSON.parse(contents)).toEqual({ version: 1, reviews: { 'jelly/idle': { status: 'revise', note: 'Проверить край при 200%' } } });
+  expect(JSON.parse(contents)).toEqual({ version: 1, reviews: { 'jelly/idle': {
+    revision: 2, status: 'revise', note: 'Проверить край при 200%', history: []
+  } } });
   await page.locator('#import').setInputFiles({
     name: 'review.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ version: 1, reviews: { 'duck/flip': { status: 'approved', note: 'Пример' } } }))
   });
+  await expect(page.locator('#progress')).toHaveText('0 / 247 согласовано');
+  await page.locator('#character').selectOption('duck');
+  await page.getByRole('button', { name: /^Сальтуха/ }).click();
+  await expect(page.locator('#note')).toHaveValue('Пример');
+  await expect(page.locator('#review-state')).toHaveText('К повторной приёмке');
+  await page.locator('#review-history summary').click();
+  await expect(page.locator('#history-items')).toContainText('Редакция 1 · Согласовано · Пример');
+  await page.locator('#approve').click();
   await expect(page.locator('#progress')).toHaveText('1 / 247 согласовано');
   await page.locator('#import').setInputFiles({
     name: 'bad.json', mimeType: 'application/json',
@@ -204,6 +219,7 @@ test('комментарии сохраняются отдельно, импор
 });
 
 test('автономный HTML открывается без сети', async ({ page }) => {
+  test.setTimeout(90_000);
   const { execFileSync } = require('node:child_process');
   const { mkdtemp, readFile, rm } = require('node:fs/promises');
   const { tmpdir } = require('node:os');
@@ -232,10 +248,10 @@ test('автономный HTML открывается без сети', async (
     await expect(progress).toHaveText('0 / 247 согласовано');
     await expect(character.locator('option')).toHaveCount(19);
     await expect(page.locator('#moves button')).toHaveCount(13);
-    await page.locator('summary').click();
+    await page.locator('summary').filter({ hasText: 'Исходный концепт' }).click();
     for (const id of await character.locator('option').evaluateAll(options => options.map(option => option.value))) {
       await character.selectOption(id);
-      await expect(page.locator('#asset-status')).toBeEmpty();
+      await expect(page.locator('#asset-status')).toBeEmpty({ timeout: 12_000 });
       await expect(page.locator('#reference')).toHaveJSProperty('complete', true);
       expect(await page.locator('#reference').evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
     }

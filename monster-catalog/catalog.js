@@ -10,7 +10,8 @@ const pauseButton = get('pause');
 const sequenceButton = get('sequence');
 const allowedKeys = new Set(rigs.flatMap(rig => states.map(state => `${rig.id}/${state.id}`)));
 const storageKey = 'schitalochka-monster-catalog-review-v1';
-const statusLabels = { pending: 'К приёмке', approved: 'Согласовано', revise: 'На правку' };
+const reviewRevision = 2;
+const statusLabels = { pending: 'К повторной приёмке', approved: 'Согласовано', revise: 'На правку' };
 const buttons = new Map();
 const clock = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -25,19 +26,56 @@ let request = 0;
 let generation = 0;
 let lastTime = null;
 
+function checkedSnapshot(data, fallback = 1) {
+  const revision = data?.revision ?? fallback;
+  if (!Object.hasOwn(statusLabels, data?.status) || typeof data.note !== 'string' ||
+      data.note.length > 12000 || !Number.isInteger(revision) || revision < 1 || revision > reviewRevision) {
+    throw new Error('Некорректный статус, заметка или редакция.');
+  }
+  return { revision, status: data.status, note: data.note };
+}
+
+function uniqueHistory(entries) {
+  return [...new Map(entries.map(entry => [JSON.stringify(entry), entry])).values()];
+}
+
 function checkedReviews(value) {
   if (value?.version !== 1 || !value.reviews || Array.isArray(value.reviews) || typeof value.reviews !== 'object') {
     throw new Error('В файле ожидается экспорт каталога версии 1.');
   }
   const accepted = Object.create(null);
   for (const [key, data] of Object.entries(value.reviews)) {
-    if (!allowedKeys.has(key) || !Object.hasOwn(statusLabels, data?.status) ||
-        typeof data.note !== 'string' || data.note.length > 12000) {
+    if (!allowedKeys.has(key) || (data?.history !== undefined && !Array.isArray(data.history))) {
       throw new Error(`Некорректная запись «${key}».`);
     }
-    accepted[key] = { status: data.status, note: data.note };
+    const snapshot = checkedSnapshot(data);
+    const history = (data.history || []).map(entry => checkedSnapshot(entry));
+    accepted[key] = snapshot.revision < reviewRevision
+      ? { revision: reviewRevision, status: 'pending', note: snapshot.note, history: uniqueHistory([...history, snapshot]) }
+      : { ...snapshot, history: uniqueHistory(history) };
   }
   return accepted;
+}
+
+function mergeReviews(old, incoming) {
+  const combined = Object.assign(Object.create(null), old);
+  for (const [key, entry] of Object.entries(incoming)) {
+    const previous = old[key];
+    if (!previous) {
+      combined[key] = entry;
+      continue;
+    }
+    const preserveCurrent = entry.status === 'pending' && entry.history.some(item => item.revision < reviewRevision)
+      && previous.status !== 'pending';
+    const primary = preserveCurrent ? previous : entry;
+    const secondary = preserveCurrent ? entry : previous;
+    const history = [...previous.history, ...entry.history];
+    if (secondary.status !== 'pending' || (secondary.note && secondary.note !== primary.note)) {
+      history.push(checkedSnapshot(secondary));
+    }
+    combined[key] = { ...primary, history: uniqueHistory(history) };
+  }
+  return combined;
 }
 
 function readReviews() {
@@ -70,6 +108,14 @@ function updateReviews(updateNote = true) {
   get('progress').textContent = `${approved} / ${allowedKeys.size} согласовано`;
   get('review-state').textContent = statusLabels[entry?.status || 'pending'];
   if (updateNote) get('note').value = entry?.note || '';
+  const history = entry?.history || [];
+  get('review-history').hidden = !history.length;
+  get('history-items').replaceChildren(...history.map(item => {
+    const li = document.createElement('li');
+    const label = item.revision === 1 && item.status === 'pending' ? 'К приёмке' : statusLabels[item.status];
+    li.textContent = `Редакция ${item.revision} · ${label}${item.note ? ` · ${item.note}` : ''}`;
+    return li;
+  }));
   for (const state of states) {
     const button = buttons.get(state.id);
     const status = reviews[reviewKey(state)]?.status || 'pending';
@@ -83,8 +129,11 @@ function updateReviews(updateNote = true) {
 function setReview(status) {
   const key = reviewKey();
   const note = get('note').value;
-  if (status === 'pending' && !note) delete reviews[key];
-  else reviews[key] = { status, note };
+  const previous = reviews[key];
+  const history = [...(previous?.history || [])];
+  if (previous && previous.status !== 'pending' && previous.status !== status) history.push(checkedSnapshot(previous));
+  if (status === 'pending' && !note && !history.length) delete reviews[key];
+  else reviews[key] = { revision: reviewRevision, status, note, history: uniqueHistory(history) };
   get('review-message').textContent = '';
   persist();
   updateReviews(false);
@@ -133,8 +182,10 @@ function tick(now) {
       setState(next % states.length);
       return;
     }
-    if (state.loop) elapsed %= state.duration;
-    else if (elapsed > state.duration + states[0].duration) {
+    if (state.loop) {
+      const start = state.loopFrom * state.duration;
+      elapsed = start + (elapsed - start) % (state.duration - start);
+    } else if (elapsed > state.duration + states[0].duration) {
       elapsed = state.duration + (elapsed - state.duration) % states[0].duration;
     }
   }
@@ -183,7 +234,7 @@ async function setCharacter(index) {
   get('asset-status').textContent = 'Загрузка слоёв…';
   get('stage').getContext('2d').clearRect(0, 0, get('stage').width, get('stage').height);
   try {
-    await renderer.load(rig);
+    await renderer.load(rig, { releaseOtherRigs: true });
     if (loading !== generation) return;
     ready = true;
     get('asset-status').textContent = '';
@@ -270,7 +321,7 @@ get('import').onchange = async event => {
   if (!file) return;
   try {
     const imported = checkedReviews(JSON.parse(await file.text()));
-    reviews = Object.assign(Object.create(null), reviews, imported);
+    reviews = mergeReviews(reviews, imported);
     const saved = persist();
     updateReviews();
     if (saved) get('review-message').textContent = `Импортировано записей: ${Object.keys(imported).length}.`;

@@ -498,7 +498,19 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:auto;min-height:20px}
 .hero .stats>.stat>b{margin-top:2px;line-height:20px;min-height:20px}
 .hero .stats>.stat>.pbar+.fine{margin-top:3px}
-.hero .home-detail-link{padding:3px 0;min-height:24px}
+.hero .hero-head{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.hero .hero-balance-label{display:inline-flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}.hero .hero-balance-label>span{min-width:0;white-space:normal;line-height:1.2}
+.hero .hero-head .ibtn{flex-shrink:0}
+.hero .hero-head .ibtn::after{inset:-5px -2px}
+.hero .hero-head .hero-balance-label{flex:0 1 auto}
+.hero .hero-head .home-detail-link{max-width:100%}
+.hero .hero-head .home-detail-link::after{inset:-5px 0 -5px -3px}
+
+.hero .home-detail-link{flex:0 0 auto;width:auto;text-align:right;padding:3px 0 3px 4px;min-height:24px;font-size:clamp(11px,3.4vw,13px);white-space:nowrap}
+@media(max-width:360px){.hero .hero-balance-label{font-size:12px;gap:3px}}
+.bigtext .hero .hero-head{flex-wrap:wrap}
+.bigtext .hero .home-detail-link{margin-left:auto}
+
 .hero .stats>.stat>.lbl{height:auto;min-height:16px;line-height:1.2;white-space:normal;overflow:visible}
 .hero .stats>.stat.main{background:rgba(255,255,255,.2);box-shadow:none}.hero .stats>.stat>.lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hero .stats>.stat>b{margin-top:3px}
@@ -517,9 +529,12 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 .hero .stats>.stat{display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);position:relative;aspect-ratio:1;min-height:0;gap:5px;padding:8px 5px;text-align:center}
 .hero .stats>.stat>.lbl,.bigtext .hero .stats>.stat>.lbl{align-self:start;min-height:0;height:auto;font-size:clamp(11px,3.8vw,15px);font-weight:500;line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}
-.hero .stats>.stat>b{align-self:start;margin:0;min-height:0;font-size:clamp(14px,4.8vw,21px);line-height:1.15;letter-spacing:-.025em;overflow-wrap:anywhere}
+.hero .stats>.stat>b{align-self:start;margin:0 -2px;min-width:0;min-height:0;font-size:clamp(15px,4.8vw,21px);line-height:1.15;letter-spacing:-.025em;white-space:nowrap;overflow-wrap:normal;position:relative;z-index:1}
+.hero .stats>.stat>.tile-stars{position:absolute;left:3px;right:3px;bottom:3px;width:calc(100% - 6px);height:24%;max-height:30px;color:var(--tile-sparkle,currentColor);pointer-events:none}
+.bigtext .hero .stats>.stat>.tile-stars{height:20%}
+
 @media(max-width:360px){.hero .stats>.stat{padding:6px 4px;gap:4px}}
-.bigtext .hero .stats>.stat{aspect-ratio:auto;min-height:86px;grid-template-rows:auto auto;align-content:center}
+.bigtext .hero .stats>.stat{aspect-ratio:auto;min-height:96px;grid-template-rows:auto auto;align-content:center;padding-bottom:22px}
 
 
 </style>
@@ -1693,13 +1708,13 @@ var MONS=[
 function petKind(){var k=S&&S.pet&&S.pet.kind;return MONS.some(function(m){return m.id===k})?k:'fluff'}
 function monsVisible(cur){return MONS.filter(function(m){return !m.hidden||m.id===cur})}
 /* ---------- цветовая тема под монстрика ---------- */
-var PTHEME={puff:{h:330,s:88,h2:345},slime:{h:162,s:70,h2:180,la:30},
- rat:{h:215,s:9,h2:210,force:1,gt:30,hl:1,silver:1},fluff:{h:260,s:85,h2:268},mouse:{h:30,s:28,h2:20,la:36,hl:1},frog:{h:128,s:62,h2:150,la:30},
- duck:{h:50,s:70,h2:42,la:32,hl:1},cat:{h:10,s:70,h2:24,la:40},
- skel:{h:350,s:70,h2:42,force:1,gt:20,ov:{accent:'#e6bd45','accent-ink':'#1a0c0e',hero1:'#caa032',hero2:'#f3dc8c',heroink:'#1a0c0e'}},
- skelf:{h:272,s:52,h2:285,force:1,gt:30,ov:{hero1:'#a99bd0',hero2:'#ece7f8',heroink:'#1d1230'}},
- straw:{h:355,s:82,h2:138,force:1,gt:18,ov:{accent:'#ff8d99','accent-ink':'#3a0a10',hero1:'#e8283f',hero2:'#8f1226',heroink:'#ffffff'}},
- cher:{h:343,s:78,h2:352,force:1,gt:24,ov:{accent:'#f06a8c','accent-ink':'#2e0814',hero1:'#c0143a',hero2:'#6a0b24',heroink:'#ffffff'}}};
+var PTHEME={puff:{spark:'#ffd5ed',h:330,s:88,h2:345},slime:{spark:'#c1fff0',h:162,s:70,h2:180,la:30},
+ rat:{spark:'#47576f',h:215,s:9,h2:210,force:1,gt:30,hl:1,silver:1},fluff:{spark:'#e5c9ff',h:260,s:85,h2:268},mouse:{spark:'#fff0c9',h:30,s:28,h2:20,la:36,hl:1},frog:{spark:'#d4ffb5',h:128,s:62,h2:150,la:30},
+ duck:{spark:'#93701d',h:50,s:70,h2:42,la:32,hl:1},cat:{spark:'#ffddb3',h:10,s:70,h2:24,la:40},
+ skel:{spark:'#fff2c0',h:350,s:70,h2:42,force:1,gt:20,ov:{accent:'#e6bd45','accent-ink':'#1a0c0e',hero1:'#caa032',hero2:'#f3dc8c',heroink:'#1a0c0e'}},
+ skelf:{spark:'#74618f',h:272,s:52,h2:285,force:1,gt:30,ov:{hero1:'#a99bd0',hero2:'#ece7f8',heroink:'#1d1230'}},
+ straw:{spark:'#ffc4cf',h:355,s:82,h2:138,force:1,gt:18,ov:{accent:'#ff8d99','accent-ink':'#3a0a10',hero1:'#e8283f',hero2:'#8f1226',heroink:'#ffffff'}},
+ cher:{spark:'#ffafc9',h:343,s:78,h2:352,force:1,gt:24,ov:{accent:'#f06a8c','accent-ink':'#2e0814',hero1:'#c0143a',hero2:'#6a0b24',heroink:'#ffffff'}}};
 function hsl(h,s,l){return 'hsl('+Math.round(h)+','+Math.round(Math.min(100,s))+'%,'+Math.round(l)+'%)'}
 function hslHex(h,s,l){s=Math.min(100,s)/100;l/=100;var a=s*Math.min(l,1-l),f=function(n){var k=(n+h/30)%12,c=l-a*Math.max(-1,Math.min(k-3,9-k,1));return ('0'+Math.round(c*255).toString(16)).slice(-2)};return '%23'+f(0)+f(8)+f(4)}
 function petVars(p,dark,graf){
@@ -1714,6 +1729,7 @@ function petVars(p,dark,graf){
      grad:'linear-gradient(165deg,'+hsl(h2,s,97)+' 0%,'+hsl(h,s,95)+' 50%,'+hsl(h,s,90)+' 100%)',gc:hslHex(h,s,la)};
   }
   if(p.ov)for(var q in p.ov)v[q]=p.ov[q];
+  v['tile-sparkle']=p.spark||v.heroink;
   var o='';for(var k in v){if(k==='gc')continue;o+='--'+k+':'+v[k]+';'}
   if(graf)o+='--graf:'+graf.replace(/%23[0-9a-fA-F]{6}/g,v.gc)+';';
   return o+(dark?'color-scheme:dark;':'')}
@@ -2471,25 +2487,39 @@ function homeBudgetDetails(pd,spent,left,metrics){
   if(metrics){
     h+='<div class="budget-month">'+line('В среднем за день',money(metrics.avg))+planBar(metrics.avg)+line('Потрачено за месяц',money(metrics.total))+(metrics.extra>0?line('Отдельные траты',money(metrics.extra)):'')+(metrics.irrNote?'<p class="fine budget-period">'+metrics.irrNote+'</p>':'')+'</div>';
   }
-  return '<button type="button" class="fine home-detail-link" data-a="tip" data-v="h_can" aria-expanded="false" aria-controls="tip_h_can">Подробнее</button>'+tipBox('h_can',h);
+  return tipBox('h_can',h);
 }
+function homeHeroHead(){return '<div class="hero-head"><span class="lbl hero-balance-label"><span>Свободные деньги</span>'+tipBtn('h_bal')+'</span><button type="button" class="fine home-detail-link" data-a="tip" data-v="h_can" aria-expanded="false" aria-controls="tip_h_can">Подробнее</button></div>'}
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));
   var irr=S.irreg?irrSummary():null;
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
-  var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+'<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('На сегодня',dayLimit()>0?money(Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v)))):'—',null,null,'main'))+statTile('В среднем',money(lnet/dnum))+statTile('За месяц',money(lnet))+'</div>'+homeBudgetDetails(null,Math.max(0,dayNet(T).v),dayLimit()>0?Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v))):null,{avg:lnet/dnum,total:lnet,extra:0,irrNote:irr&&irr.note})+'</div>';
+  var hero='<div class="card hero">'+homeHeroHead()+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+'<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('На сегодня',dayLimit()>0?money(Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v)))):'—',null,null,'main'))+statTile('В среднем',money(lnet/dnum))+statTile('За месяц',money(lnet))+'</div>'+homeBudgetDetails(null,Math.max(0,dayNet(T).v),dayLimit()>0?Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v))):null,{avg:lnet/dnum,total:lnet,extra:0,irrNote:irr&&irr.note})+'</div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
   var recent='<div class="card"><h2>🧾 Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Запиши первую трату, и тут появится история.</p><div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button></div></div>';
   return demo+oneNote()+fcHero(hero)+monsterCard(me,lnet,dnum)+tplCard()+progCard()+accountsCard()+recent;
 }
 function irrSummary(){var P=fcPace();if(P.kn<5)return {value:'…',note:'Мало записей для прогноза'};var r=fcRun(P.pace);return {value:r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ мес.',note:r.date?'Хватит до '+r.date.slice(8)+'.'+r.date.slice(5,7):'Хватит при этом темпе'}}
-function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+'</div>'}
+function tileStars(){return '<svg class="tile-stars" viewBox="0 0 104 28" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g fill="currentColor" opacity=".65"><path d="M12 11Q12 19 20 19Q12 19 12 27Q12 19 4 19Q12 19 12 11ZM92 11Q92 19 100 19Q92 19 92 27Q92 19 84 19Q92 19 92 11ZM25 21Q25 25 29 25Q25 25 25 29Q25 25 21 25Q25 25 25 21ZM79 21Q79 25 83 25Q79 25 79 29Q79 25 75 25Q79 25 79 21ZM8 1Q8 4 11 4Q8 4 8 7Q8 4 5 4Q8 4 8 1ZM96 1Q96 4 99 4Q96 4 96 7Q96 4 93 4Q96 4 96 1Z"/></g><path d="M2 5V18Q2 26 12 26M102 5V18Q102 26 92 26" stroke="currentColor" fill="none" stroke-width=".8" opacity=".4"/></svg>'}
+function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+tileStars()+'</div>'}
+function fitWalletAmounts(){
+  document.querySelectorAll('.hero .stats>.stat>b').forEach(function(el){
+    el.style.fontSize='';el.style.whiteSpace='';el.style.overflowWrap='';
+    if(!el.clientWidth)return;
+    var size=parseFloat(getComputedStyle(el).fontSize);
+    while(el.scrollWidth>el.clientWidth&&size>10){size=Math.max(10,size-.5);el.style.fontSize=size+'px'}
+    if(el.scrollWidth>el.clientWidth){el.style.whiteSpace='normal';el.style.overflowWrap='anywhere'}
+  });
+}
+window.addEventListener('resize',fitWalletAmounts);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitWalletAmounts);
+
 function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#7ee2a8':r<=1?'#ffd166':'#ff8f8f';return '<span class="pbar"><i style="width:'+Math.min(100,Math.round(r*100))+'%;background:'+c+'"></i></span>'}
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
   var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday)),irr=S.irreg?irrSummary():null;
-  var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
+  var hero='<div class="card hero">'+homeHeroHead()+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
    '<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('На сегодня',money(todayLeft),null,null,'main'))+
    statTile('В среднем',money(lifeNet(me)/dnum))+
    statTile('За месяц',money(lifeNet(me)))+'</div>'+homeBudgetDetails(pd,spentToday,todayLeft,{avg:lifeNet(me)/dnum,total:lifeNet(me),extra:Math.round(exp-sum(life(me),'e')),irrNote:irr&&irr.note})+'</div>';
@@ -3951,6 +3981,7 @@ function render(){try{document.documentElement.classList.toggle('firstrec',!S.de
   PI_ON=1;PI_C=null;var v;try{v=tab==='home'?viewHome():tab==='hist'?viewHist():tab==='an'?viewAn():viewPlan()}finally{PI_ON=0;PI_C=null}
   if(tab==='home')v='<div class="top"><h1>считалОчка</h1>'+(ydOn()&&!DB?'<span style="margin-left:auto"></span>':'<span class="fine" id="syncb" style="margin-left:auto">'+syncLabel()+'</span>')+petBtn()+'<button class="ico q" data-a="help" aria-label="Как пользоваться">?</button><button class="ico" data-a="settings" aria-label="Настройки">'+IC.gear+'</button></div>'+(ydOn()&&!DB?'<div class="syncrow"><button type="button" class="syncbtn" id="syncbtn" data-a="ydTap" aria-label="Обновить: синхронизировать с Яндекс Диском">'+syncBtnHtml()+'</button></div>':(!ydOn()&&!DB&&S.onb&&!S.demo&&!ydHidden()&&realDays()>=3?'<div class="syncrow"><button type="button" class="syncbtn" data-a="ydIn" aria-label="Подключить Яндекс Диск"><b>☁ Подключить Диск</b></button><button type="button" class="fine" data-a="ydHide" style="margin-left:12px;text-decoration:underline">не нужно</button></div>':''))+modeSwitch()+v;
   var y=window.scrollY||0;document.getElementById('app').innerHTML=v;
+  fitWalletAmounts();
   renderTabs();
   if(y){window.scrollTo(0,y);requestAnimationFrame(function(){if(Math.abs((window.scrollY||0)-y)>2)window.scrollTo(0,y)})} // не прыгать наверх после сохранения/удаления
 }

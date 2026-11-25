@@ -1,0 +1,2053 @@
+[
+  {
+    "name": "Желейник",
+    "source": "Вупсень_ неоновые эмоции и сон.png",
+    "reference": "jelly-idle.png",
+    "size": [
+      313,
+      250
+    ],
+    "description": "4 короткие округлые лапки, слиты с телом. Два фиолетовых рожка, два глаза, пятна. Использован утверждённый кадр.",
+    "motion_rule": "Рабочая разметка: две боковые и две нижние. При жесте двигать боковую лапку от её основания внутрь; не добавлять отдельный овал.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.147,
+          0.572
+        ],
+        "tip": [
+          0.0288,
+          0.64
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.853,
+          0.56
+        ],
+        "tip": [
+          0.9712,
+          0.612
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.3674,
+          0.832
+        ],
+        "tip": [
+          0.4026,
+          0.964
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.623,
+          0.828
+        ],
+        "tip": [
+          0.6613,
+          0.964
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.3994,
+          0.444
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7093,
+          0.44
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.5623,
+          0.548
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.3259,
+          0.12
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рожок",
+        "center": [
+          0.6965,
+          0.116
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "пятно",
+        "center": [
+          0.4377,
+          0.744
+        ]
+      },
+      {
+        "id": "D7",
+        "name": "пятно",
+        "center": [
+          0.6358,
+          0.804
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Растенник",
+    "source": "Вупсень_ эмоции, действия и сон.png",
+    "reference": "source_crop",
+    "size": [
+      333,
+      263
+    ],
+    "description": "4 лапки (в листе указано явно). Две передние видны; две задние под телом. Хохолок, ушки-листья, короткий хвост, пятна.",
+    "motion_rule": "Передние округлые; не использовать ушки и хвост как лапки.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2833,
+          0.8105
+        ],
+        "tip": [
+          0.2625,
+          0.8948
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.6208,
+          0.8105
+        ],
+        "tip": [
+          0.6417,
+          0.8948
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.3208,
+          0.7632
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.6042,
+          0.7632
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.2917,
+          0.4737
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.5833,
+          0.4737
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.4292,
+          0.5684
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "хохолок",
+        "center": [
+          0.4542,
+          0.1737
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "ушко",
+        "center": [
+          0.1125,
+          0.4
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "ушко",
+        "center": [
+          0.8542,
+          0.4158
+        ]
+      },
+      {
+        "id": "D7",
+        "name": "хвост",
+        "center": [
+          0.8958,
+          0.7316
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Рожастик",
+    "source": "Неоновый справочник Рожастика_ эмоции и движения.png",
+    "reference": "source_crop",
+    "size": [
+      324,
+      268
+    ],
+    "description": "4 короткие округлые лапки, всегда под телом. Два рожка, пучки перьев, завитой хвост.",
+    "motion_rule": "Не поднимать перья вместо лапок; точное крепление задней пары скрыто.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2609,
+          0.9
+        ],
+        "tip": [
+          0.2652,
+          0.9421
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.5652,
+          0.9053
+        ],
+        "tip": [
+          0.5609,
+          0.9684
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.3478,
+          0.9
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.7087,
+          0.9
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.2174,
+          0.5
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.4435,
+          0.5105
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.3044,
+          0.5895
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.3435,
+          0.1737
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рожок",
+        "center": [
+          0.5,
+          0.1684
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "перья",
+        "center": [
+          0.7826,
+          0.2368
+        ]
+      },
+      {
+        "id": "D7",
+        "name": "хвост",
+        "center": [
+          0.9391,
+          0.7526
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Одноглазик",
+    "source": "Одноглазик_ эмоции, действия и сон.png",
+    "reference": "source_crop",
+    "size": [
+      317,
+      258
+    ],
+    "description": "6 лапок по листу: 2 округлые передние, 2 плоские боковые и 2 плоские задние. Один глаз.",
+    "motion_rule": "Передние всегда рядом; боковые и задние расходятся диагонально. Не считать верхние выступы лапками.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.3391,
+          0.7105
+        ],
+        "tip": [
+          0.2875,
+          0.821
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.5537,
+          0.7158
+        ],
+        "tip": [
+          0.588,
+          0.8474
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.1674,
+          0.6316
+        ],
+        "tip": [
+          0.0773,
+          0.679
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.8197,
+          0.5947
+        ],
+        "tip": [
+          0.9099,
+          0.5579
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P5",
+        "root": [
+          0.2361,
+          0.7631
+        ],
+        "tip": [
+          0.1888,
+          0.8474
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P6",
+        "root": [
+          0.8026,
+          0.7474
+        ],
+        "tip": [
+          0.8927,
+          0.8
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5794,
+          0.3684
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "рот",
+        "center": [
+          0.3519,
+          0.4842
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Пухлик",
+    "source": "Пухлик_ эмоции, действия и сон.png",
+    "reference": "source_crop",
+    "size": [
+      324,
+      264
+    ],
+    "description": "4 лапки: 2 передние и 2 задние. Мягкие округлые лапы, полосатые рожки, шерсть и пятна.",
+    "motion_rule": "Передние видимы; задние скрыты под шерстью в нейтральной позе.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.3262,
+          0.7421
+        ],
+        "tip": [
+          0.3133,
+          0.8316
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7253,
+          0.7421
+        ],
+        "tip": [
+          0.7382,
+          0.8263
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.1502,
+          0.7211
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.897,
+          0.7211
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.3691,
+          0.4474
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.6781,
+          0.4526
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.5536,
+          0.5579
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.3262,
+          0.1316
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рожок",
+        "center": [
+          0.691,
+          0.1316
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Языкастик",
+    "source": "Языкастик_ эмоции, действия и сон.png",
+    "reference": "source_crop",
+    "size": [
+      293,
+      262
+    ],
+    "description": "Кремовое тело, коричневые рожки, язык, пятнистый хвост. 4 лапки — рабочая гипотеза по общему правилу; точное число в индивидуальном листе не подписано.",
+    "motion_rule": "Видимые короткие лапки под телом, задние уточнить; язык и хвост не лапки.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.275,
+          0.6263
+        ],
+        "tip": [
+          0.2917,
+          0.7664
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.5208,
+          0.6496
+        ],
+        "tip": [
+          0.5208,
+          0.7851
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.7,
+          0.6216
+        ],
+        "tip": [
+          0.6917,
+          0.7524
+        ],
+        "status": "candidate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.6167,
+          0.6309
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.2542,
+          0.4253
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.5458,
+          0.4674
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот/язык",
+        "center": [
+          0.4,
+          0.5889
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.4958,
+          0.1684
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рожок",
+        "center": [
+          0.7917,
+          0.2665
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "хвост",
+        "center": [
+          0.9292,
+          0.4674
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Мохнатик",
+    "source": "Мохнатик_ финальный дизайн монстрика.png",
+    "reference": "source_crop",
+    "size": [
+      245,
+      261
+    ],
+    "description": "Один глаз, золотистые рожки, слоистая пушистая фактура. Две лапки отчётливо видны спереди; 4 — рабочая гипотеза по прыжку и общему листу.",
+    "motion_rule": "Не путать пряди шерсти с лапками; задние проверить.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.4663,
+          0.7263
+        ],
+        "tip": [
+          0.4831,
+          0.8
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7191,
+          0.7105
+        ],
+        "tip": [
+          0.7528,
+          0.7842
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.3652,
+          0.6948
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.8427,
+          0.6948
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.6236,
+          0.3895
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "рот",
+        "center": [
+          0.6292,
+          0.6052
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рожок",
+        "center": [
+          0.264,
+          0.2052
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.6966,
+          0.1631
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Пушистик",
+    "source": "Пушистик_ неоновый лист концепта.png",
+    "reference": "source_crop",
+    "size": [
+      241,
+      261
+    ],
+    "description": "4 лапки по листу: передние маленькие, задние опорные. Острые пряди, золотистые рожки, два глаза.",
+    "motion_rule": "Пряди — часть силуэта, не конечности. Задние скрыты в спокойной позе.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.4571,
+          0.7105
+        ],
+        "tip": [
+          0.4629,
+          0.7895
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7486,
+          0.7158
+        ],
+        "tip": [
+          0.7486,
+          0.7842
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.2743,
+          0.7052
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.9086,
+          0.7052
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.44,
+          0.4579
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7829,
+          0.4579
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.6457,
+          0.5526
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "рожок",
+        "center": [
+          0.2857,
+          0.1842
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рожок",
+        "center": [
+          0.7829,
+          0.1842
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Вишенка",
+    "source": "Вишенка — неоновый концепт персонажа.png",
+    "reference": "source_crop",
+    "size": [
+      237,
+      259
+    ],
+    "description": "4 лапки на пару согласно листу, две ягоды соединены общими черешками. Два лица, общий листик.",
+    "motion_rule": "Не разделять ягоды; две лапки на каждой в качестве рабочей схемы.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2586,
+          0.7368
+        ],
+        "tip": [
+          0.2471,
+          0.779
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.4023,
+          0.7368
+        ],
+        "tip": [
+          0.4138,
+          0.779
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.6724,
+          0.7368
+        ],
+        "tip": [
+          0.6667,
+          0.779
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.7931,
+          0.7368
+        ],
+        "tip": [
+          0.7989,
+          0.779
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.2873,
+          0.5368
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.4655,
+          0.5368
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "глаз",
+        "center": [
+          0.6609,
+          0.5316
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "глаз",
+        "center": [
+          0.8621,
+          0.5316
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "рот",
+        "center": [
+          0.4425,
+          0.621
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "рот",
+        "center": [
+          0.7873,
+          0.6105
+        ]
+      },
+      {
+        "id": "D7",
+        "name": "листик",
+        "center": [
+          0.4195,
+          0.1526
+        ]
+      },
+      {
+        "id": "D8",
+        "name": "черешки",
+        "center": [
+          0.6552,
+          0.0895
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Клубничка",
+    "source": "Клубничка — неоновый концепт персонажа.png",
+    "reference": "source_crop",
+    "size": [
+      233,
+      235
+    ],
+    "description": "4 лапки по листу; спереди видны две округлые, задние частично скрыты. Листочки, цветок и семечки.",
+    "motion_rule": "Поднимать переднюю лапку только от её основания; цветок не отделять.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.4521,
+          0.7789
+        ],
+        "tip": [
+          0.4787,
+          0.8053
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7287,
+          0.7684
+        ],
+        "tip": [
+          0.766,
+          0.8053
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.2979,
+          0.7842
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.8724,
+          0.7684
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.4734,
+          0.4842
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.8191,
+          0.4474
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.6755,
+          0.5474
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "цветок",
+        "center": [
+          0.5053,
+          0.2369
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "листья",
+        "center": [
+          0.4734,
+          0.1
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Лягушонок",
+    "source": "Лягушонок — финальный дизайн-лист.png",
+    "reference": "source_crop",
+    "size": [
+      198,
+      199
+    ],
+    "description": "4 лапки: две передние с пальчиками, две задние опорные. Крупные глаза, пятна и светлый живот.",
+    "motion_rule": "Передние сгибаются у корпуса; задние обеспечивают отталкивание.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2857,
+          0.5579
+        ],
+        "tip": [
+          0.3333,
+          0.6737
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7355,
+          0.5526
+        ],
+        "tip": [
+          0.6984,
+          0.6789
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.1693,
+          0.6211
+        ],
+        "tip": [
+          0.1534,
+          0.6789
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.8624,
+          0.6211
+        ],
+        "tip": [
+          0.8836,
+          0.6737
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.2963,
+          0.1737
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7196,
+          0.1789
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.5291,
+          0.2421
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "живот",
+        "center": [
+          0.5291,
+          0.4789
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Котик",
+    "source": "Неоновый концепт котика.png",
+    "reference": "source_crop",
+    "size": [
+      252,
+      283
+    ],
+    "description": "4 лапки по листу: две маленькие передние, две крупнее с подушечками. Ушки, полоски, хвост.",
+    "motion_rule": "Передние — для жестов; задние — опорные, в прыжке все 4 видны.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.5087,
+          0.6415
+        ],
+        "tip": [
+          0.5462,
+          0.7228
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.68,
+          0.6367
+        ],
+        "tip": [
+          0.7336,
+          0.7228
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [
+      {
+        "id": "H1",
+        "region_hint": [
+          0.3909,
+          0.6941
+        ],
+        "status": "occluded_unverified"
+      },
+      {
+        "id": "H2",
+        "region_hint": [
+          0.8086,
+          0.6893
+        ],
+        "status": "occluded_unverified"
+      }
+    ],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5408,
+          0.3595
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7925,
+          0.3404
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.7175,
+          0.4025
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "ухо",
+        "center": [
+          0.3481,
+          0.1827
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "ухо",
+        "center": [
+          0.7925,
+          0.1397
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "хвост",
+        "center": [
+          0.1767,
+          0.5364
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Мышка",
+    "source": "Мышка — финальный вариант концепт-листа.png",
+    "reference": "source_crop",
+    "size": [
+      216,
+      242
+    ],
+    "description": "4 лапки по листу: маленькие передние «ручные», задние опорные. Круглые уши, тонкий хвост, короткая мордочка.",
+    "motion_rule": "Передние могут подниматься к мордочке; задние остаются опорой.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.5771,
+          0.5768
+        ],
+        "tip": [
+          0.602,
+          0.6345
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7065,
+          0.5768
+        ],
+        "tip": [
+          0.7313,
+          0.6212
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.4826,
+          0.7631
+        ],
+        "tip": [
+          0.5324,
+          0.8341
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.7612,
+          0.7587
+        ],
+        "tip": [
+          0.7761,
+          0.8297
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5025,
+          0.3283
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7712,
+          0.3106
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.6667,
+          0.4348
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "ухо",
+        "center": [
+          0.3383,
+          0.1997
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "ухо",
+        "center": [
+          0.8209,
+          0.1863
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "хвост",
+        "center": [
+          0.2935,
+          0.741
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Крыска",
+    "source": "Финальный концепт крыски в неоновом стиле.png",
+    "reference": "source_crop",
+    "size": [
+      201,
+      246
+    ],
+    "description": "4 лапки: маленькие передние хваткие, задние опорные. Заострённые уши, сегментированный хвост, удлинённая морда и резцы.",
+    "motion_rule": "Передние — жесты, задние — опора. Хвост отдельный.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.5706,
+          0.6166
+        ],
+        "tip": [
+          0.6412,
+          0.6597
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7059,
+          0.6118
+        ],
+        "tip": [
+          0.7412,
+          0.6741
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.4529,
+          0.885
+        ],
+        "tip": [
+          0.5059,
+          0.9617
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.7412,
+          0.8754
+        ],
+        "tip": [
+          0.8294,
+          0.9521
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5647,
+          0.3147
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "рот",
+        "center": [
+          0.8177,
+          0.4393
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "ухо",
+        "center": [
+          0.3529,
+          0.1997
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "ухо",
+        "center": [
+          0.7,
+          0.1517
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "хвост",
+        "center": [
+          0.1412,
+          0.7316
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Осьминожка",
+    "source": "Осьминожка — неоновый концепт-лист.png",
+    "reference": "source_crop",
+    "size": [
+      234,
+      256
+    ],
+    "description": "Гибкие щупальца с присосками, пятна на голове, два глаза. Количество не установлено однозначно: лист упоминает «все 4 лапки», но рисунок показывает щупальца.",
+    "motion_rule": "Не утверждать число щупалец до согласования. Отмечены только видимые основания и концы.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2241,
+          0.5526
+        ],
+        "tip": [
+          0.092,
+          0.6263
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.3506,
+          0.5789
+        ],
+        "tip": [
+          0.2701,
+          0.7211
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.5115,
+          0.5842
+        ],
+        "tip": [
+          0.5517,
+          0.7421
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.6782,
+          0.5632
+        ],
+        "tip": [
+          0.7759,
+          0.7
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P5",
+        "root": [
+          0.8333,
+          0.5368
+        ],
+        "tip": [
+          0.8965,
+          0.6211
+        ],
+        "status": "candidate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.4138,
+          0.3421
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7529,
+          0.3211
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.6265,
+          0.4368
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "пятна",
+        "center": [
+          0.4483,
+          0.1053
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Слизень",
+    "source": "Слизень — концепт с одним глазом.png",
+    "reference": "source_crop",
+    "size": [
+      233,
+      256
+    ],
+    "description": "Один глаз, желейное тело, верхняя капелька. Число отдельных лапок в листе не указано: видны округлые выступы основания.",
+    "motion_rule": "Не превращать капельки и выступы в дополнительные конечности. Пока анимировать тело целиком.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.2255,
+          0.6526
+        ],
+        "tip": [
+          0.1734,
+          0.7
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.3815,
+          0.6842
+        ],
+        "tip": [
+          0.393,
+          0.7368
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.7052,
+          0.6842
+        ],
+        "tip": [
+          0.6994,
+          0.7421
+        ],
+        "status": "candidate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.8844,
+          0.6632
+        ],
+        "tip": [
+          0.9248,
+          0.7053
+        ],
+        "status": "candidate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5549,
+          0.4316
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "рот",
+        "center": [
+          0.5838,
+          0.6211
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "капелька",
+        "center": [
+          0.5607,
+          0.1526
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Скелетон",
+    "source": "Скелетон — неоновый лист персонажа.png",
+    "reference": "source_crop",
+    "size": [
+      206,
+      237
+    ],
+    "description": "2 костяные руки, 2 ноги, пальцы. Капюшон с золотыми деталями, без хвоста.",
+    "motion_rule": "Руки и ноги — отдельные суставные цепочки; не добавлять подушечки.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.3567,
+          0.5433
+        ],
+        "tip": [
+          0.2486,
+          0.6987
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7081,
+          0.5433
+        ],
+        "tip": [
+          0.8,
+          0.6893
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.4595,
+          0.6799
+        ],
+        "tip": [
+          0.3784,
+          0.9294
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.5946,
+          0.6799
+        ],
+        "tip": [
+          0.6919,
+          0.9294
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.3838,
+          0.2938
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.7081,
+          0.2985
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.5567,
+          0.4115
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "капюшон",
+        "center": [
+          0.5459,
+          0.1526
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Скелетесса",
+    "source": "Скелетесса_ финальный дизайн-лист.png",
+    "reference": "source_crop",
+    "size": [
+      244,
+      256
+    ],
+    "description": "2 костяные руки и 2 костяные ноги с пальцами по общему листу. Волосы, веночек, плащ.",
+    "motion_rule": "Руки сгибаются у плеча и локтя. Не добавлять звериные лапки или подушечки.",
+    "limbs": [
+      {
+        "id": "P1",
+        "root": [
+          0.453,
+          0.6105
+        ],
+        "tip": [
+          0.4254,
+          0.7895
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "root": [
+          0.7624,
+          0.6158
+        ],
+        "tip": [
+          0.8122,
+          0.7789
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "root": [
+          0.5414,
+          0.7632
+        ],
+        "tip": [
+          0.558,
+          0.8474
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "root": [
+          0.7127,
+          0.7579
+        ],
+        "tip": [
+          0.7459,
+          0.8474
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.5304,
+          0.3789
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.8011,
+          0.3579
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "рот",
+        "center": [
+          0.6961,
+          0.4579
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "веночек",
+        "center": [
+          0.5414,
+          0.1263
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "плащ",
+        "center": [
+          0.2707,
+          0.7053
+        ]
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  },
+  {
+    "name": "Утёнок",
+    "source": "Утёнок — яркий концепт-лист героя.png",
+    "reference": "source_crop",
+    "size": [
+      247,
+      245
+    ],
+    "crop_box": [
+      52,
+      76,
+      299,
+      321
+    ],
+    "description": "Два коротких жёлтых крылышка вместо передних лапок и две оранжевые перепончатые ножки. Два глаза, клюв, хохолок из 2–3 перышек, щёчки, короткий хвостик (вид сзади).",
+    "motion_rule": "Крылышки двигаются от боковых креплений; ножки — от нижних креплений. При жестах использовать крылышко, не создавать дополнительную лапку. Хвостик не является конечностью.",
+    "limbs": [
+      {
+        "id": "P1",
+        "name": "крылышко слева",
+        "root": [
+          0.2591,
+          0.6898
+        ],
+        "tip": [
+          0.0729,
+          0.6163
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P2",
+        "name": "крылышко справа",
+        "root": [
+          0.753,
+          0.6898
+        ],
+        "tip": [
+          0.9271,
+          0.6163
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P3",
+        "name": "ножка слева",
+        "root": [
+          0.3887,
+          0.8898
+        ],
+        "tip": [
+          0.3401,
+          0.9469
+        ],
+        "status": "visible_estimate"
+      },
+      {
+        "id": "P4",
+        "name": "ножка справа",
+        "root": [
+          0.6032,
+          0.8898
+        ],
+        "tip": [
+          0.6599,
+          0.9469
+        ],
+        "status": "visible_estimate"
+      }
+    ],
+    "hidden": [],
+    "details": [
+      {
+        "id": "D1",
+        "name": "глаз",
+        "center": [
+          0.3441,
+          0.4449
+        ]
+      },
+      {
+        "id": "D2",
+        "name": "глаз",
+        "center": [
+          0.6842,
+          0.4449
+        ]
+      },
+      {
+        "id": "D3",
+        "name": "клюв",
+        "center": [
+          0.5182,
+          0.5102
+        ]
+      },
+      {
+        "id": "D4",
+        "name": "хохолок",
+        "center": [
+          0.4737,
+          0.1224
+        ]
+      },
+      {
+        "id": "D5",
+        "name": "щёчка",
+        "center": [
+          0.2429,
+          0.5469
+        ]
+      },
+      {
+        "id": "D6",
+        "name": "щёчка",
+        "center": [
+          0.7692,
+          0.551
+        ]
+      }
+    ],
+    "rear_details": [
+      {
+        "name": "хвостик",
+        "source_view": "сзади",
+        "source_center": [
+          880,
+          262
+        ],
+        "status": "visible_on_rear_view"
+      }
+    ],
+    "status": "draft_review",
+    "coordinate_system": "normalized x,y of displayed crop; x right, y down; approximate manual estimates, not segmented rig"
+  }
+]

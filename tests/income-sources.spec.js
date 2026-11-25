@@ -268,14 +268,14 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
   await page.setViewportSize({width,height:640});
   const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>{
    const box=tile.getBoundingClientRect(),amount=tile.querySelector('b'),label=tile.querySelector('.lbl');
-   return {top:amount.getBoundingClientRect().top,height:box.height,width:box.width,
+   return {top:amount.getBoundingClientRect().top,height:box.height,width:box.width,labelTop:label.getBoundingClientRect().top-box.top,
     background:getComputedStyle(tile).backgroundColor,shadow:getComputedStyle(tile).boxShadow,
     labelFits:label.scrollWidth<=label.clientWidth+1,amountFits:amount.scrollWidth<=amount.clientWidth+1&&amount.getBoundingClientRect().bottom<=box.bottom,
     font:parseFloat(getComputedStyle(amount).fontSize),labelFont:parseFloat(getComputedStyle(label).fontSize)};
   }));
   expect(Math.max(...geometry.map(g=>g.top))-Math.min(...geometry.map(g=>g.top))).toBeLessThanOrEqual(1);
   expect(Math.max(...geometry.map(g=>g.height))-Math.min(...geometry.map(g=>g.height))).toBeLessThanOrEqual(1);
-  expect(geometry.every(g=>Math.abs(g.width-g.height)<=1&&g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits&&g.amountFits&&g.font>=15&&g.labelFont>=12)).toBe(true);
+  expect(geometry.every(g=>Math.abs(g.width-g.height)<=1&&g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits&&g.amountFits&&g.font>=15&&g.labelFont>=12&&g.labelTop>=0&&g.labelTop<=10)).toBe(true);
  }
  await page.setViewportSize({width:320,height:640});
  // A seven-digit value must remain visible rather than overflow the square.
@@ -292,11 +292,11 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  await expect(link).toHaveText('Подробнее');
  await link.click();await expect(details).toBeVisible();
  const labels=await details.locator('.row .grow').allTextContents();
- expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра','В среднем за день','Потрачено за месяц']);
+ expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра',...(simpleMode?[]:['Доступно в день']),'В среднем за день','Потрачено за месяц']);
  await expect(details.locator('[data-a=planOpen]')).toBeVisible();
  await expect(hero.locator('.stats .fine, .stats .pbar, .stats [data-a]')).toHaveCount(0);
  await expect(details.locator('.budget-period')).toHaveCount(simpleMode?0:1);
- expect(await details.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(230);
+ expect(await details.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(250);
  await link.click();await expect(details).toBeHidden();
  await hero.locator('[data-a=tip][data-v=h_bal]').click();
  await expect(hero.locator('#tip_h_bal')).toContainText('Отпуск');await expect(hero.locator('#tip_h_bal')).toContainText('не входит');
@@ -356,5 +356,23 @@ test('minimal wallet tiles keep separate spending and plan editing in details',a
  expect(result.html).toMatch(/62\s500/);
  expect(result.html).toContain('data-a="planOpen"');
  expect(result.html).toContain('Хватит при этом темпе');
+ expect(result.unchanged).toBe(true);
+});
+
+test('calculated daily availability remains distinct from the configured plan and tomorrow',async ({page})=>{
+ const result=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=false;
+  const before=JSON.stringify(S);
+  const pd={val:1234,days:9,nextIn:'2026-12-04',due:0,waitingToday:false};
+  const html=homeBudgetDetails(pd,257,977);
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const value=Array.from(doc.querySelectorAll('.row')).find(row=>row.querySelector('.grow').textContent==='Доступно в день').querySelector('b').textContent;
+  const shortage=homeBudgetDetails({...pd,val:-100},257,0);
+  const simple=homeBudgetDetails(null,257,977);
+  return {value,expected:money(1234),shortage,simple,unchanged:JSON.stringify(S)===before};
+ });
+ expect(result.value).toBe(result.expected);
+ expect(result.shortage).toContain('Может не хватить');
+ expect(result.simple).not.toContain('Доступно в день');
  expect(result.unchanged).toBe(true);
 });

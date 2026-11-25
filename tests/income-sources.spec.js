@@ -35,7 +35,7 @@ test('single source handles salary gross and net, preserves existing pair IDs an
     const first=incomeRows('2026-11').find(r=>r.id==='salary'),second=incomeRows('2026-12').find(r=>r.id==='old-second');
     const owner=sourceOwner(second.id).id;
     S.entries.push({id:'paid',iid:'salary',type:'i',date:'2026-11-25',amt:51678});
-    const outstanding=plannedItems(T,30).filter(r=>r.kind==='in').map(r=>[r.date,r.amt]);
+    const outstanding=plannedItems(T,20).filter(r=>r.kind==='in').map(r=>[r.date,r.amt]);
     S.incomes[1].source={...config,amount:114840,net:true};
     const netFirst=incomeRows('2026-11').find(r=>r.id==='salary').amt;
     S.incomes[1].source={...config,dates:[20,5],amount:50000,days:[1,3],hours:2,method:'hours'};

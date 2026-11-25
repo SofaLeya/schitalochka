@@ -490,6 +490,7 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 </style>
 
 <div id="app"></div>
+<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden>
 <nav class="tabs" id="tabs"></nav>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="hr50" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="50"/></filter><filter id="hr110" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="110"/></filter><filter id="hr170" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="170"/></filter><filter id="hr230" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="230"/></filter><filter id="hr290" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="290"/></filter></defs></svg>
 <div id="ov" class="ov" hidden></div>
@@ -3853,7 +3854,7 @@ function viewPlan(){
      (S.incomes.length?S.incomes.filter(function(r){return !r.sourceParent}).map(function(r){return r.source?sourcePlanRow(r,ym):planRow('i',r,ym,1)}).join(''):'<p class="empty">Добавь даты, когда приходят деньги: от них считается «до зарплаты».</p>'),'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button>')+
    planMore(rareCard+climCard()+rulesCard()+
    fcard('p3','План на 3 месяца',null,'сколько останется сверху','<div class="sum3"><span class="h">Месяц</span><span class="h r">Приход</span><span class="h r">Уходит</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine" style="margin:0">* '+MONTHS[+cym.split('-')[1]-1]+': траты на жизнь по факту за прошедшие дни и по плану на оставшиеся, отмеченные платежи и доходы - по факту.</p>'+(rareN.length?'<p class="fine" style="margin:0">Редкие траты: '+rareN.join(', ')+'. Они оплачиваются из резерва, который копится в плане.</p>':'')+'<div class="tiprow" style="justify-content:flex-end"><span class="fine">Как считается</span>'+tipBtn('p3')+'</div>'+tipBox('p3','В '+sym()+'. «Уходит» - платежи со свободных денег, раскладка по копилкам, траты на жизнь по плану ('+money(lim3)+' в день, в среднем 30,4 дня в месяце) и резерв на редкие траты ('+money(rM)+' в месяц). Платежи из копилки (например, «Платежи») оплачиваются тем, что в ней лежит и докладывается по раскладке; сюда попадёт только нехватка, если её не хватит. Если доход в этом месяце уже отмечен, берётся сколько пришло на самом деле. «Остаётся» - сколько будет сверху, если жить по плану. Красное - в этом месяце денег не хватит.'))+
-   fcard('plfile','План из файла',null,'заменить доходы, платежи и раскладку','<p class="fine">Таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана<input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain" hidden></label><p class="fine" id="pl_msg" hidden></p>'));
+   fcard('plfile','План из файла',null,'загрузить JSON или таблицу Excel','<p class="fine">JSON для обновления доходов или таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label for="pl_file" class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана</label><p class="fine" id="pl_msg" hidden></p>'));
 }
 
 /* «Платежи → План»: редко нужное прячем в один свёрнутый блок; сверху короткая строка, что там уже настроено */
@@ -4510,7 +4511,7 @@ function settingsSheet(){
     det('📥 Загрузить данные',
       det('Траты из таблицы','<p class="fine" style="margin:0">Своя таблица Excel (.xlsx, .xls) или CSV: нужны хотя бы дата и сумма. Покажу, что получилось, и дам всё проверить перед добавлением.</p><input id="s_xl" type="file" accept=".xlsx,.xls,.csv,.txt"><p class="fine" id="s_xlmsg" hidden></p>')+
       det('Выписка из банка','<p class="fine" style="margin:0">PDF из приложения банка: Альфа, Сбер, ВТБ, ОТП, Т-Банк. Можно несколько файлов. Перед добавлением покажу всё на проверку.</p><input id="s_bk" type="file" accept="application/pdf,.pdf" multiple><p class="fine" id="s_bkmsg" hidden></p>')+
-      det('План из файла','<p class="fine" style="margin:0">Таблица Excel по шаблону (листы «Доходы», «Платежи», «Накопления», «Долги») или файл плана. Заменит только то, что есть в файле; записи и остатки копилок не тронет. Включит полный режим. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><input id="pl_file" type="file" accept=".json,.txt,.xlsx,.xls,.csv,application/json,text/plain"><p class="fine" id="pl_msg" hidden></p>')+
+      det('План из файла','<p class="fine" style="margin:0">Таблица Excel по шаблону (листы «Доходы», «Платежи», «Накопления», «Долги») или файл плана. Заменит только то, что есть в файле; записи и остатки копилок не тронет. Включит полный режим. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><label for="pl_file" class="btn ghost sm" style="align-self:flex-start;cursor:pointer">Выбрать файл плана</label><p class="fine" id="pl_msg" hidden></p>')+
       det('Записи из текста','<p class="fine" style="margin:0">Для данных из другого приложения (см. «Как пользоваться»). Дописывает к текущим, дублей не будет.</p><input id="s_afile" type="file" accept="*/*"><textarea id="s_add" placeholder="Или вставь текст сюда"></textarea><div class="btns"><button type="button" class="btn ghost" data-a="addRecs">Добавить</button></div><p class="fine" id="s_amsg" hidden></p>'),'выписка из банка, таблица Excel, план')+
    '</div>'+
    
@@ -5209,17 +5210,25 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var el1=ev.target;el1.value=sh.d.cat||'';uiPrompt('Название новой категории').then(function(nm){if(!sh||!sh.d)return;var nid=nm?newCat(nm,sh.d.type==='i'):null;el1.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){el1.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{el1.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;catShow()});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
 });
+function planImportMessage(msg,bad){var el=document.getElementById('pl_msg');if(el){el.textContent=msg;el.hidden=false}if(bad)toast(msg,true)}
 document.addEventListener('change',function(ev){
-  if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]&&/\.(xlsx|xls|csv)$/i.test(ev.target.files[0].name)){var xf=ev.target.files[0],xm=document.getElementById('pl_msg');ev.target.value='';
-    xlLoad(function(err){if(err){if(xm){xm.textContent='Не загрузился модуль таблиц. Проверь интернет.';xm.hidden=false}return}
-      xlRead(xf).then(function(wb){var o=xlPlanFromWb(wb);if(!o)throw new Error('nosheets');
-        var parts=[];if(o.incomes)parts.push('доходы ('+o.incomes.length+')');if(o.recur)parts.push('платежи ('+o.recur.length+')');if(o.savings)parts.push('накопления ('+o.savings.length+')');if(o.debts)parts.push('долги ('+o.debts.length+')');
-        return uiConfirm('Заменить: '+parts.join(', ')+'? Записи и остатки копилок не изменятся.','Заменить').then(function(y){if(y)applyPlan(o)})})
-      .catch(function(e){if(xm){xm.textContent=e&&e.message==='nosheets'?'Листы «Доходы», «Платежи», «Накопления» или «Долги» не найдены. Скачай шаблон и заполни его.':'Не получилось прочитать таблицу.';xm.hidden=false}})});return}
-  if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]){var plf=new FileReader(),plm=document.getElementById('pl_msg');plf.onload=function(){readBackupText(plf.result).then(function(o){
-      if(!isPlanFile(o))throw new Error('notplan');
-      if(isIncomeUpdate(o)){try{prepareIncomeUpdate(o)}catch(e){if(plm){plm.textContent=e.message;plm.hidden=false}return}return uiConfirm('Обновить только '+o.sources.length+' источника дохода? Операции, остатки, платежи и правила раскладки останутся как есть.','Обновить').then(function(y){if(y)applyIncomeUpdate(o)})}
-      return uiConfirm('Заменить доходы ('+(o.incomes||[]).length+'), платежи ('+(o.recur||[]).length+') и правила раскладки ('+(o.rules||[]).length+')? Записи и копилки не изменятся.','Заменить').then(function(y){if(y)applyPlan(o)})}).catch(function(e){if(plm){plm.textContent=e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай в «Резервная копия» → «Восстановить из файла».':'Не получилось прочитать файл.';plm.hidden=false}})};plf.readAsText(ev.target.files[0]);ev.target.value='';return}
+ if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]){
+  var file=ev.target.files[0];ev.target.value='';planImportMessage('Читаю файл…',false);
+  function error(e){planImportMessage(e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай через «Резервная копия».':e&&e.message==='nosheets'?'Не найдены листы плана.':'Не удалось загрузить файл: '+(e&&e.message||'проверь формат'),true)}
+  function confirmPlan(o){
+   if(!isPlanFile(o))throw Error('notplan');
+   var msg,yes='Заменить';
+   if(isIncomeUpdate(o)){prepareIncomeUpdate(o);msg='Обновить только '+o.sources.length+' источника дохода? Операции, остатки, платежи и правила раскладки останутся как есть.';yes='Обновить'}
+   else{var parts=[];if(o.incomes)parts.push('доходы ('+o.incomes.length+')');if(o.recur)parts.push('платежи ('+o.recur.length+')');if(o.rules)parts.push('правила раскладки ('+o.rules.length+')');if(o.savings)parts.push('накопления ('+o.savings.length+')');if(o.debts)parts.push('долги ('+o.debts.length+')');msg='Заменить: '+parts.join(', ')+'? Записи и остатки копилок не изменятся.'}
+   return uiConfirm(msg,yes).then(function(y){if(y)applyPlan(o);else planImportMessage('Загрузка отменена.',false)})
+  }
+  if(/\.(xlsx|xls|csv)$/i.test(file.name)){
+   xlLoad(function(err){if(err){planImportMessage('Не загрузился модуль таблиц. Проверь интернет.',true);return}xlRead(file).then(function(wb){var o=xlPlanFromWb(wb);if(!o)throw Error('nosheets');return confirmPlan(o)}).catch(error)});return
+  }
+  var fr=new FileReader();fr.onerror=function(){planImportMessage('Не удалось прочитать файл. Попробуй выбрать его ещё раз.',true)};fr.onabort=fr.onerror;
+  fr.onload=function(){Promise.resolve().then(function(){return readBackupText(fr.result)}).then(confirmPlan).catch(error)};
+  try{fr.readAsText(file)}catch(e){error(e)}return
+ }
   if(ev.target.id==='s_afile'&&ev.target.files&&ev.target.files[0]){var fr2=new FileReader();fr2.onload=function(){document.getElementById('s_add').value=fr2.result;var bt=document.querySelector('[data-a=addRecs]');if(bt)bt.click()};fr2.readAsText(ev.target.files[0]);return}
   if(ev.target.id!=='s_file'||!ev.target.files||!ev.target.files[0])return;
   var fr=new FileReader(),m=document.getElementById('s_msg');

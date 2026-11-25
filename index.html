@@ -533,7 +533,11 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .stats>.stat>.tile-stars{position:absolute;left:3px;right:3px;bottom:3px;width:calc(100% - 6px);height:24%;max-height:30px;color:var(--tile-sparkle,currentColor);pointer-events:none}
 .bigtext .hero .stats>.stat>.tile-stars{height:20%}
 
-@media(max-width:360px){.hero .stats>.stat{padding:10px 4px 6px;gap:4px}}
+@media(max-width:360px){
+ .hero .stats>.stat{padding:10px 4px 6px;gap:4px}
+ .hero .stats>.stat>.lbl{margin-inline:-3px;font-size:12px;letter-spacing:-.3px;white-space:nowrap}
+}
+
 .bigtext .hero .stats>.stat{aspect-ratio:auto;min-height:96px;grid-template-rows:auto auto;align-content:center;padding-bottom:22px}
 
 

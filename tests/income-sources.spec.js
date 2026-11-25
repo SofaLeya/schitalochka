@@ -278,6 +278,18 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  expect(previousHeight-compactHeight).toBeGreaterThanOrEqual(24);
  await expect(hero.locator('[data-a=fcOpen]')).toBeVisible();
  await expect(hero.locator('.stats > .stat b')).toHaveCount(3);
+ await expect(hero.locator('.stats > .stat > .lbl')).toHaveText(['На сегодня','В среднем','Потрачено']);
+ const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>({
+  top:tile.querySelector('b').getBoundingClientRect().top,
+  height:tile.getBoundingClientRect().height,
+  background:getComputedStyle(tile).backgroundColor,
+  shadow:getComputedStyle(tile).boxShadow,
+  labelFits:tile.querySelector('.lbl').scrollWidth<=tile.querySelector('.lbl').clientWidth+1
+ })));
+ expect(Math.max(...geometry.map(g=>g.top))-Math.min(...geometry.map(g=>g.top))).toBeLessThanOrEqual(1);
+ expect(Math.max(...geometry.map(g=>g.height))-Math.min(...geometry.map(g=>g.height))).toBeLessThanOrEqual(1);
+ expect(geometry.every(g=>g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits)).toBe(true);
+
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
  await expect(link).toHaveText('Подробнее');
  await link.click();await expect(details).toBeVisible();

@@ -268,14 +268,28 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
   await page.setViewportSize({width,height:640});
   const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>{
    const box=tile.getBoundingClientRect(),amount=tile.querySelector('b'),label=tile.querySelector('.lbl');
-   return {top:amount.getBoundingClientRect().top,height:box.height,width:box.width,labelTop:label.getBoundingClientRect().top-box.top,
+   return {top:amount.getBoundingClientRect().top,height:box.height,width:box.width,labelTop:label.getBoundingClientRect().top-box.top,textGap:amount.getBoundingClientRect().top-label.getBoundingClientRect().bottom,amountTopRatio:(amount.getBoundingClientRect().top-box.top)/box.height,
     background:getComputedStyle(tile).backgroundColor,shadow:getComputedStyle(tile).boxShadow,
     labelFits:label.scrollWidth<=label.clientWidth+1,amountFits:amount.scrollWidth<=amount.clientWidth+1&&amount.getBoundingClientRect().bottom<=box.bottom,
     font:parseFloat(getComputedStyle(amount).fontSize),labelFont:parseFloat(getComputedStyle(label).fontSize)};
   }));
   expect(Math.max(...geometry.map(g=>g.top))-Math.min(...geometry.map(g=>g.top))).toBeLessThanOrEqual(1);
   expect(Math.max(...geometry.map(g=>g.height))-Math.min(...geometry.map(g=>g.height))).toBeLessThanOrEqual(1);
-  expect(geometry.every(g=>Math.abs(g.width-g.height)<=1&&g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits&&g.amountFits&&g.font>=15&&g.labelFont>=12&&g.labelTop>=0&&g.labelTop<=10)).toBe(true);
+  for(const g of geometry){
+   const diagnostic='viewport '+width+' / '+JSON.stringify(g);
+   expect(Math.abs(g.width-g.height),diagnostic).toBeLessThanOrEqual(1);
+   expect(g.background,diagnostic).toBe(geometry[0].background);
+   expect(g.shadow,diagnostic).toBe(geometry[0].shadow);
+   expect(g.labelFits&&g.amountFits,diagnostic).toBe(true);
+   expect(g.font,diagnostic).toBeGreaterThanOrEqual(15);
+   expect(g.labelFont,diagnostic).toBeGreaterThanOrEqual(12);
+   expect(g.labelTop,diagnostic).toBeGreaterThanOrEqual(9);
+   expect(g.labelTop,diagnostic).toBeLessThanOrEqual(16);
+   expect(g.textGap,diagnostic).toBeGreaterThanOrEqual(3);
+   expect(g.textGap,diagnostic).toBeLessThanOrEqual(18);
+   expect(g.amountTopRatio,diagnostic).toBeGreaterThanOrEqual(.33);
+   expect(g.amountTopRatio,diagnostic).toBeLessThanOrEqual(.5);
+  }
  }
  await page.setViewportSize({width:320,height:640});
  // Check normal, six-digit and seven-digit values at narrow and ordinary phone widths.

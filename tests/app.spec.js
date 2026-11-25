@@ -1381,7 +1381,7 @@ test('дневной бюджет в день выплаты: до дохода,
   await page.reload();
   const tile=page.locator('.hero .stat.main'),details=page.locator('#tip_h_can'),link=page.locator('.home-detail-link');
   await expect(tile.locator('b')).toHaveText('5 000 ₽');
-  await expect(tile.locator('.lbl')).toHaveText('Можно сегодня');
+  await expect(tile.locator('.lbl')).toHaveText('На сегодня');
   await link.click();
   await expect(details.locator('.row').filter({hasText:'На завтра'}).locator('b')).toHaveText('Ждём доход');
   await expect(details).toContainText('Доход сегодня ещё не отмечен.');

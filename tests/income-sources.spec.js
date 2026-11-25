@@ -282,8 +282,12 @@ test('compact mode switch and help use the same names on small screens',async ({
  await expect(page.locator('#tip_mode')).toContainText('Планирование');
  await page.locator('.top [data-a=help]').click();
  const help=page.locator('#ov');
- await expect(help.locator('summary',{hasText:'Режимы приложения'})).toBeVisible();
- await help.locator('summary',{hasText:'Режимы приложения'}).click();
- await expect(help.locator('details[open]').filter({has:help.locator('summary',{hasText:'Режимы приложения'})})).toContainText('Автопополнение копилок',{ignoreCase:true});
+ const summary=help.locator('summary',{hasText:'Режимы приложения'});
+ const section=summary.locator('..');
+ await expect(summary).toBeVisible();
+ await summary.click();
+ await expect(section).toHaveJSProperty('open',true);
+ await expect(section.locator('.hb')).toBeVisible();
+ await expect(section.locator('.hb')).toContainText('Автопополнение копилок',{ignoreCase:true});
  await expect(help).not.toContainText('Простой и полный режим');
 });

@@ -201,7 +201,8 @@ export class Renderer {
 
     const turn = id === 'flip' ? pose.air : 0;
     const views = id === 'flip' && turn > 0 && turn < 1;
-    const amount = views ? windowed(turn, .12, .27, .72, .87) : 0;
+    const airView = views && turn > .19 && turn < .81
+      ? (t < .49 ? 'flip1' : 'flip2') : null;
     if (id === 'sleep') {
       const asset = rig.views.sleep;
       const [x, y, aw, ah] = asset.box;
@@ -222,34 +223,31 @@ export class Renderer {
       const reference = jellyThought && thoughtIndex > 0 && thoughtIndex < 7
         ? rig.views[`thought${thoughtIndex}`] : null;
       const articulated = activeLimbs.some(({ angle }) => Math.abs(angle) > .01);
-      const neutralOpacity = 1 - amount;
       if (reference) {
         add(reference, transform);
-      } else if (articulated && neutralOpacity === 1 && !jellyThought) {
+      } else if (articulated && !airView && !jellyThought) {
         add(rig.body, transform);
         for (const { part, angle } of activeLimbs) {
           if (!part.art) continue;
           const local = matrix(...part.pivot, radians(angle), 1, 1, ...part.pivot);
           add(part.art, multiply(transform, local));
         }
-      } else {
+      } else if (!airView) {
         const tilt = views ? 24 * Math.sin(tau * turn) : 0;
         const center = h * .48;
         const tilted = matrix(pose.x, pose.y - center * scale, radians(tilt), scale, scale,
           rig.anchor[0], rig.anchor[1] - center);
-        add(rig.neutral, tilt ? tilted : transform, neutralOpacity);
+        add(rig.neutral, tilt ? tilted : transform);
       }
-      if (amount > 0) {
-        // Use the two drawn angles through the airborne phase. A small
-        // interpolation around each angle bridges the source poses.
-        const blend = smooth(turn, .46, .54);
+      if (airView) {
+        // Batch1 changes the drawing during the turn. One drawing is visible
+        // per frame so limbs, faces and outlines never appear doubled.
         const shift = (turn - .5) * 18;
-        for (const [name, opacity, tilt] of [['flip1', 1 - blend, lerp(-19, 15, turn)], ['flip2', blend, lerp(-14, 21, turn)]]) {
-          const asset = rig.views[name];
-          const [x, y, aw, ah] = asset.box;
-          const viewScale = Math.min(w * scale * .94 / aw, h * scale * 1.03 / ah);
-          add(asset, matrix(shift, pose.y - h * scale * .44, radians(tilt), viewScale, viewScale, x + aw / 2, y + ah / 2), amount * opacity);
-        }
+        const tilt = airView === 'flip1' ? lerp(-19, 15, turn) : lerp(-14, 21, turn);
+        const asset = rig.views[airView];
+        const [x, y, aw, ah] = asset.box;
+        const viewScale = Math.min(w * scale * .94 / aw, h * scale * 1.03 / ah);
+        add(asset, matrix(shift, pose.y - h * scale * .44, radians(tilt), viewScale, viewScale, x + aw / 2, y + ah / 2));
       } else {
         face = reference ? null : { transform, pose, id };
         for (const { part, angle } of activeLimbs) {

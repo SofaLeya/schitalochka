@@ -127,6 +127,12 @@ for (const width of widths) {
       }
       for (const rig of rigs) {
         const middle = renderer.geometry(rig, 'flip', .49);
+        for (let i = 0; i <= 90; i++) {
+          if (renderer.geometry(rig, 'flip', i / 90).figure.length !== 1) {
+            failures.push(`${rig.id}: двойной силуэт в сальтухе`);
+            break;
+          }
+        }
         const end = renderer.geometry(rig, 'flip', .82);
         if (!middle.figure.some(part => part.asset.src.includes('/flip')) ||
             !middle.effects.some(effect => effect.kind === 'vortex') ||

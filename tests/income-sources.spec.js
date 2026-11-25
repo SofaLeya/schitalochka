@@ -115,3 +115,27 @@ test('targeted income file preserves current transactions, accounts and savings 
  });
  expect(res).toEqual({rejected:true,unchanged:true,kept:true,repeat:true,rows:[['a',57420],['b',63162],['b~2027-01-10',57420],['c',1000]],actual:51678});
 });
+
+test('JSON plan picker survives screen rerender and imports salary via real file change', async ({page})=>{
+ await probe(page,()=>{
+   S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420}];
+   S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';uiFold('plfile',false);render();
+   window.__planPicker=document.getElementById('pl_file');
+   window.__rerenderPlan=()=>render();
+ });
+ const chooser=page.waitForEvent('filechooser');
+ await page.locator('label[for="pl_file"]').click();
+ const picked=await chooser;
+ await page.evaluate(()=>window.__rerenderPlan());
+ expect(await page.evaluate(()=>window.__planPicker===document.getElementById('pl_file'))).toBe(true);
+ const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};
+ const file={app:'schitalochka-income-update',v:1,sources:[{advanceId:'a',finalId:'b',advanceName:'Аванс',finalName:'Остаток',name:'Работа',source:p}]};
+ await picked.setFiles({name:'income.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(file))});
+ await expect(page.locator('.dlg .msg')).toContainText('Обновить только 1');
+ await page.locator('.dlg .yes').click();
+ await expect(page.locator('#toast')).toContainText('Настройки доходов обновлены');
+ const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('podkopka-v1')).incomes);
+ expect(data.find(r=>r.id==='a').source.secondId).toBe('b');
+ await page.locator('#pl_file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('broken')});
+ await expect(page.locator('#pl_msg')).toContainText('Не удалось загрузить файл');
+});

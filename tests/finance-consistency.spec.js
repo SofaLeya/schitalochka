@@ -60,3 +60,33 @@ test('export distinguishes savings from transport and debt accounts',async({page
  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=3000;S.accounts=[{id:'main',type:'main',start:10000},{id:'save',type:'save',name:'Fund',start:1000},{id:'vtb',type:'other',name:'Transport',start:500,live:false,planSpend:true},{id:'debt',type:'debt',name:'Credit',start:0}];S.entries=[{id:'a',type:'e',cat:'cafe',amt:100,date:T,acc:'main'},{id:'b',type:'e',cat:'gift',amt:200,date:T,acc:'save'},{id:'c',type:'e',cat:'trans',amt:65,date:T,acc:'vtb'},{id:'d',type:'e',cat:'tech',amt:300,date:T,acc:'debt'}];return exportText('all');
  });expect(r).toContain('со свободных денег 100, из копилок 200, с других счетов 365');expect(r).toContain('возвратов): 165.');
 });
+
+test('debt payment, savings deposits and withdrawals are transfers, not purchases',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.incomes=[];S.rare=[];S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',name:'Goal',start:2000},{id:'debt',type:'debt',start:-5000},{id:'card',type:'other',live:true,planSpend:true,start:1000}];S.entries=[];
+ const read=()=>({free:balance(),fund:accBalN(accById('save')),debt:accBalN(accById('debt')),spent:dayNet(T).v});
+ const before=read();
+ S.entries.push({id:'a',type:'t',from:'main',to:'save',amt:4000,date:T},{id:'b',type:'t',from:'main',to:'debt',amt:3000,date:T},{id:'c',type:'t',from:'main',to:'card',amt:500,date:T});
+ const allocated=read();
+ S.entries.push({id:'d',type:'t',from:'save',to:'main',amt:1500,date:T},{id:'e',type:'e',acc:'save',cat:'gift',amt:500,date:T},{id:'f',type:'e',acc:'card',cat:'prod',amt:700,date:T},{id:'g',type:'e',acc:'debt',cat:'tech',amt:800,date:T});
+ return {before,allocated,after:read(),gross:sum(S.entries,'e')};
+ });expect(r).toEqual({before:{free:21000,fund:2000,debt:-5000,spent:0},allocated:{free:14000,fund:6000,debt:-2000,spent:0},after:{free:14800,fund:4000,debt:-2800,spent:700},gross:2000});
+});
+test('two months of operations retain balances and attributed spending when switching modes',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.incomes=[];S.rare=[];S.recur=[];S.rules=[];S.accounts=[{id:'main',type:'main',start:10000},{id:'save',type:'save',name:'Goal',start:0},{id:'debt',type:'debt',start:-6000},{id:'vtb',type:'other',live:false,planSpend:true,start:500}];
+ S.entries=[{id:'i',type:'i',cat:'salary',acc:'main',amt:20000,date:'2026-10-25'},{id:'s',type:'t',from:'main',to:'save',amt:5000,date:'2026-10-25'},{id:'d',type:'t',from:'main',to:'debt',amt:2000,date:'2026-10-26'},{id:'p',type:'e',acc:'main',cat:'prod',amt:3000,date:'2026-10-30'},{id:'r',type:'i',cat:'refund',acc:'main',for:'p',amt:1000,date:'2026-11-01'},{id:'i2',type:'i',cat:'salary',acc:'main',amt:15000,date:'2026-11-10'},{id:'s2',type:'t',from:'main',to:'save',amt:4000,date:'2026-11-10'},{id:'d2',type:'t',from:'main',to:'debt',amt:4000,date:'2026-11-10'},{id:'w',type:'t',from:'save',to:'main',amt:1000,date:'2026-11-15'},{id:'f',type:'e',acc:'save',cat:'gift',amt:2000,date:'2026-11-16'},{id:'v',type:'e',acc:'vtb',cat:'trans',amt:130,date:'2026-11-21'},{id:'p2',type:'e',acc:'main',cat:'cafe',amt:857,date:T},{id:'r2',type:'i',cat:'refund',acc:'main',for:'p2',amt:600,date:T}];
+ const read=()=>({free:balance(),fund:accBalN(accById('save')),debt:accBalN(accById('debt')),transport:accBalN(accById('vtb')),oct:lifeNet(monthEntries('2026-10')),nov:lifeNet(monthEntries('2026-11')),today:dayNet(T).v});
+ const simple=read(),original=JSON.stringify(S.entries);S.simple=false;S.incomes=[{id:'salary',day:10,amt:30000}];const full=read();S.simple=true;return {simple,full,back:read(),unchanged:original===JSON.stringify(S.entries)};
+ });
+ const expected={free:28743,fund:6000,debt:0,transport:370,oct:2000,nov:387,today:257};expect(r.simple).toEqual(expected);expect(r.full).toEqual(expected);expect(r.back).toEqual(expected);expect(r.unchanged).toBe(true);
+});
+test('refund and editing or deleting a purchase reconstruct the original balance and spending',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.incomes=[];S.accounts=[{id:'main',type:'main',start:10000}];S.entries=[];
+ const read=()=>({balance:balance(),spent:dayNet(T).v});
+ S.entries.push({id:'a',type:'e',acc:'main',cat:'prod',amt:1500,date:T});const purchase=read();
+ S.entries.push({id:'r',type:'i',acc:'main',cat:'refund',for:'a',amt:500,date:T});const refund=read();
+ S.entries[0].amt=1200;const edit=read();S.entries=S.entries.filter(x=>x.id!=='r');const deleteRefund=read();S.entries=[];return {purchase,refund,edit,deleteRefund,deletePurchase:read()};
+ });expect(r).toEqual({purchase:{balance:8500,spent:1500},refund:{balance:9000,spent:1000},edit:{balance:9300,spent:700},deleteRefund:{balance:8800,spent:1200},deletePurchase:{balance:10000,spent:0}});
+});

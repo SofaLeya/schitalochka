@@ -278,7 +278,7 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  expect(previousHeight-compactHeight).toBeGreaterThanOrEqual(24);
  await expect(hero.locator('[data-a=fcOpen]')).toBeVisible();
  await expect(hero.locator('.stats > .stat b')).toHaveCount(3);
- await expect(hero.locator('.stats > .stat > .lbl')).toHaveText(['На сегодня','В среднем','Потрачено']);
+ await expect(hero.locator('.stats > .stat > .lbl')).toHaveText(['На сегодня','В среднем','За месяц']);
  const geometry=await hero.locator('.stats > .stat').evaluateAll(tiles=>tiles.map(tile=>({
   top:tile.querySelector('b').getBoundingClientRect().top,
   height:tile.getBoundingClientRect().height,

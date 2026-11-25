@@ -14,7 +14,7 @@ CATALOG = Path(__file__).resolve().parents[1]
 def image_url(relative_path):
     path = (CATALOG / relative_path).resolve()
     mime, _ = mimetypes.guess_type(path)
-    if mime not in {"image/png", "image/jpeg"}:
+    if mime not in {"image/png", "image/jpeg", "image/webp"}:
         raise ValueError(f"Unsupported catalog image: {relative_path}")
     data = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"data:{mime};base64,{data}"

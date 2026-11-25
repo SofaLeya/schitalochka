@@ -1,0 +1,806 @@
+{
+  "jelly": {
+    "flipAngles": [
+      115,
+      177
+    ],
+    "limbs": {
+      "P1": {
+        "role": "side",
+        "motion": {
+          "joy": -5,
+          "happy": 4,
+          "jump": -9
+        }
+      },
+      "P2": {
+        "role": "side",
+        "motion": {
+          "joy": 5,
+          "happy": -4,
+          "jump": 9
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P4": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    }
+  },
+  "plant": {
+    "flipAngles": [
+      152,
+      201
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      }
+    },
+    "mouthSources": {
+      "joy": [
+        132,
+        94,
+        20,
+        22
+      ],
+      "surprise": [
+        92,
+        67,
+        11,
+        12
+      ],
+      "content": [
+        88,
+        58,
+        17,
+        12
+      ]
+    }
+  },
+  "horn": {
+    "flipAngles": [
+      142,
+      171
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      },
+      "H2": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    },
+    "mouthSources": {
+      "joy": [
+        59,
+        97,
+        15,
+        15
+      ],
+      "surprise": [
+        32,
+        69,
+        8,
+        9
+      ],
+      "content": [
+        35,
+        53,
+        12,
+        10
+      ]
+    }
+  },
+  "one-eye": {
+    "flipAngles": [
+      74,
+      154
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -6
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 6
+        }
+      },
+      "P3": {
+        "role": "side",
+        "motion": {
+          "joy": -5,
+          "happy": 4,
+          "jump": -5
+        }
+      },
+      "P4": {
+        "role": "side",
+        "motion": {
+          "joy": 4,
+          "happy": -4,
+          "jump": 4
+        }
+      },
+      "P5": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P6": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    },
+    "mouthSources": {
+      "surprise": [
+        90,
+        87,
+        8,
+        9
+      ]
+    },
+    "mouthShape": [
+      192,
+      163,
+      16,
+      15
+    ]
+  },
+  "puff": {
+    "flipAngles": [
+      137,
+      190
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      }
+    },
+    "mouthSources": {
+      "joy": [
+        129,
+        88,
+        22,
+        22
+      ],
+      "surprise": [
+        95,
+        71,
+        11,
+        12
+      ],
+      "content": [
+        90,
+        59,
+        14,
+        10
+      ]
+    }
+  },
+  "tongue": {
+    "flipAngles": [
+      102,
+      161
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -6
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 6
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    },
+    "mouthSources": {
+      "joy": [
+        61,
+        114,
+        32,
+        28
+      ],
+      "surprise": [
+        48,
+        77,
+        15,
+        20
+      ],
+      "interest": [
+        32,
+        94,
+        28,
+        26
+      ],
+      "content": [
+        62,
+        147,
+        40,
+        27
+      ]
+    },
+    "mouthShape": [
+      108,
+      151,
+      43,
+      26
+    ]
+  },
+  "mohnatik": {
+    "flipAngles": [
+      16,
+      160
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      }
+    }
+  },
+  "pushistik": {
+    "flipAngles": [
+      25,
+      156
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      }
+    }
+  },
+  "cherry": {
+    "flipAngles": [
+      18,
+      142
+    ],
+    "limbs": {
+      "P1": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P2": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      },
+      "P4": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    }
+  },
+  "strawberry": {
+    "flipAngles": [
+      17,
+      154
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      }
+    }
+  },
+  "frog": {
+    "flipAngles": [
+      28,
+      162
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7
+        }
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P4": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    }
+  },
+  "cat": {
+    "flipAngles": [
+      21,
+      174
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -6,
+          "thought": -14
+        },
+        "range": [
+          -14,
+          6
+        ]
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 6
+        }
+      }
+    }
+  },
+  "mouse": {
+    "flipAngles": [
+      12,
+      150
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7,
+          "thought": -42
+        },
+        "range": [
+          -42,
+          8
+        ]
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P4": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    }
+  },
+  "rat": {
+    "flipAngles": [
+      18,
+      151
+    ],
+    "limbs": {
+      "P1": {
+        "role": "front",
+        "motion": {
+          "joy": -4,
+          "happy": 3,
+          "jump": -7,
+          "thought": -38
+        },
+        "range": [
+          -38,
+          10
+        ]
+      },
+      "P2": {
+        "role": "front",
+        "motion": {
+          "joy": 4,
+          "happy": -3,
+          "jump": 7
+        }
+      },
+      "P3": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": -3
+        }
+      },
+      "P4": {
+        "role": "support",
+        "motion": {
+          "joy": 0,
+          "happy": 0,
+          "jump": 3
+        }
+      }
+    }
+  },
+  "octopus": {
+    "flipAngles": [
+      32,
+      151
+    ],
+    "limbs": {
+      "P1": {
+        "role": "tentacle",
+        "motion": {
+          "joy": -6,
+          "happy": -4,
+          "jump": -8,
+          "thought": 21
+        },
+        "range": [
+          -8,
+          21
+        ]
+      },
+      "P2": {
+        "role": "tentacle",
+        "motion": {
+          "joy": -6,
+          "happy": -4,
+          "jump": -7
+        }
+      },
+      "P3": {
+        "role": "tentacle",
+        "motion": {
+          "joy": -6,
+          "happy": -4,
+          "jump": -7
+        }
+      },
+      "P4": {
+        "role": "tentacle",
+        "motion": {
+          "joy": 6,
+          "happy": 4,
+          "jump": 8
+        }
+      },
+      "P5": {
+        "role": "tentacle",
+        "motion": {
+          "joy": 6,
+          "happy": 4,
+          "jump": 7
+        }
+      }
+    }
+  },
+  "slime": {
+    "flipAngles": [
+      23,
+      147
+    ],
+    "limbs": {}
+  },
+  "skeleton": {
+    "flipAngles": [
+      16,
+      163
+    ],
+    "limbs": {
+      "P1": {
+        "role": "arm",
+        "motion": {
+          "joy": -8,
+          "happy": -3,
+          "jump": -9
+        },
+        "joint": [
+          65,
+          143
+        ]
+      },
+      "P2": {
+        "role": "arm",
+        "motion": {
+          "joy": 8,
+          "happy": 3,
+          "jump": 9,
+          "thought": -58
+        },
+        "joint": [
+          151,
+          144
+        ],
+        "range": [
+          -58,
+          9
+        ]
+      },
+      "P3": {
+        "role": "leg",
+        "motion": {
+          "joy": -1,
+          "happy": 0,
+          "jump": -5
+        },
+        "joint": [
+          85,
+          191
+        ]
+      },
+      "P4": {
+        "role": "leg",
+        "motion": {
+          "joy": 1,
+          "happy": 0,
+          "jump": 5
+        },
+        "joint": [
+          140,
+          191
+        ]
+      }
+    }
+  },
+  "skeletoness": {
+    "flipAngles": [
+      26,
+      159
+    ],
+    "limbs": {
+      "P1": {
+        "role": "arm",
+        "motion": {
+          "joy": -6,
+          "happy": -3,
+          "jump": -6
+        },
+        "joint": [
+          126,
+          184
+        ]
+      },
+      "P2": {
+        "role": "arm",
+        "motion": {
+          "joy": 6,
+          "happy": 3,
+          "jump": 6,
+          "thought": -31
+        },
+        "joint": [
+          182,
+          185
+        ],
+        "range": [
+          -31,
+          6
+        ]
+      },
+      "P3": {
+        "role": "leg",
+        "motion": {
+          "joy": -1,
+          "happy": 0,
+          "jump": -5
+        }
+      },
+      "P4": {
+        "role": "leg",
+        "motion": {
+          "joy": 1,
+          "happy": 0,
+          "jump": 5
+        }
+      }
+    }
+  },
+  "duck": {
+    "flipAngles": [
+      18,
+      116
+    ],
+    "limbs": {
+      "P1": {
+        "role": "wing",
+        "motion": {
+          "joy": -12,
+          "happy": -5,
+          "jump": -16,
+          "thought": 35
+        },
+        "range": [
+          -18,
+          35
+        ]
+      },
+      "P2": {
+        "role": "wing",
+        "motion": {
+          "joy": 12,
+          "happy": 5,
+          "jump": 16
+        }
+      },
+      "P3": {
+        "role": "leg",
+        "motion": {
+          "joy": -1,
+          "happy": 0,
+          "jump": -5
+        }
+      },
+      "P4": {
+        "role": "leg",
+        "motion": {
+          "joy": 1,
+          "happy": 0,
+          "jump": 5
+        }
+      }
+    }
+  }
+}

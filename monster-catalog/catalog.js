@@ -234,7 +234,7 @@ async function setCharacter(index) {
   get('asset-status').textContent = 'Загрузка слоёв…';
   get('stage').getContext('2d').clearRect(0, 0, get('stage').width, get('stage').height);
   try {
-    await renderer.load(rig);
+    await renderer.load(rig, { releaseOtherRigs: true });
     if (loading !== generation) return;
     ready = true;
     get('asset-status').textContent = '';

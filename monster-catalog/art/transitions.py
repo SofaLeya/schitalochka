@@ -97,5 +97,39 @@ def atlas(folder, label, frames, origin=(0, 0), quality=None):
         tiles.append([col + left - x, row + top - y, left + dx, top + dy, right - left, bottom - top])
     name = f'{label}.webp'
     settings = {'lossless': True} if quality is None else {'quality': quality, 'alpha_quality': 100}
-    sheet.save(folder / name, method=4, **settings)
+    destination = folder / name
+    temporary = destination.with_suffix('.webp.tmp')
+    sheet.save(temporary, format='WEBP', method=4, **settings)
+    temporary.replace(destination)
     return {'src': f'art/{folder.name}/{name}', 'tiles': tiles}
+
+
+def shift_head(image, current, target, floor, radius):
+    """Move the head as a unit, distributing the remaining bend down to the feet."""
+    x, y = current
+    tx, ty = target
+    radius = min(radius, y * .7, ty * .7, (floor - y) * .48, (floor - ty) * .48)
+    yy, xx = np.indices((image.height, image.width), dtype=np.float32)
+    source_rows = [0, y - radius, y, y + radius, floor, image.height]
+    target_rows = [0, ty - radius, ty, ty + radius, floor, image.height]
+    sy = np.interp(yy, target_rows, source_rows)
+    shift = np.clip((floor - yy) / (floor - ty - radius), 0, 1)
+    sx = xx - (tx - x) * shift
+    rgba = np.array(image).astype(np.float32)
+    rgba[:, :, :3] *= rgba[:, :, 3, None] / 255
+    moved = warp(rgba, sx, sy)
+    moved[:, :, :3] *= 255 / np.maximum(1, moved[:, :, 3, None])
+    return Image.fromarray(np.uint8(np.clip(np.rint(moved), 0, 255)))
+
+
+def settle_between(neutral, sleeping, start, end, floor, count):
+    middle = tuple((first + last) / 2 for first, last in zip(start, end, strict=True))
+    a = shift_head(neutral, start, middle, floor, 14)
+    b = shift_head(sleeping, end, middle, floor, 14)
+    registered = tween(a, b, count)
+    result = [neutral]
+    for i, image in enumerate(registered[1:-1], 1):
+        t = i / count
+        head = tuple((1 - t) * first + t * last for first, last in zip(start, end, strict=True))
+        result.append(shift_head(image, middle, head, floor, 14))
+    return result + [sleeping]

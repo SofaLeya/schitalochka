@@ -27,7 +27,7 @@ const windowed = (t, a, b, c, d) => smooth(t, a, b) * (1 - smooth(t, c, d));
 const bump = (t, at, width) => Math.max(0, 1 - ((t - at) / width) ** 2) ** 2;
 
 function motion(id, t, rigId) {
-  const breath = Math.sin(Math.PI * t) ** 2;
+  const breath = t > 0 && t < 1 ? Math.sin(Math.PI * t) ** 2 : 0;
   const jelly = rigId === 'jelly';
   const emotive = windowed(t, .05, .20, .76, .99);
   const pose = { x: 0, y: 0, rotation: 0, sx: 1, sy: 1, eyes: 0, mouth: 0, gaze: 0, gesture: 0, strength: emotive };
@@ -147,7 +147,7 @@ const functions = {
 };
 
 function layerBounds(asset, transform) {
-  if (!asset.outline?.length || transform[1] === 0) return transformedBox(asset.box, transform);
+  if (!asset.outline?.length) return transformedBox(asset.box, transform);
   let bounds = null;
   for (const outline of asset.outline) {
     for (const point of outline) {
@@ -207,19 +207,28 @@ export class Renderer {
     this.canvas.height = stage.height * ratio;
   }
 
-  async load(rig) {
+  async load(rig, { releaseOtherRigs = false } = {}) {
     const assets = [
       rig.neutral, rig.body, rig.turn, rig.rest, rig.ponder,
       ...rig.limbs.flatMap(part => [part.art, part.flex]),
       ...rig.eyes.flatMap(({ blink, interest, thought, content }) => [blink, interest, thought, content]),
       ...rig.mouths.flatMap(({ expressions }) => Object.values(expressions))
     ].filter(Boolean);
+    if (releaseOtherRigs) {
+      const active = new Set(assets.map(asset => asset.src));
+      for (const src of this.images.keys()) {
+        if (!active.has(src)) this.images.delete(src);
+      }
+    }
     await Promise.all(assets.map(({ src }) => {
       if (!this.images.has(src)) {
         const image = new Image();
         const ready = new Promise((resolve, reject) => {
           image.onload = () => resolve(image);
-          image.onerror = () => reject(new Error(src));
+          image.onerror = () => {
+            if (this.images.get(src)?.image === image) this.images.delete(src);
+            reject(new Error(src));
+          };
         });
         this.images.set(src, { image, ready });
         image.src = src;

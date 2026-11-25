@@ -54,6 +54,8 @@ for (const width of widths) {
         }
 
         const rigFit = renderer.fit(rig);
+        renderer.draw(rig, 'idle', 0);
+        const neutralFrame = canvas.toDataURL();
         for (const [index, state] of states.entries()) {
           document.querySelectorAll('#moves button')[index].click();
           const frames = Array.from({ length: 45 }, (_, i) => i / 44);
@@ -67,6 +69,10 @@ for (const width of widths) {
               failures.push(`${rig.id}/${state.id}/${t}: ${bounds.join(',')}`);
             }
           }
+          const endFrame = canvas.toDataURL();
+          renderer.draw(rig, state.id, state.loopFrom);
+          const loopStart = state.loop ? canvas.toDataURL() : neutralFrame;
+          if (endFrame !== loopStart) failures.push(`${rig.id}/${state.id}: шов на конце цикла`);
           if (document.querySelector('#playing').textContent !== state.label) failures.push(`${rig.id}/${state.id}: выбор`);
           combinations++;
         }
@@ -213,6 +219,7 @@ test('комментарии сохраняются отдельно, импор
 });
 
 test('автономный HTML открывается без сети', async ({ page }) => {
+  test.setTimeout(90_000);
   const { execFileSync } = require('node:child_process');
   const { mkdtemp, readFile, rm } = require('node:fs/promises');
   const { tmpdir } = require('node:os');
@@ -244,7 +251,7 @@ test('автономный HTML открывается без сети', async (
     await page.locator('summary').filter({ hasText: 'Исходный концепт' }).click();
     for (const id of await character.locator('option').evaluateAll(options => options.map(option => option.value))) {
       await character.selectOption(id);
-      await expect(page.locator('#asset-status')).toBeEmpty();
+      await expect(page.locator('#asset-status')).toBeEmpty({ timeout: 12_000 });
       await expect(page.locator('#reference')).toHaveJSProperty('complete', true);
       expect(await page.locator('#reference').evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
     }

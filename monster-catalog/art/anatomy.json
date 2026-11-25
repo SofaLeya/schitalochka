@@ -311,6 +311,10 @@
       151,
       43,
       26
+    ],
+    "sleepEyes": [
+      69,
+      101
     ]
   },
   "mohnatik": {
@@ -463,7 +467,11 @@
           "jump": 3
         }
       }
-    }
+    },
+    "sleepEyes": [
+      74,
+      31
+    ]
   },
   "cat": {
     "flipAngles": [
@@ -492,7 +500,11 @@
           "jump": 6
         }
       }
-    }
+    },
+    "sleepEyes": [
+      38,
+      53
+    ]
   },
   "mouse": {
     "flipAngles": [
@@ -537,7 +549,11 @@
           "jump": 3
         }
       }
-    }
+    },
+    "sleepEyes": [
+      37,
+      62
+    ]
   },
   "rat": {
     "flipAngles": [
@@ -582,7 +598,11 @@
           "jump": 3
         }
       }
-    }
+    },
+    "sleepEyes": [
+      42,
+      61
+    ]
   },
   "octopus": {
     "flipAngles": [
@@ -635,7 +655,11 @@
           "jump": 7
         }
       }
-    }
+    },
+    "sleepEyes": [
+      50,
+      43
+    ]
   },
   "slime": {
     "flipAngles": [
@@ -703,7 +727,11 @@
           191
         ]
       }
-    }
+    },
+    "sleepEyes": [
+      48,
+      57
+    ]
   },
   "skeletoness": {
     "flipAngles": [
@@ -756,7 +784,11 @@
           "jump": 5
         }
       }
-    }
+    },
+    "sleepEyes": [
+      52,
+      61
+    ]
   },
   "duck": {
     "flipAngles": [
@@ -801,6 +833,10 @@
           "jump": 5
         }
       }
-    }
+    },
+    "sleepEyes": [
+      61,
+      84
+    ]
   }
 }

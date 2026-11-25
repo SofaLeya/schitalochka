@@ -946,7 +946,7 @@ function pendingPayouts(){
 }
 
 /* ---------- гибкая раскладка: окно с суммами по копилкам, подсказки под пришедшую сумму, перенос недостающего ---------- */
-function poIncome(day,ym){var pl=0,ac=0,mk=false;(S.incomes||[]).forEach(function(r){if(+r.day!==+day)return;pl+=+r.amt||0;var l=S.entries.filter(function(x){return x.iid===r.id&&x.date.slice(0,7)===ym});if(l.length){mk=true;ac+=l.reduce(function(a,x){return a+x.amt},0)}else ac+=+r.amt||0});return {plan:pl,act:ac,marked:mk}}
+function poIncome(day,ym){var pl=0,ac=0,mk=false;(S.incomes||[]).forEach(function(r){if(+r.day!==+day)return;var expected=payrollExpected(r,ym);pl+=expected;var l=S.entries.filter(function(x){return x.iid===r.id&&x.date.slice(0,7)===ym});if(l.length){mk=true;ac+=l.reduce(function(a,x){return a+x.amt},0)}else ac+=expected});return {plan:pl,act:ac,marked:mk}}
 function poNextDate(after){var best=null;S.rules.forEach(function(r){for(var k=0;k<3;k++){var d=payDateIn(nextYM(after.slice(0,7),k),r.day);if(d>after){if(!best||d<best)best=d;break}}});return best}
 function payoutSheet(day,ym,edit){var p=pendingPayouts().filter(function(x){return x.day===+day&&x.ym===ym})[0];
   if(edit||!p){var rs=S.rules.filter(function(r){return +r.day===+day&&accById(r.acc)});if(!rs.length)return;p={day:+day,ym:ym,date:payDateIn(ym,+day),rules:rs.map(function(r){var ex=S.entries.filter(function(x){return x.rule===r.id&&x.date.slice(0,7)===ym})[0];return Object.assign({},r,{amt:ex?r.amt:ruleCap(r),done:ex})})};edit=true}
@@ -1195,7 +1195,7 @@ function plannedItems(from,days){
   [0,1,2].forEach(function(k){
     var ym=nextYM(ym0,k);
     S.recur.forEach(function(r){if(!dueIn(r,ym))return;var d=planned(ym,r.day);if(d>=from&&d<=end&&!doneFor('rid',r.id,ym))out.push({date:d,kind:'out',name:r.name,amt:r.amt,id:r.id,cat:r.cat,ym:ym,acc:r.acc||''})});
-    S.incomes.forEach(function(r){var d=payDateIn(ym,r.day);if(d>=from&&d<=end&&!doneFor('iid',r.id,ym))out.push({date:d,kind:'in',name:r.name,amt:r.amt,id:r.id,ym:ym,payDay:+r.day})});
+    S.incomes.forEach(function(r){var d=payDateIn(ym,r.day);if(d>=from&&d<=end&&!doneFor('iid',r.id,ym))out.push({date:d,kind:'in',name:r.name,amt:payrollExpected(r,ym),id:r.id,ym:ym,payDay:+r.day})});
     if(S.planFrom)S.rules.forEach(function(r){
       if(!accById(r.acc)||ym<planFromYM()||ruleDone(r,ym)||ruleSkipped(r.day,ym)||!ruleOn(r))return;
       var d=payDateIn(ym,r.day);if(d<S.planFrom)return;var scheduled=d;if(d<from)d=from;
@@ -1303,7 +1303,7 @@ function forecast(){
 // Проверяем исходный день выплаты, а не перенесённую на сегодня дату просроченного правила.
 function waitingPayoutRule(e){
   if(!e.rule||e.scheduled!==T)return false;
-  var incomes=(S.incomes||[]).filter(function(r){return +r.day===e.payDay&&payDateIn(e.ym,r.day)===T&&r.amt>0});
+  var incomes=(S.incomes||[]).filter(function(r){return +r.day===e.payDay&&payDateIn(e.ym,r.day)===T&&payrollExpected(r,e.ym)>0});
   return incomes.length>0&&incomes.every(function(r){return !doneFor('iid',r.id,e.ym)});
 }
 function perDay(){
@@ -1344,7 +1344,21 @@ function rareMonthly(){return rareList().reduce(function(a,r){return a+(+r.amt||
 function rareCats(){var m=null;rareList().forEach(function(r){if(r.cat){m=m||{};m[r.cat]=1}});return m}
 /* доход месяца: если уже отмечено «Пришло», берётся сколько пришло на самом деле */
 function incomeActual(r,ym){var e=S.entries.filter(function(x){return x.iid===r.id&&x.type==='i'&&!x.skip&&x.date.slice(0,7)===ym});return e.length?e.reduce(function(a,x){return a+x.amt},0):null}
-function incomeFor(r,ym){var v=incomeActual(r,ym);return v===null?(+r.amt||0):v}
+function payrollExpected(r,ym){
+ var p=r.payroll;if(!p||!(p.gross>0)||!Array.isArray(p.days)||!p.days.length)return +r.amt||0;
+ var m=p.part==='second'?nextYM(ym,-1):ym,a=m.split('-'),n=dim(+a[0],+a[1]-1),total=0,worked=0;
+ var sd={'2026':['04-30','05-08','06-11','11-03'],'2027':['02-20','04-30','06-11','11-03']};
+ for(var d=1;d<=n;d++){
+   var dt=planned(m,d);if(!isWorkday(dt))continue;
+   var wd=dt==='2027-02-20'?1:parse(dt).getDay(),short=(sd[a[0]]||[]).indexOf(dt.slice(5))>=0;
+   if(!sd[a[0]])short=['01-01','02-23','03-08','05-01','05-09','06-12','11-04'].indexOf(iso(addDays(parse(dt),1)).slice(5))>=0;
+   if(p.mode==='hours')total+=8-(short?1:0);else if(p.days.indexOf(wd)>=0)total++;
+   if(p.days.indexOf(wd)<0||(p.part==='second'?d<=15:d>15))continue;
+   worked+=p.mode==='hours'?Math.max(0,p.hours-(short?1:0)):1;
+ }
+ return total?Math.round(p.gross*worked/total*(1-p.tax/100)):0;
+}
+function incomeFor(r,ym){var v=incomeActual(r,ym);return v===null?payrollExpected(r,ym):v}
 function fullPlan(){var inc=0,fx=0,sv=0,from={},to={},fromN=0,ym=T.slice(0,7);(S.incomes||[]).forEach(function(r){inc+=incomeFor(r,ym)});
   (S.recur||[]).forEach(function(r){var a=r.acc&&accById(r.acc),v=perMonth(r);if(a&&!isLive(a)){from[a.id]=(from[a.id]||0)+v;fromN+=v}else fx+=v});
   (S.rules||[]).forEach(function(r){if(accById(r.acc)&&ruleOn(r))to[r.acc]=(to[r.acc]||0)+(+r.amt||0)});
@@ -3605,8 +3619,9 @@ function planRow(kind,r,ym,noMark){ // noMark: на вкладке «План» 
   var done=doneFor(kind==='r'?'rid':'iid',r.id,ym),d=itemDate(kind,r,ym),late=!done&&d<T&&!(S.planFrom&&d<S.planFrom);
   var shifted=kind==='i'&&d!==planned(ym,r.day);
   var dd0=diffDays(T,d),chip=done?'<span class="chip ok">✓ '+(kind==='r'?'оплачено':'пришло')+'</span>':late?'<span class="chip late">⏰ не отмечено</span>':shifted?'':'<span class="chip">'+(dd0===0?'сегодня':dd0===1?'завтра':dlabel(d))+'</span>';
+  var expected=kind==='i'?payrollExpected(r,ym):r.amt;
   var fact=done?S.entries.filter(function(x){return x[kind==='r'?'rid':'iid']===r.id&&x.date.slice(0,7)===ym}).reduce(function(a,x){return a+x.amt},0):0;
-  return '<div class="row" style="padding-block:10px;border-top:1px solid var(--line)'+(done&&!noMark?';opacity:.6':'')+'">'+pIco(kind,r)+'<button class="grow" style="text-align:left" data-a="editPlan" data-k="'+kind+'" data-id="'+r.id+'"><div class="t">'+esc(r.name)+'</div><div class="s">'+(shifted?r.day+'-го, в этот раз '+dlabel(d)+' (выходной)':r.day+'-го числа')+(done&&Math.abs(fact-r.amt)>=1?' · было '+money(fact):'')+(kind==='r'&&+r.every>1?' · раз в '+r.every+' мес.':'')+(kind==='r'?pSrc(r):'')+' '+chip+'</div></button><div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="amt '+(kind==='i'?'in':'out')+'">'+money(r.amt)+'</span>'+(noMark?'':'<button class="btn sm '+(done?'ghost':'')+'" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'">'+(done?'Отменить':(kind==='r'?'Потрачено':'Пришло'))+'</button>')+'</div></div>';
+  return '<div class="row" style="padding-block:10px;border-top:1px solid var(--line)'+(done&&!noMark?';opacity:.6':'')+'">'+pIco(kind,r)+'<button class="grow" style="text-align:left" data-a="editPlan" data-k="'+kind+'" data-id="'+r.id+'"><div class="t">'+esc(r.name)+'</div><div class="s">'+(shifted?r.day+'-го, в этот раз '+dlabel(d)+' (выходной)':r.day+'-го числа')+(done&&Math.abs(fact-expected)>=1?' · было '+money(fact):'')+(kind==='r'&&+r.every>1?' · раз в '+r.every+' мес.':'')+(kind==='r'?pSrc(r):'')+' '+chip+'</div></button><div style="text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="amt '+(kind==='i'?'in':'out')+'">'+(kind==='i'&&r.payroll?'≈ ':'')+money(expected)+'</span>'+(noMark?'':'<button class="btn sm '+(done?'ghost':'')+'" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'">'+(done?'Отменить':(kind==='r'?'Потрачено':'Пришло'))+'</button>')+'</div></div>';
 }
 
 function bigAcc(r){var a=accById(r.acc),n=((a?a.name:'')+' '+r.name).toLowerCase();return /подкоп|подушк|платеж|платёж/.test(n)}
@@ -3717,7 +3732,7 @@ function viewPlan(){
     return a.slice().sort(function(p,q){return rank(p)-rank(q)||p.day-q.day})};
   /* сводка месяца */
   var mA=ym.split('-'),incP=0,incF=0,payP=0,payF=0,payLeft=0,nextPay=null;
-  S.incomes.forEach(function(r){incP+=+r.amt||0;if(doneFor('iid',r.id,ym))incF+=S.entries.filter(function(x){return x.iid===r.id&&x.date.slice(0,7)===ym}).reduce(function(a2,x){return a2+x.amt},0)});
+  S.incomes.forEach(function(r){incP+=payrollExpected(r,ym);if(doneFor('iid',r.id,ym))incF+=S.entries.filter(function(x){return x.iid===r.id&&x.date.slice(0,7)===ym}).reduce(function(a2,x){return a2+x.amt},0)});
   S.recur.forEach(function(r){if(!dueIn(r,ym))return;payP+=r.amt;if(doneFor('rid',r.id,ym))payF+=S.entries.filter(function(x){return x.rid===r.id&&x.date.slice(0,7)===ym}).reduce(function(a2,x){return a2+x.amt},0);else{payLeft+=r.amt;var d=itemDate('r',r,ym);if(d>=T&&(!nextPay||d<nextPay.d))nextPay={d:d,n:r.name}}});
   var sumCard=(S.incomes.length||S.recur.length)?'<div class="card" style="gap:8px"><h2>'+cap(MONTHS[+mA[1]-1])+'</h2>'+
     (S.incomes.length?'<div class="row"><div class="grow fine">💰 Пришло</div><span class="amt in">'+money(incF)+'</span><span class="fine" style="flex:none">из '+money(incP)+'</span></div><div class="bar"><i style="width:'+Math.min(100,incP?incF/incP*100:0)+'%;background:var(--in)"></i></div>':'')+
@@ -3728,8 +3743,8 @@ function viewPlan(){
   function prevOk(kind,r){var d=itemDate(kind,r,pym),f=kind==='r'?'rid':'iid';if(kind==='r'&&!dueIn(r,pym))return false;if(S.planFrom&&d<S.planFrom)return false;if(r.added&&r.added>d)return false;return !doneFor(f,r.id,pym)&&!markSkipped(kind,r.id,pym)}
   S.recur.forEach(function(r){if(prevOk('r',r))prevL.push(['r',r])});S.incomes.forEach(function(r){if(prevOk('i',r))prevL.push(['i',r])});
   var prevCard=prevL.length?'<div class="card" style="gap:6px"><h2>⏰ Не отмечено в '+MONTHS_P[+pA[1]-1]+'</h2><p class="fine" style="margin:0">Отметь, что было. Если платежа или дохода не было, нажми «Не было».</p>'+prevL.map(function(o){var r=o[1],kind=o[0];
-    return '<div class="row" style="padding-block:8px;border-top:1px solid var(--line)">'+pIco(kind,r)+'<div class="grow"><div class="t">'+esc(r.name)+'</div><div class="s">'+dlabel(itemDate(kind,r,pym))+' · '+money(r.amt)+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">'+(kind==='r'?'Потрачено':'Пришло')+'</button><button class="btn sm ghost" data-a="markSkip" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">Не было</button></div></div>'}).join('')+'</div>':'';
-  var rTot=0,iTot=0,rLate=0;S.recur.forEach(function(r){rTot+=perMonth(r);if(dueIn(r,ym)&&!doneFor('rid',r.id,ym)&&planned(ym,r.day)<=T&&!(S.planFrom&&planned(ym,r.day)<S.planFrom))rLate++});S.incomes.forEach(function(r){iTot+=r.amt});
+    return '<div class="row" style="padding-block:8px;border-top:1px solid var(--line)">'+pIco(kind,r)+'<div class="grow"><div class="t">'+esc(r.name)+'</div><div class="s">'+dlabel(itemDate(kind,r,pym))+' · '+money(kind==='i'?payrollExpected(r,pym):r.amt)+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="toggle" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">'+(kind==='r'?'Потрачено':'Пришло')+'</button><button class="btn sm ghost" data-a="markSkip" data-k="'+kind+'" data-id="'+r.id+'" data-v="'+pym+'">Не было</button></div></div>'}).join('')+'</div>':'';
+  var rTot=0,iTot=0,rLate=0;S.recur.forEach(function(r){rTot+=perMonth(r);if(dueIn(r,ym)&&!doneFor('rid',r.id,ym)&&planned(ym,r.day)<=T&&!(S.planFrom&&planned(ym,r.day)<S.planFrom))rLate++});S.incomes.forEach(function(r){iTot+=payrollExpected(r,ym)});
   /* вкладка «Месяц»: только то, что надо отмечать; вкладка «План»: всё, что настраивается раз в месяц и реже */
   var segP='<div class="seg" role="group" aria-label="Раздел платежей">'+[['m','Месяц'],['p','План']].map(function(x){return '<button type="button" data-a="ptab" data-v="'+x[0]+'" aria-pressed="'+(ptab===x[0])+'" class="'+(ptab===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div>';
   var head='<div class="top"><h1>Платежи и доходы</h1>'+topBtns()+'</div>'+segP;
@@ -4096,6 +4111,17 @@ function rareSheet(){
    (sh.id?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delPlan">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+
    '</form>');
 }
+function payrollFields(d){
+ var p=d.payroll||{},mode=p.mode||'days',part=p.part||'first',days=p.days||[1,2,3,4,5];
+ return '<details class="f"'+(d.payroll?' open':'')+'><summary style="cursor:pointer;font-weight:600">Прогноз зарплаты по календарю</summary>'+
+ '<label class="chk"><input type="checkbox" id="p_payroll"'+(d.payroll?' checked':'')+'> Рассчитывать автоматически</label>'+
+ '<div class="two"><div class="f"><label for="p_gross">Оклад до налога</label><input id="p_gross" inputmode="decimal" value="'+esc(p.gross||'')+'"></div><div class="f"><label for="p_tax">НДФЛ, %</label><input id="p_tax" inputmode="decimal" value="'+esc(p.tax==null?13:p.tax)+'"></div></div>'+
+ '<div class="f"><label for="p_part">За какой период</label><select id="p_part"><option value="first"'+(part==='first'?' selected':'')+'>1–15 текущего месяца (аванс)</option><option value="second"'+(part==='second'?' selected':'')+'>16–конец прошлого месяца</option></select></div>'+
+ '<div class="f"><label for="p_mode">Как начисляют</label><select id="p_mode"><option value="days"'+(mode==='days'?' selected':'')+'>Оклад за свой график (по дням)</option><option value="hours"'+(mode==='hours'?' selected':'')+'>Оклад полной ставки (по часам)</option></select></div>'+
+ '<div class="f"><label>Рабочие дни</label><div style="display:flex;flex-wrap:wrap;gap:8px">'+[[1,'Пн'],[2,'Вт'],[3,'Ср'],[4,'Чт'],[5,'Пт'],[6,'Сб'],[0,'Вс']].map(function(o){return '<label class="chk"><input type="checkbox" name="p_wd" value="'+o[0]+'"'+(days.indexOf(o[0])>=0?' checked':'')+'>'+o[1]+'</label>'}).join('')+'</div></div>'+
+ '<div class="f"><label for="p_hours">Часов в день (для расчёта по часам)</label><input id="p_hours" inputmode="decimal" value="'+esc(p.hours||8)+'"></div>'+
+ '<p class="fine">Прогноз по производственному календарю РФ. Фактическую сумму можно исправить при отметке дохода. Отпускные, премии, компенсации и особые даты выплат проверяй отдельно. При выключенном расчёте используется обычная сумма.</p></details>';
+}
 function planSheet(){
   if(sh.k==='x')return rareSheet();
   var d=sh.d,r=sh.k==='r';
@@ -4106,7 +4132,8 @@ function planSheet(){
    (r?'<div class="f"><label for="p_cat">Категория</label><select id="p_cat">'+opts(CATS,d.cat||'other')+'</select></div>'+
      '<div class="two"><div class="f"><label for="p_every">Как часто</label><select id="p_every">'+[[1,'каждый месяц'],[2,'раз в 2 мес.'],[3,'раз в 3 мес.'],[4,'раз в 4 мес.'],[6,'раз в полгода'],[12,'раз в год']].map(function(o){return '<option value="'+o[0]+'"'+((+d.every||1)===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div><div class="f"><label for="p_from">Ближайший - в месяце</label><input id="p_from" type="month" value="'+esc(d.from||T.slice(0,7))+'"></div></div>'+
      '<div class="f"><label for="p_acc">Со счёта</label><select id="p_acc">'+activeAccounts().filter(function(a){return a.type!=='debt'}).map(function(a){return '<option value="'+a.id+'"'+((d.acc||defAcc())===a.id?' selected':'')+'>'+esc(accName(a))+'</option>'}).join('')+'</select><span class="fine">Если платишь из копилки (например, «Платежи»), выбери её: тогда платёж не уменьшит свободные деньги и не испортит прогноз.</span></div>':'')+
-   '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
+   (r?'':payrollFields(d))+
+    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.id?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delPlan">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+
    '</form>');
@@ -4451,17 +4478,17 @@ document.addEventListener('click',function(ev){
   else if(a==='newPlan'&&k!=='x'){sh={id:null,k:k,d:{name:'',amt:'',day:'',cat:'other'}};planSheet()}
   else if(a==='newPlan'&&k==='x'){sh={id:null,k:'x',d:{name:'',amt:'',mon:0,cat:'gift'}};rareSheet()}
   else if(a==='editPlan'&&k==='x'){var rx=rareList().filter(function(e){return e.id===id})[0];if(rx){sh={id:id,k:'x',d:{name:rx.name,amt:rx.amt,mon:rx.mon||0,cat:rx.cat||'other'}};rareSheet()}}
-  else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||''}};planSheet()}}
+  else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||'',payroll:r.payroll||null}};planSheet()}}
   else if(a==='delPlan'){var _sn=JSON.stringify(S);if(sh.k==='x')S.rare=rareList().filter(function(e){return e.id!==sh.id});else if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id});save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='toggle'){
     var ym=/^\d{4}-\d\d$/.test(v||'')?v:T.slice(0,7),isR=k==='r',item=(isR?S.recur:S.incomes).filter(function(e){return e.id===id})[0];if(!item)return;
     var f=isR?'rid':'iid',curM=ym===T.slice(0,7),eDate=curM?T:itemDate(k,item,ym);
     if(doneFor(f,id,ym)){S.entries=S.entries.filter(function(e){return !(e[f]===id&&e.date.slice(0,7)===ym)});save();render();return}
-    var pd=itemDate(k,item,ym),want=isR?'e':'i',lim0=dayLimit();
+    var pd=itemDate(k,item,ym),want=isR?'e':'i',lim0=dayLimit(),expected=isR?item.amt:payrollExpected(item,ym);
     var lost=function(e){return isR?(!e.rid||!S.recur.some(function(r){return r.id===e.rid})):(!e.iid||!S.incomes.some(function(r){return r.id===e.iid}))};
     /* после записи: разница с планом; у платежа - если два месяца подряд не как в плане, предложить поправить план */
     var after=function(am){
-      var dv=am-item.amt;
+      var dv=am-expected;
       if(Math.abs(dv)<1){toast('Записано: '+item.name+' '+money(am));return}
       if(!isR){var lim1=dayLimit();toast('Пришло на '+money(Math.abs(dv))+(dv>0?' больше':' меньше')+' плана.'+(curM&&planInfo().src==='full'&&lim1!==lim0?' План на день: '+money(lim1)+' (было '+money(lim0)+').':''));return}
       var pm=nextYM(ym,-(+item.every||1)),prev=S.entries.filter(function(x){return x.rid===id&&x.date.slice(0,7)===pm}).reduce(function(a2,x){return a2+x.amt},0);
@@ -4469,11 +4496,11 @@ document.addEventListener('click',function(ev){
         uiConfirm('«'+item.name+'» второй раз не как в плане: было '+money(prev)+', теперь '+money(am)+', а в плане '+money(item.amt)+'. Поставить в план '+money(am)+'?','Поставить','Оставить').then(function(y){if(y){item.amt=am;save();render();toast('В плане теперь '+money(am))}})}
       else toast('Записано: '+item.name+' '+money(am)+' ('+(dv>0?'на '+money(dv)+' больше':'на '+money(-dv)+' меньше')+' плана)')};
     var addNew=function(){
-      uiAsk(isR?'Сколько заплатили: «'+item.name+'»?':'Сколько пришло: «'+item.name+'»?'+(!isR&&perIncAdj(item,ym)>0?' (из-за отпуска/больничного примерно на '+money(perIncAdj(item,ym))+' меньше)':''),{input:true,num:true,def:String(isR?item.amt:Math.max(0,item.amt-perIncAdj(item,ym))),yes:'Записать'}).then(function(val){
+      uiAsk(isR?'Сколько заплатили: «'+item.name+'»?':'Сколько пришло: «'+item.name+'»?'+(!isR&&perIncAdj(item,ym)>0?' (из-за отпуска/больничного примерно на '+money(perIncAdj(item,ym))+' меньше)':''),{input:true,num:true,def:String(isR?item.amt:Math.max(0,expected-perIncAdj(item,ym))),yes:'Записать'}).then(function(val){
         if(val===null)return;var am=num(val);if(!(am>0)){toast('Сумма должна быть больше нуля',true);return}
         var en0={id:uid(),type:isR?'e':'i',amt:am,cat:isR?item.cat:'salary',date:eDate,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en0.acc=item.acc;en0[f]=id;
         S.entries.push(en0);save();render();after(am)})};
-    var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)&&Math.abs(e.amt-item.amt)<=Math.max(1,item.amt*0.3)});
+    var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&e.date.slice(0,7)===ym&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)&&Math.abs(e.amt-expected)<=Math.max(1,expected*0.3)});
     if(!cands.length){addNew();return}
     cands.sort(function(a1,b1){var da=Math.abs(a1.amt-item.amt)-Math.abs(b1.amt-item.amt);return da||Math.abs(diffDays(a1.date,pd))-Math.abs(diffDays(b1.date,pd))});
     var c=cands[0];
@@ -4904,12 +4931,19 @@ document.addEventListener('submit',function(ev){
   }else if(document.getElementById('p_name')){
     var nm=document.getElementById('p_name').value.trim(),am=num(document.getElementById('p_amt').value),dy=parseInt(document.getElementById('p_day').value,10),ce=document.getElementById('p_cat'),pa=document.getElementById('p_acc');
     if(!nm)return showErr('Введи название.');
-    if(!(am>0))return showErr('Введи сумму больше нуля.');
+    var pe=document.getElementById('p_payroll'),payroll=null;
+    if(pe&&pe.checked){
+      var gross=num(document.getElementById('p_gross').value),tax=num(document.getElementById('p_tax').value),hours=num(document.getElementById('p_hours').value),days=Array.from(document.querySelectorAll('input[name="p_wd"]:checked')).map(function(x){return +x.value}),mode=document.getElementById('p_mode').value,part=document.getElementById('p_part').value;
+      if(!(gross>0)||!(tax>=0&&tax<100)||!days.length||(mode==='hours'&&!(hours>0&&hours<=24)))return showErr('Проверь оклад, НДФЛ, рабочие дни и часы.');
+      payroll={gross:gross,tax:tax,hours:hours||8,days:days,mode:mode,part:part};
+      if(!(am>0))am=payrollExpected({payroll:payroll,amt:0},T.slice(0,7));
+    }
+    if(!(am>0)&&!payroll)return showErr('Введи сумму больше нуля.');
     if(!(dy>=1&&dy<=31))return showErr('Число месяца должно быть от 1 до 31.');
     var arr=sh.k==='r'?S.recur:S.incomes;
     var pacc=pa&&pa.value!==defAcc()?pa.value:'',pev=document.getElementById('p_every'),pfr=document.getElementById('p_from'),every=pev?+pev.value||1:1,from=pfr&&/^\d{4}-\d\d$/.test(pfr.value)?pfr.value:T.slice(0,7);
-    if(sh.id){arr.forEach(function(e){if(e.id===sh.id){e.name=nm;e.amt=am;e.day=dy;if(ce)e.cat=ce.value;if(pa)e.acc=pacc;if(pev){if(every>1){e.every=every;e.from=from}else{delete e.every;delete e.from}}}})}
-    else{var o={id:uid(),name:nm,amt:am,day:dy,added:T};if(ce)o.cat=ce.value;if(pa)o.acc=pacc;if(pev&&every>1){o.every=every;o.from=from}arr.push(o)}
+    if(sh.id){arr.forEach(function(e){if(e.id===sh.id){e.name=nm;e.amt=am;e.day=dy;if(pe){if(payroll)e.payroll=payroll;else delete e.payroll}if(ce)e.cat=ce.value;if(pa)e.acc=pacc;if(pev){if(every>1){e.every=every;e.from=from}else{delete e.every;delete e.from}}}})}
+    else{var o={id:uid(),name:nm,amt:am,day:dy,added:T};if(payroll)o.payroll=payroll;if(ce)o.cat=ce.value;if(pa)o.acc=pacc;if(pev&&every>1){o.every=every;o.from=from}arr.push(o)}
     save();closeSheet();render();
   }else if(document.getElementById('a_name')){
     var ad=readAcc(),nm2=ad.name.trim(),sv=ad.start===''?0:num(ad.start);

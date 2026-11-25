@@ -491,6 +491,19 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .home-detail-link{display:block;width:100%;text-align:center;text-decoration:underline;text-underline-offset:3px;padding:5px 0;background:none;border:0;color:inherit;cursor:pointer}
 .hero .stat b{font-size:clamp(12px,4.1vw,17px);white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 @media(max-width:360px){.hero .stat{padding:6px 4px}.hero .stat .lbl,.hero .stat .fine{font-size:10px}.hero .stats{gap:4px}.hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:26px;min-height:26px}}
+/* Keep the wallet summary compact without shrinking the balance or the pet. */
+.hero{padding:10px 12px;gap:4px}
+.hero .stats{margin-top:3px}
+.hero .stat{padding-block:6px}
+.hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:auto;min-height:20px}
+.hero .stats>.stat>b{margin-top:2px;line-height:20px;min-height:20px}
+.hero .stats>.stat>.pbar+.fine{margin-top:3px}
+.hero .home-detail-link{padding:3px 0;min-height:24px}
+.hero .fcb{margin-top:2px;height:auto;min-height:34px;padding:4px 8px}
+.hero .hcards{margin-block:3px 0}
+.bigtext .hero .stats>.stat>.lbl,.bigtext .hero .stats>.stat>.can-head{height:auto;min-height:26px}
+.bigtext .hero .fcb{min-height:40px}
+
 </style>
 
 <div id="app"></div>

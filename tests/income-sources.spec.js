@@ -261,6 +261,23 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  const hero=page.locator('.hero').first(),details=hero.locator('#tip_h_can'),link=hero.locator('.home-detail-link');
  await expect(hero.locator('.stats > .stat')).toHaveCount(3);
  await expect(details).toBeHidden();
+ // Measure the collapsed summary against the previous spacing, at the same viewport and data.
+ const compactHeight=await hero.evaluate(el=>el.getBoundingClientRect().height);
+ const oldSpacing=await page.addStyleTag({content:`
+ .hero{padding:14px 12px;gap:6px}
+ .hero .stats{margin-top:6px}
+ .hero .stat{padding-block:6px}
+ .hero .stats>.stat>.lbl,.hero .stats>.stat>.can-head{height:26px;min-height:26px}
+ .hero .stats>.stat>b{margin-top:3px;line-height:22px;min-height:22px}
+ .hero .stats>.stat>.pbar+.fine{margin-top:6px}
+ .hero .home-detail-link{padding:5px 0;min-height:0}
+ .hero .fcb{margin-top:12px;height:40px;min-height:0;padding:0}
+ `});
+ const previousHeight=await hero.evaluate(el=>el.getBoundingClientRect().height);
+ await oldSpacing.evaluate(el=>el.remove());
+ expect(previousHeight-compactHeight).toBeGreaterThanOrEqual(24);
+ await expect(hero.locator('[data-a=fcOpen]')).toBeVisible();
+ await expect(hero.locator('.stats > .stat b')).toHaveCount(3);
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
  await link.click();await expect(details).toBeVisible();await expect(details).toContainText('Потрачено сегодня');await expect(details).toContainText('Можно завтра');
  await link.click();await expect(details).toBeHidden();

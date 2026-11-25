@@ -55,3 +55,46 @@ test('payment occurrences can be independently marked and retain history on reli
  });
  expect(result).toEqual({first:120,second:100,firstDone:true,secondDone:false,link:'daily~2026-11-25',remaining:4});
 });
+
+test('guided form links existing salary and previews upcoming payments before saving',async ({page})=>{
+ await probe(page,()=>{
+   T='2026-11-25';S.entries=[];S.rules=[];S.recur=[];S.rucal={};
+   S.incomes=[{id:'advance',name:'ТК · аванс',day:25,amt:57420},{id:'final',name:'ТК · окончаловка',day:10,amt:57420}];
+   sh={id:'advance',k:'i',d:{name:'ТК · аванс',day:25,amt:57420}};incomeSourceSheet();
+ });
+ await expect(page.locator('#is_calcgroup')).toBeHidden();
+ await expect(page.locator('#is_taxbox')).toBeHidden();
+ await page.fill('#is_name','ТК');
+ await page.selectOption('#is_kind','tk');
+ await page.selectOption('#is_basis','month');
+ await page.fill('#is_amount','132000');
+ await page.selectOption('#is_taxmode','gross');
+ await expect(page.locator('#is_taxbox')).toBeVisible();
+ await page.selectOption('#is_freq','twice');
+ await expect(page.locator('#is_calcgroup')).toBeVisible();
+ await page.selectOption('#is_link','final');
+ await expect(page.locator('#is_second')).toHaveValue('10');
+ await expect(page.locator('#is_start')).toBeHidden();
+ await expect(page.locator('#is_preview')).toContainText(/51\s*678/);
+ await expect(page.locator('#is_preview')).toContainText(/63\s*162/);
+ await page.locator('#fm button[type=submit]').click();
+ const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('podkopka-v1')).incomes);
+ expect(data.find(r=>r.id==='advance').source.secondId).toBe('final');
+ expect(data.find(r=>r.id==='final').sourceParent).toBe('advance');
+});
+test('simple weekly payment form hides payroll settings and previews the schedule',async ({page})=>{
+ await probe(page,()=>{
+   T='2026-11-25';S.incomes=[];S.entries=[];S.recur=[];S.rules=[];
+   sh={id:null,k:'i',d:{name:'',day:'',amt:''}};incomeSourceSheet();
+ });
+ await page.fill('#is_name','Подработка');
+ await page.fill('#is_amount','1500');
+ await page.selectOption('#is_freq','weekly');
+ await expect(page.locator('#is_start')).toBeVisible();
+ await expect(page.locator('#is_datesbox')).toBeHidden();
+ await expect(page.locator('#is_calcgroup')).toBeHidden();
+ await expect(page.locator('#is_preview')).toContainText(/1\s*500/);
+ await page.selectOption('#is_freq','irregular');
+ await expect(page.locator('#is_start')).toBeHidden();
+ await expect(page.locator('#is_preview')).toContainText('Без фиксированных дат');
+});

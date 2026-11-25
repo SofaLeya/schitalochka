@@ -1,9 +1,25 @@
 const { test, expect } = require('@playwright/test');
 
-test('cycle plan includes leftover, ignores ordinary purchases and reserves allocation once', async ({ page }) => {
+// App state is scoped inside an IIFE. Install a probe only in the test browser.
+async function probe(page, scenario) {
+  await page.route(u => !/^(localhost|127\.0\.0\.1)$/.test(u.hostname), r => r.abort());
+  await page.route(/\/index\.html(?:\?.*)?$/, async route => {
+    const response = await route.fetch();
+    const html = await response.text();
+    const marker = '})();\n/* Новая версия на сайте:';
+    if (!html.includes(marker)) throw new Error('Cycle probe insertion point not found');
+    const hook = 'window.__cycleProbe = ' + scenario.toString() + ';\n';
+    await route.fulfill({ response, body: html.replace(marker, hook + marker) });
+  });
   await page.goto('/index.html');
-  const result = await page.evaluate(() => {
+  return page.evaluate(() => window.__cycleProbe());
+}
+
+test('cycle plan includes leftover, ignores ordinary purchases and reserves allocation once', async ({ page }) => {
+  const result = await probe(page, () => {
     T = '2026-11-25';
+    S.demo = false;
+    S.rare = [];
     S.accounts = [{id:'main', type:'main',start:7000.16},{id:'save',type:'save',start:0}];
     S.incomes = [{id:'salary',day:25,amt:55000},{id:'next',day:10,amt:57000},{id:'small',day:5,amt:2000}];
     S.rules = [{id:'r',day:25,acc:'save',amt:31995},{id:'smallRule',day:5,acc:'save',amt:2000}];
@@ -44,9 +60,10 @@ test('cycle plan includes leftover, ignores ordinary purchases and reserves allo
 });
 
 test('saving before salary excludes old balance from cycle plan', async ({ page }) => {
-  await page.goto('/index.html');
-  const result = await page.evaluate(() => {
+  const result = await probe(page, () => {
     T = '2026-11-25';
+    S.demo = false;
+    S.rare = [];
     S.accounts = [{id:'main',type:'main',start:7000.16},{id:'save',type:'save',start:0}];
     S.incomes = [{id:'salary',day:25,amt:55000},{id:'next',day:10,amt:57000}];
     S.rules = [{id:'r',day:25,acc:'save',amt:31995}];

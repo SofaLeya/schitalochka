@@ -513,6 +513,14 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .hcards{margin-block:3px 0}
 .bigtext .hero .stats>.stat>.lbl,.bigtext .hero .stats>.stat>.can-head{height:auto;min-height:26px}
 .bigtext .hero .fcb{min-height:40px}
+/* Square wallet tiles: readable headings and amounts, identical baselines. */
+.hero .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hero .stats>.stat{display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);aspect-ratio:1;min-height:0;gap:5px;padding:8px 5px;text-align:center}
+.hero .stats>.stat>.lbl,.bigtext .hero .stats>.stat>.lbl{align-self:end;min-height:0;height:auto;font-size:clamp(11px,3.8vw,15px);font-weight:500;line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}
+.hero .stats>.stat>b{align-self:start;margin:0;min-height:0;font-size:clamp(14px,4.8vw,21px);line-height:1.15;letter-spacing:-.025em;overflow-wrap:anywhere}
+@media(max-width:360px){.hero .stats>.stat{padding:6px 4px;gap:4px}}
+.bigtext .hero .stats>.stat{aspect-ratio:auto;min-height:86px;grid-template-rows:auto auto;align-content:center}
+
 
 </style>
 

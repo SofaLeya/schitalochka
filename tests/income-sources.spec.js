@@ -119,13 +119,12 @@ test('targeted income file preserves current transactions, accounts and savings 
 test('JSON plan picker survives screen rerender and imports salary via real file change', async ({page})=>{
  await probe(page,()=>{
    S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420}];
-   S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';uiFold('plfile',false);render();
+   S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
    window.__planPicker=document.getElementById('pl_file');
    window.__rerenderPlan=()=>render();
  });
- const chooser=page.waitForEvent('filechooser');
- await page.locator('label[for="pl_file"]').click();
- const picked=await chooser;
+ await expect(page.locator('label[for="pl_file"]')).toBeVisible();
+ const [picked]=await Promise.all([page.waitForEvent('filechooser'),page.locator('label[for="pl_file"]').click()]);
  await page.evaluate(()=>window.__rerenderPlan());
  expect(await page.evaluate(()=>window.__planPicker===document.getElementById('pl_file'))).toBe(true);
  const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};

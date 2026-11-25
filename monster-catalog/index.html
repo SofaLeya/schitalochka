@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf8fc">
+  <title>Монстрики · Каталог приёмки</title>
+  <link rel="stylesheet" href="catalog.css">
+  <script type="module" src="catalog.js"></script>
+</head>
+<body>
+  <header class="page-heading">
+    <div>
+      <div class="brand">СчиталОчка</div>
+      <h1>Каталог монстриков</h1>
+    </div>
+    <output id="progress" aria-label="Статус приёмки">0 / 247 согласовано</output>
+  </header>
+  <main>
+    <section class="picker" aria-label="Персонаж">
+      <button id="previous" class="icon" type="button" aria-label="Предыдущий персонаж">‹</button>
+      <label for="character">Персонаж</label>
+      <select id="character"></select>
+      <button id="next" class="icon" type="button" aria-label="Следующий персонаж">›</button>
+    </section>
+    <div class="layout">
+      <section class="preview card" aria-label="Предпросмотр">
+        <div class="preview-heading">
+          <div>
+            <h2 id="name"></h2>
+            <p id="playing" aria-live="polite"></p>
+          </div>
+          <div class="tools">
+            <label class="toggle"><input id="guides" type="checkbox"> Контуры</label>
+            <label class="toggle"><input id="dark" type="checkbox"> Тёмный фон</label>
+          </div>
+        </div>
+        <div id="picture" class="picture">
+          <canvas id="stage" width="360" height="348" aria-label="Анимация персонажа"></canvas>
+          <p id="asset-status" role="status"></p>
+        </div>
+        <div class="controls">
+          <div class="playback">
+            <button id="replay" type="button">Повторить</button>
+            <button id="pause" type="button">Пауза</button>
+            <button id="sequence" type="button" aria-pressed="false">Все подряд</button>
+          </div>
+          <div class="timeline">
+            <label for="phase">Кадр</label>
+            <input id="phase" type="range" min="0" max="1000" value="0">
+            <output id="time" for="phase">0,00 с</output>
+          </div>
+        </div>
+      </section>
+      <div class="sidebar">
+        <section class="card panel" aria-labelledby="moves-heading">
+          <h2 id="moves-heading">Анимации</h2>
+          <div id="moves" class="moves" role="group" aria-labelledby="moves-heading"></div>
+        </section>
+        <section class="card panel" aria-labelledby="review-heading">
+          <div class="review-heading">
+            <h2 id="review-heading">Приёмка</h2>
+            <span id="review-state"></span>
+          </div>
+          <label for="note">Заметка к выбранной анимации</label>
+          <textarea id="note" rows="3" placeholder="Кадр, деталь или замечание"></textarea>
+          <div class="review-actions">
+            <button id="approve" type="button">Согласовать</button>
+            <button id="revise" type="button">На правку</button>
+            <button id="reset-review" type="button">Сбросить статус</button>
+          </div>
+          <div class="review-files">
+            <button id="export" type="button">Экспорт JSON</button>
+            <label class="import-button" for="import">Импорт JSON</label>
+            <input id="import" class="visually-hidden" type="file" accept=".json,application/json">
+          </div>
+          <p id="review-message" role="status"></p>
+        </section>
+      </div>
+    </div>
+    <details class="card concept">
+      <summary>Исходный концепт и анатомия</summary>
+      <div class="concept-content">
+        <div>
+          <p id="anatomy"></p>
+          <p id="flip-source"></p>
+          <ul id="uncertainties"></ul>
+          <a id="reference-link" target="_blank" rel="noopener">Открыть концепт в полном размере</a>
+        </div>
+        <img id="reference" alt="" loading="lazy">
+      </div>
+    </details>
+  </main>
+</body>
+</html>

@@ -1359,14 +1359,55 @@ function plannedItems(from,days){
   for(var k=0;k<=Math.ceil(days/28);k++){
     var ym=nextYM(ym0,k);
     S.recur.forEach(function(r){if(!dueIn(r,ym))return;var d=planned(ym,r.day);if(d>=from&&d<=end&&!doneFor('rid',r.id,ym))out.push({date:d,kind:'out',name:r.name,amt:r.amt,id:r.id,cat:r.cat,ym:ym,acc:r.acc||''})});
-    incomeRows(ym).forEach(function(r){var d=itemDate('i',r,ym);if(d>=from&&d<=end&&!doneFor('iid',r.id,ym)&&!markSkipped('i',r.id,ym)&&payrollExpected(r,ym)>0)out.push({date:d,kind:'in',name:r.name,amt:payrollExpected(r,ym),id:r.id,ym:ym,payDay:+r.day})});
+    // дата выплаты должна попадать в месяц итерации — иначе scheduled/перенос дублирует одно поступление в каждом ym
+    incomeRows(ym).forEach(function(r){var d=itemDate('i',r,ym);if(d.slice(0,7)!==ym||d<from||d>end||doneFor('iid',r.id,ym)||markSkipped('i',r.id,ym)||!(payrollExpected(r,ym)>0))return;out.push({date:d,kind:'in',name:r.name,amt:payrollExpected(r,ym),id:r.id,ym:ym,payDay:+r.day})});
     if(S.planFrom)S.rules.forEach(function(r){
       if(!accById(r.acc)||ym<planFromYM()||ruleDone(r,ym)||ruleSkipped(r.day,ym)||!ruleOn(r))return;
       var d=payDateIn(ym,r.day);if(d<S.planFrom)return;var scheduled=d;if(d<from)d=from;
-      if(d<=end)out.push({date:d,kind:'out',name:'→ '+r.name,amt:ruleCap(r)||r.amt,id:r.id,ym:ym,rule:1,payDay:+r.day,scheduled:scheduled});
+      if(d<=end)out.push({date:d,kind:'out',name:'→ '+r.name,amt:ruleCap(r)||r.amt,id:r.id,ym:ym,rule:1,payDay:+r.day,scheduled:scheduled,acc:r.acc||''});
     });
   }
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
+}
+/* Сколько от выплаты на дату остаётся на жизнь после обязательной раскладки.
+   Считаем по месяцам отдельно: правило ↔ выплата по payDay в том же ym
+   (перенос даты дохода не отрывает раскладку; просроченное правило другого
+   месяца не съедает чужую выплату; один id правила в разных месяцах не сливается). */
+function lifePayoutLeft(date,ev){
+  var byYm={},seen={};
+  ev.forEach(function(e){
+    if(e.kind!=='in'||e.date!==date)return;
+    var ym=e.ym||date.slice(0,7);
+    var g=byYm[ym]||(byYm[ym]={inc:0,pay:{}});
+    g.inc+=+e.amt||0;
+    if(e.payDay!=null&&e.payDay!=='')g.pay[+e.payDay]=1;
+  });
+  var yms=Object.keys(byYm);if(!yms.length)return 0;
+  var left=0;
+  yms.forEach(function(ym){
+    var g=byYm[ym],res=0,hasPay=Object.keys(g.pay).length>0;
+    ev.forEach(function(e){
+      if(!e.rule||(e.ym&&e.ym!==ym))return;
+      var key=e.id+'|'+ym;if(seen[key])return;
+      var match=false;
+      if(hasPay&&e.payDay!=null&&e.payDay!=='')match=!!g.pay[+e.payDay];
+      else if(e.date===date)match=true;
+      if(match){seen[key]=1;res+=+e.amt||0}
+    });
+    left+=g.inc-res;
+  });
+  return left;
+}
+/* Ближайшая выплата после after, после раскладки которой остаются деньги на жизнь. */
+function nextLifePayoutDate(ev,after){
+  var seen={},order=[];
+  ev.forEach(function(e){
+    if(e.kind!=='in'||e.date<=after||seen[e.date])return;
+    seen[e.date]=1;order.push(e.date);
+  });
+  order.sort();
+  for(var i=0;i<order.length;i++)if(lifePayoutLeft(order[i],ev)>0)return order[i];
+  return null;
 }
 
 /* «Предсказание»: сколько останется к ближайшей зарплате.
@@ -1474,16 +1515,18 @@ function waitingPayoutRule(e){
 function perDay(){
   // До ближайшего поступления, после которого остаются деньги на жизнь.
   var ev=plannedItems(T,sourceForecastDays()),nextIn=null;
-  var todayIn=ev.filter(function(e){return e.kind==='in'&&e.date===T}).reduce(function(a,e){return a+e.amt},0);
-  var todayReserve=ev.filter(waitingPayoutRule).reduce(function(a,e){return a+e.amt},0);
-  if(todayIn>todayReserve)nextIn=T;
-  if(!nextIn)for(var i=0;i<ev.length;i++){var e=ev[i];if(e.kind!=='in'||e.date<=T)continue;
-    var toSave=ev.filter(function(x){return x.rule&&x.date===e.date}).reduce(function(a,x){return a+x.amt},0);
-    if(e.amt-toSave>0){nextIn=e.date;break}}
+  // Сегодня: остаток на жизнь после раскладки (payDay+ym). Просроченные чужие правила на сегодня
+  // не должны «съедать» выплату другого payDay — lifePayoutLeft режет по месяцу и дню выплаты.
+  if(lifePayoutLeft(T,ev)>0)nextIn=T;
+  if(!nextIn)nextIn=nextLifePayoutDate(ev,T);
   if(!nextIn)nextIn=iso(addDays(parse(T),30));
-  var due=0,inc=0;ev.forEach(function(e){
+  var due=0,inc=0,nextPay={},nextYm={};
+  ev.forEach(function(e){if(e.kind==='in'&&e.date===nextIn){if(e.payDay!=null)nextPay[+e.payDay]=1;if(e.ym)nextYm[e.ym]=1}});
+  ev.forEach(function(e){
     if(nextIn===T?e.date>T:e.date>=nextIn)return;
-    if(e.kind==='out'&&!offMain(e)&&!waitingPayoutRule(e))due+=e.amt;
+    if(e.rule&&e.payDay!=null&&nextPay[+e.payDay]&&(!e.ym||nextYm[e.ym]))return; // раскладка самой границы — не из текущего периода
+    // раскладка в копилки — обязательный резерв до границы цикла
+    if(e.kind==='out'&&(e.rule||!offMain(e))&&!waitingPayoutRule(e))due+=e.amt;
     else if(e.kind==='in'&&e.date>T)inc+=e.amt;
   });
   var days=Math.max(1,diffDays(T,nextIn));
@@ -1567,31 +1610,31 @@ function cycleRarePaid(from,to){
 function cycleDayPlan(){
   // Последняя полученная выплата, которая по расписанию оставляет деньги на жизнь.
   // Небольшие выплаты, полностью предназначенные для копилок, не начинают новый период.
+  // Условные/неактивные правила (ruleOn/ruleCap) в резерв не входят — иначе свободная выплата не откроет цикл.
   var rules=S.rules||[],start=null;
   S.entries.forEach(function(x){
     if(x.type!=='i'||!x.iid||x.skip||x.demo||x.date>T||!isLiveId(accOf(x)))return;
     var rows=incomeRows(x.date.slice(0,7)),p=rows.find(function(r){return r.id===x.iid});if(!p)return;
     var gross=rows.filter(function(r){return itemDate('i',r,x.date.slice(0,7))===itemDate('i',p,x.date.slice(0,7))}).reduce(function(a,r){return a+payrollExpected(r,x.date.slice(0,7))},0);
-    var reserved=rules.filter(function(r){return +r.day===+p.day&&accById(r.acc)&&!isLiveId(r.acc)}).reduce(function(a,r){return a+(+r.amt||0)},0);
+    var reserved=rules.filter(function(r){return +r.day===+p.day&&accById(r.acc)&&!isLiveId(r.acc)}).reduce(function(a,r){return a+(ruleCap(r)||0)},0);
     if(gross>reserved&&(!start||x.date>start))start=x.date;
   });
   if(!start)return null;
   // Общий бюджет периода: текущий остаток + уже потраченные деньги на жизнь.
   // Переводы в копилки не возвращаем; исполненные платежи и раскладки уже исчезли из предстоящих.
   // Редкие расходы резервируем пропорционально длине периода, за вычетом уже оплаченных (без двойного резерва).
-  var ev=plannedItems(T,sourceForecastDays()),next=null,dates={};
-  ev.forEach(function(e){
-    var d=dates[e.date]||(dates[e.date]={inc:0,res:0});
-    if(e.kind==='in')d.inc+=+e.amt||0;
-    else if(e.rule)d.res+=+e.amt||0;
-  });
-  Object.keys(dates).sort().some(function(d){if(dates[d].inc>dates[d].res){next=d;return true}return false});
+  // Граница — следующая выплата с остатком на жизнь (связь раскладки по payDay+ym, не только по дате).
+  var ev=plannedItems(T,sourceForecastDays());
+  var next=nextLifePayoutDate(ev,iso(addDays(parse(T),-1)));
   if(!next)next=iso(addDays(parse(start),30));
   if(next<=start)next=iso(addDays(parse(start),1));
   if(next<T)next=T;
-  var due=0,inc=0;
-  ev.forEach(function(e){if(e.date>=next)return;
-    if(e.kind==='out'&&!offMain(e))due+=+e.amt||0;
+  var due=0,inc=0,nextPay={},nextYm={};
+  ev.forEach(function(e){if(e.kind==='in'&&e.date===next){if(e.payDay!=null)nextPay[+e.payDay]=1;if(e.ym)nextYm[e.ym]=1}});
+  ev.forEach(function(e){
+    if(e.date>=next)return;
+    if(e.rule&&e.payDay!=null&&nextPay[+e.payDay]&&(!e.ym||nextYm[e.ym]))return; // раскладка границы — не резерв текущего периода
+    if(e.kind==='out'&&(e.rule||!offMain(e)))due+=+e.amt||0;
     else if(e.kind==='in')inc+=+e.amt||0;
   });
   var spent=cashPlanSpent(start,T);

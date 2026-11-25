@@ -499,8 +499,12 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .stats>.stat>b{margin-top:2px;line-height:20px;min-height:20px}
 .hero .stats>.stat>.pbar+.fine{margin-top:3px}
 .hero .hero-head{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
-.hero .hero-balance-label{display:inline-flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}
+.hero .hero-balance-label{display:inline-flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}.hero .hero-balance-label>span{min-width:0;white-space:normal;line-height:1.2}
 .hero .hero-head .ibtn{flex-shrink:0}
+.hero .hero-head .ibtn::after{inset:-5px -2px}
+.hero .hero-head .hero-balance-label{flex:0 1 auto}
+.hero .hero-head .home-detail-link{max-width:100%}
+
 .hero .home-detail-link{flex:0 0 auto;width:auto;text-align:right;padding:3px 0 3px 4px;min-height:24px;font-size:clamp(11px,3.4vw,13px);white-space:nowrap}
 @media(max-width:360px){.hero .hero-balance-label{font-size:12px;gap:3px}}
 .bigtext .hero .hero-head{flex-wrap:wrap}
@@ -2480,7 +2484,7 @@ function homeBudgetDetails(pd,spent,left,metrics){
   }
   return tipBox('h_can',h);
 }
-function homeHeroHead(){return '<div class="hero-head"><span class="lbl hero-balance-label">Свободные деньги '+tipBtn('h_bal')+'</span><button type="button" class="fine home-detail-link" data-a="tip" data-v="h_can" aria-expanded="false" aria-controls="tip_h_can">Подробнее</button></div>'}
+function homeHeroHead(){return '<div class="hero-head"><span class="lbl hero-balance-label"><span>Свободные деньги</span>'+tipBtn('h_bal')+'</span><button type="button" class="fine home-detail-link" data-a="tip" data-v="h_can" aria-expanded="false" aria-controls="tip_h_can">Подробнее</button></div>'}
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));
   var irr=S.irreg?irrSummary():null;

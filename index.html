@@ -2518,7 +2518,7 @@ function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
-  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),(dayLimit()>0?dayLimit():pd.val)-spentToday)),irr=S.irreg?irrSummary():null;
+  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),(pd.waitingToday?pd.val:dayLimit()>0?Math.min(dayLimit(),pd.val):pd.val)-spentToday)),irr=S.irreg?irrSummary():null;
   var hero='<div class="card hero">'+homeHeroHead()+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
    '<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('На сегодня',money(todayLeft),null,null,'main'))+
    statTile('В среднем',money(lifeNet(me)/dnum))+

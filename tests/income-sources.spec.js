@@ -290,7 +290,23 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
 
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
  await expect(link).toHaveText('Подробнее');
+ await expect(hero.locator('.hero-head .home-detail-link')).toHaveCount(1);
+ await expect(hero.locator('.hero-head [data-v=h_bal]')).toBeVisible();
+ for(const width of [320,390]){
+  await page.setViewportSize({width,height:640});
+  const header=await hero.locator('.hero-head').evaluate(el=>{
+   const label=el.querySelector('.hero-balance-label').getBoundingClientRect();
+   const link=el.querySelector('.home-detail-link').getBoundingClientRect();
+   const box=el.getBoundingClientRect();
+   return {separated:label.right<=link.left+1,rightAligned:Math.abs(link.right-box.right)<=1,oneLine:Math.abs((label.top+label.bottom)/2-(link.top+link.bottom)/2)<=2,fit:el.scrollWidth<=el.clientWidth+1};
+  });
+  expect(header).toEqual({separated:true,rightAligned:true,oneLine:true,fit:true});
+ }
+ await page.setViewportSize({width:320,height:640});
  await link.click();await expect(details).toBeVisible();
+ await expect(link).toHaveAttribute('aria-expanded','true');
+ expect(await hero.locator('.stats').evaluate(el=>!!(el.compareDocumentPosition(document.getElementById('tip_h_can'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+
  const labels=await details.locator('.row .grow').allTextContents();
  expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра',...(simpleMode?[]:['Доступно в день']),'В среднем за день','Потрачено за месяц']);
  await expect(details.locator('[data-a=planOpen]')).toBeVisible();

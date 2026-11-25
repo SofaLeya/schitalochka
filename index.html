@@ -155,11 +155,11 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .f textarea{min-height:70px;resize:vertical;font-size:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ent .f{gap:5px}
-.incomeForm{gap:12px!important}
+.incomeForm{gap:9px!important}
 .incomeForm .f{gap:4px;min-width:0}
 .incomeForm input:not([type=checkbox]),.incomeForm select{min-width:0;max-width:100%;padding:9px 10px;font-size:15px;min-height:40px}
 .incomeForm .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.incomeForm .isGroup{padding:10px;border:1px solid var(--line);border-radius:12px;gap:9px}
+.incomeForm .isGroup{padding:0;border:0;gap:6px}.incomeForm .isPreview{padding:8px 10px;background:var(--surface2);border-radius:12px}.incomeForm .isExtra{padding:8px 10px;border:1px solid var(--line);border-radius:10px}.incomeForm .isExtra[open]{display:flex;flex-direction:column;gap:8px}
 .incomeForm .isTitle{font-size:14px;font-weight:750;color:var(--ink)}
 .incomeForm .isDays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .incomeForm .isDays label{position:relative;display:flex;justify-content:center;align-items:center;min-height:36px;border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer}
@@ -2473,7 +2473,7 @@ function goalLine(a){if(!(a.goal>0))return '';var gc=isFx(a)?a.cur:baseCur(),gk=
   if(left<=0)eta='цель достигнута!';else if(se)eta='по плану - к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][+se.slice(5)-1]+' '+se.slice(0,4);else{var pl=goalPlan(a)*gk,pc=pl>0?pl:goalPace(a)*gk;if(pc>0){var dd=addDays(parse(petDay()),Math.ceil(left/pc*30.4));eta=(pl>0?'по плану':'при темпе последнего месяца')+' - к '+['январю','февралю','марту','апрелю','маю','июню','июлю','августу','сентябрю','октябрю','ноябрю','декабрю'][dd.getMonth()]+' '+dd.getFullYear()}else eta='пока нет пополнений за последний месяц'}
   var nx=S.simple?'':wizSumTxt(a.id);
   return '<div class="s">цель '+mon(a.goal,gc)+' · '+Math.round(p)+'% · '+(left>0?'осталось '+mon(left,gc)+', ':'')+eta+(nx?'<br>потом → '+nx:'')+'</div><div class="bar" style="margin-top:6px"><i style="width:'+p+'%;background:var(--accent)"></i></div>'}
-var FOLD_DEF={rules:1,pf:1,p3:1,plfile:1,debt:0,payout:1,prog:1,up:1};
+var FOLD_DEF={rules:1,pf:1,markedMonth:1,donePayouts:1,plfile:1,debt:0,payout:1,prog:1,up:1};
 function uiFold(k,v){try{var o=JSON.parse(localStorage.getItem('sch-fold')||'{}');if(v===undefined)return k in o?!!o[k]:!!FOLD_DEF[k];o[k]=v;localStorage.setItem('sch-fold',JSON.stringify(o))}catch(e){return !!FOLD_DEF[k]}}
 function fhead(k,title,sum,note){var shut=uiFold(k);
   return '<button type="button" class="foldhead" data-a="fold" data-v="'+k+'" aria-expanded="'+(!shut)+'"><span class="grow"><span class="h2like">'+title+'</span>'+(sum!=null?'<span class="'+(k==='save'||k==='debt'?'bigsum':'midsum')+'" style="display:block">'+sum+'</span>':'')+(note?'<span class="fine" style="display:block">'+note+'</span>':'')+'</span><span class="chev'+(shut?'':' open')+'"></span></button>'}
@@ -3754,13 +3754,13 @@ function planRow(kind,r,ym,noMark){ // noMark: на вкладке «План» 
 function bigAcc(r){var a=accById(r.acc),n=((a?a.name:'')+' '+r.name).toLowerCase();return /подкоп|подушк|платеж|платёж/.test(n)}
 function rulesCard(part){
   var hasSave=activeAccounts().some(function(x){return x.type!=='main'});
-  if(!S.rules.length)return part==='pend'?'':fcard('rules','Раскладка по копилкам',null,'Правил пока нет','<p class="fine">Сколько откладывать в копилки с каждой выплаты. В день выплаты приложение предложит разложить деньги одной кнопкой.</p>'+(hasSave?'<div class="btns"><button class="btn" data-a="newRule">Добавить правило</button></div>':'<p class="fine">Сначала заведи копилку на главной.</p>'));
+  if(!S.rules.length)return part==='pend'||part==='factOnly'?'':fcard('rules','Раскладка по копилкам',null,'Правил пока нет','<p class="fine">Сколько откладывать в копилки с каждой выплаты. В день выплаты приложение предложит разложить деньги одной кнопкой.</p>'+(hasSave?'<div class="btns"><button class="btn" data-a="newRule">Добавить правило</button></div>':'<p class="fine">Сначала заведи копилку на главной.</p>'));
   var pend=pendingPayouts(),st=planStats(),h='';
   var donePo=(function(){var ym=T.slice(0,7),o=[];var days={};S.rules.forEach(function(r){days[r.day]=1});Object.keys(days).forEach(function(d){var dt=payDateIn(ym,+d);if(dt>T)return;var tr=S.entries.filter(function(x){return x.type==='t'&&x.rule&&x.date.slice(0,7)===ym&&S.rules.some(function(r){return r.id===x.rule&&+r.day===+d})});if(tr.length&&!pend.some(function(p){return p.day===+d&&p.ym===ym}))o.push({day:+d,ym:ym,date:dt,sum:tr.reduce(function(a,x){return a+x.amt},0),n:tr.length})});return o.sort(function(a,b){return a.date<b.date?1:-1})})();
-  var doneCard=donePo.length?'<div class="card"><h2>✅ Разложено</h2>'+donePo.map(function(p){return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.n+' '+plw(p.n,'копилка','копилки','копилок')+' · '+money(p.sum)+'</div></div><button class="btn sm ghost" data-a="editP" data-id="'+p.day+'" data-k="'+p.ym+'">Изменить</button></div>'}).join('')+'</div>':'';
-  if(part==='pend'){if(!pend.length)return doneCard;return doneCard+'<div class="card"><h2>Разложить сейчас</h2>'+pend.map(function(p){
+  var doneCard=donePo.length?fcard('donePayouts','✅ Разложено · '+donePo.length,null,money(donePo.reduce(function(a,p){return a+p.sum},0)),donePo.map(function(p){return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.n+' '+plw(p.n,'копилка','копилки','копилок')+' · '+money(p.sum)+'</div></div><button class="btn sm ghost" data-a="editP" data-id="'+p.day+'" data-k="'+p.ym+'">Изменить</button></div>'}).join('')):'';
+  if(part==='pend'){if(!pend.length)return doneCard;return '<div class="card"><h2>Разложить сейчас</h2>'+pend.map(function(p){
       var crs=(S.carry||[]).reduce(function(a,c){return a+(accById(c.acc)?c.amt:0)},0);
-      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.length+' '+plw(p.rules.length,'копилка','копилки','копилок')+' · '+money(p.sum)+(crs>0?' · ↪ + '+money(crs)+' с прошлой':'')+(function(){var x=p.rules.reduce(function(a,r){return a+(bigAcc(r)?0:r.amt)},0);return x&&x!==p.sum?'<br>из них на отдельные счета '+money(x):''})()+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить</button><button class="fine" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'" style="text-decoration:underline;background:none;border:0;cursor:pointer">пропустить</button></div></div>'}).join('')+'</div>'}
+      return '<div class="row" style="padding-block:6px"><div class="grow"><div class="t">Выплата '+dlabel(p.date)+'</div><div class="s">'+p.rules.length+' '+plw(p.rules.length,'копилка','копилки','копилок')+' · '+money(p.sum)+(crs>0?' · ↪ + '+money(crs)+' с прошлой':'')+(function(){var x=p.rules.reduce(function(a,r){return a+(bigAcc(r)?0:r.amt)},0);return x&&x!==p.sum?'<br>из них на отдельные счета '+money(x):''})()+'</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="btn sm" data-a="applyP" data-id="'+p.day+'" data-k="'+p.ym+'">Разложить</button><button class="fine" data-a="skipP" data-id="'+p.day+'" data-k="'+p.ym+'" style="text-decoration:underline;background:none;border:0;cursor:pointer">пропустить</button></div></div>'}).join('')+'</div>'+doneCard}
   // правила, сгруппированные по дню выплаты
   var byDay={};S.rules.forEach(function(r){(byDay[r.day]=byDay[r.day]||[]).push(r)});
   var days=Object.keys(byDay).map(Number).sort(function(a,b){return a-b}),tot=0;S.rules.forEach(function(r){if(ruleOn(r))tot+=r.amt});
@@ -3776,6 +3776,8 @@ function rulesCard(part){
       return '<button class="row" data-a="editRule" data-id="'+r.id+'" style="padding-block:8px;text-align:left;width:100%'+(on?'':';opacity:.55')+'"><div class="grow"><div class="t" style="font-size:14px">'+esc(r.name)+'</div><div class="s">→ '+esc(a?a.name:'копилка не выбрана')+(cd?' · '+esc(cd):'')+(on?'':' · сейчас не работает')+'</div></div><span class="amt">'+money(r.amt)+'</span></button>'}).join('')+sepRow(l)+'</div></details>'}).join('')+'</div>'+
     '<div class="btns"><button class="btn ghost sm" data-a="newRule">Добавить правило</button><button class="btn ghost sm" data-a="recon">Сверить с банком</button></div>';
   h+=fcard('rules','Раскладка по копилкам',money(tot)+' в месяц',S.rules.length+' '+plw(S.rules.length,'правило','правила','правил')+' · '+days.length+' '+plw(days.length,'выплата','выплаты','выплат'),body);
+  if(part==='rulesOnly')return h;
+  if(part==='factOnly')h='';
   var ids=Object.keys(st);
   if(ids.length){var miss=0;ids.forEach(function(id){var x=st[id];if(x.plan>x.fact)miss+=x.plan-x.fact});
     h+=fcard('pf','План и факт',null,(miss>0?'не хватает '+money(miss):'всё по плану')+' · с '+dlabel(S.planFrom),'<div class="list">'+ids.map(function(id){
@@ -3821,28 +3823,6 @@ function reconSheet(){
 var ptab='m';
 function viewPlan(){
   var ym=T.slice(0,7);
-  /* честный план: доход − платежи со свободных − раскладка в копилки − жизнь по плану − резерв на редкое.
-     Платежи из копилки оплачиваются тем, что в ней лежит и докладывается; со свободных уходит только нехватка.
-     Жизнь - план на день × 30,4 (как в самом плане), редкие траты - 1/12 годовой суммы в месяц. */
-  var lim3=dayLimit(),rareN=[],mn3=defAcc(),rM=rareMonthly(),bal3={},cym=T.slice(0,7);
-  activeAccounts().forEach(function(ac){if(isLive(ac)||ac.type==='debt')return;
-    /* остаток на начало месяца: убираем то, что уже отложено и списано в этом месяце */
-    var b=accBal(ac);S.entries.forEach(function(x){if(x.date.slice(0,7)!==cym||x.demo)return;if(x.rule&&x.to===ac.id)b-=x.amt;if(x.rid&&x.type==='e'&&accOf(x)===ac.id)b+=x.amt});bal3[ac.id]=b});
-  var rows=[0,1,2].map(function(k){
-    var m=nextYM(ym,k),a=m.split('-'),inc=0,pay=0,sv=0,gap=0,life3=lim3*30.4,isCurM=m===cym;
-    /* текущий месяц: реально потрачено на жизнь до вчера + сегодня (не меньше плана) + план на оставшиеся дни */
-    if(isCurM){var nd3=dim(+a[0],+a[1]-1),dd3=parseInt(T.slice(8),10),me3=monthEntries(m),pastL=me3.filter(function(x){return x.date<T}),todL=me3.filter(function(x){return x.date===T});
-      life3=Math.max(0,lifeNet(pastL))+Math.max(lim3,Math.max(0,lifeNet(todL)))+lim3*(nd3-dd3)}
-    function factOf(f,id){return S.entries.filter(function(x){return x[f]===id&&x.date.slice(0,7)===m}).reduce(function(a2,x){return a2+x.amt},0)}
-    incomeRows(m).forEach(function(r){inc+=incomeFor(r,m)});
-    var sm3=ruleSim(3).m[k]||{};(S.rules||[]).forEach(function(r){if(!accById(r.acc))return;var v=sm3[r.id]||0;sv+=v;if(bal3[r.acc]!==undefined)bal3[r.acc]+=v});
-    S.recur.forEach(function(r){if(!dueIn(r,m))return;var ac=r.acc&&accById(r.acc);
-      var amt3=isCurM&&doneFor('rid',r.id,m)?factOf('rid',r.id):r.amt;
-      if(ac&&!isLive(ac)&&bal3[ac.id]!==undefined){bal3[ac.id]-=amt3;if(bal3[ac.id]<0){gap+=-bal3[ac.id];bal3[ac.id]=0}}else pay+=amt3});
-    rareList().forEach(function(r){if(+r.mon===+a[1])rareN.push(MONTHS[+a[1]-1].slice(0,3)+': '+esc(r.name)+' '+money(r.amt))});
-    var outT=pay+sv+gap+life3+rM,left=inc-outT;
-    return '<span>'+MONTHS[+a[1]-1].slice(0,3)+(isCurM?'*':'')+'</span><span class="r in">+'+Math.round(inc).toLocaleString('ru-RU')+'</span><span class="r out">−'+Math.round(outT).toLocaleString('ru-RU')+'</span><span class="r"'+(left<0?' style="color:var(--out)"':'')+'><b>'+Math.round(left).toLocaleString('ru-RU')+'</b></span>';
-  }).join('');
   var rTotY=rareList().reduce(function(s0,r){return s0+(+r.amt||0)},0);
   /* сколько уже ушло на редкое в этом году по категориям */
   var yr=T.slice(0,4),LKr=refLinks(),rcs={};rareList().forEach(function(r){if(r.cat)rcs[r.cat]=(rcs[r.cat]||0)+(+r.amt||0)});
@@ -3882,7 +3862,7 @@ function viewPlan(){
     mi.sort(function(p2,q){return p2[2]-q[2]||(p2[3]<q[3]?-1:p2[3]>q[3]?1:0)});
     var GN=['⏰ Надо отметить','🗓️ Скоро','✅ Отмечено'];
     var grp=[0,1,2].map(function(g){var l=mi.filter(function(x){return x[2]===g});if(!l.length)return '';
-      return '<div class="card"><h2>'+GN[g]+(g===0?' · '+l.length:'')+'</h2>'+l.map(function(x){return planRow(x[0],x[1],ym)}).join('')+'</div>'}).join('');
+      var body=l.map(function(x){return planRow(x[0],x[1],ym)}).join('');return g===2?fcard('markedMonth',GN[g]+' · '+l.length,null,null,body):'<div class="card"><h2>'+GN[g]+(g===0?' · '+l.length:'')+'</h2>'+body+'</div>'}).join('');
     if(!mi.length)grp='<div class="card"><p class="empty">Пока нечего отмечать. Добавь зарплату и обязательные платежи на вкладке «План».</p><button class="btn ghost" data-a="ptab" data-v="p">Открыть «План»</button></div>';
     return head+sumCard+(S.demo?'':prevCard)+rulesCard('pend')+grp; // в примерах прошлый месяц не показываем: новичку это стена кнопок
   }
@@ -3891,8 +3871,7 @@ function viewPlan(){
      (S.recur.length?sorted(S.recur,'r').map(function(r){return planRow('r',r,ym,1)}).join(''):'<p class="empty">Добавь аренду, связь, подписки.</p>'),'<button class="btn ghost" data-a="newPlan" data-k="r">Добавить платёж</button>')+
    fcard('inc','💰 Доходы',money(iTot)+' в месяц',S.incomes.length?S.incomes.length+' '+plw(S.incomes.length,'поступление','поступления','поступлений'):'пока нет',
      (S.incomes.length?S.incomes.filter(function(r){return !r.sourceParent}).map(function(r){return r.source?sourcePlanRow(r,ym):planRow('i',r,ym,1)}).join(''):'<p class="empty">Добавь даты, когда приходят деньги: от них считается «до зарплаты».</p>'),'<button class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button>')+
-   planMore(rareCard+climCard()+rulesCard()+
-   fcard('p3','План на 3 месяца',null,'сколько останется сверху','<div class="sum3"><span class="h">Месяц</span><span class="h r">Приход</span><span class="h r">Уходит</span><span class="h r">Остаётся</span>'+rows+'</div><p class="fine" style="margin:0">* '+MONTHS[+cym.split('-')[1]-1]+': траты на жизнь по факту за прошедшие дни и по плану на оставшиеся, отмеченные платежи и доходы - по факту.</p>'+(rareN.length?'<p class="fine" style="margin:0">Редкие траты: '+rareN.join(', ')+'. Они оплачиваются из резерва, который копится в плане.</p>':'')+'<div class="tiprow" style="justify-content:flex-end"><span class="fine">Как считается</span>'+tipBtn('p3')+'</div>'+tipBox('p3','В '+sym()+'. «Уходит» - платежи со свободных денег, раскладка по копилкам, траты на жизнь по плану ('+money(lim3)+' в день, в среднем 30,4 дня в месяце) и резерв на редкие траты ('+money(rM)+' в месяц). Платежи из копилки (например, «Платежи») оплачиваются тем, что в ней лежит и докладывается по раскладке; сюда попадёт только нехватка, если её не хватит. Если доход в этом месяце уже отмечен, берётся сколько пришло на самом деле. «Остаётся» - сколько будет сверху, если жить по плану. Красное - в этом месяце денег не хватит.'))+
+   planMore(rulesCard('rulesOnly')+climCard()+rareCard+rulesCard('factOnly')+
    fcard('plfile','План из файла',null,'загрузить JSON или таблицу Excel','<p class="fine">JSON для обновления доходов или таблица Excel по шаблону: листы «Доходы», «Платежи», «Накопления», «Долги» (можно заполнить только нужные). Заменится только то, что есть в файле; записи и остатки копилок не меняются. <button type="button" class="fine" style="text-decoration:underline" data-a="xlTpl">Скачать шаблон</button></p><button type="button" data-a="choosePlanFile" class="btn ghost sm" style="align-self:flex-start">Выбрать файл плана</button><details class="f" style="margin-top:8px"><summary class="fine">Или вставить JSON текстом</summary><textarea class="f" id="pl_text" rows="4" placeholder="Вставь содержимое JSON-файла"></textarea><button type="button" data-a="pastePlanJson" class="btn ghost sm">Загрузить JSON</button></details><p class="fine" id="pl_msg" hidden></p>'));
 }
 
@@ -3900,7 +3879,7 @@ function viewPlan(){
 var planMoreOpen=false;
 function planMore(inner){
   var on=[];if((S.rare||[]).length)on.push('редкие траты');if(Object.keys(S.catLim||{}).length)on.push('лимиты');if((S.rules||[]).length)on.push('раскладка');
-  return '<div class="card" style="padding:12px 14px"><button type="button" class="row" data-a="planMore" aria-expanded="'+planMoreOpen+'" style="background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer"><div class="grow"><h2 style="margin:0">🧩 Ещё планирование</h2><div class="fine" style="margin-top:2px">'+(on.length?'Настроено: '+on.join(', '):'редкие траты, лимиты, раскладка, план на 3 месяца, файл')+'</div></div><span class="chev'+(planMoreOpen?' open':'')+'"></span></button></div>'+(planMoreOpen?inner:'')}
+  return '<div class="card" style="padding:12px 14px"><button type="button" class="row" data-a="planMore" aria-expanded="'+planMoreOpen+'" style="background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;width:100%;cursor:pointer"><div class="grow"><h2 style="margin:0">🧩 Ещё планирование</h2><div class="fine" style="margin-top:2px">'+(on.length?'Настроено: '+on.join(', '):'копилки, категории, редкие траты, файл')+'</div></div><span class="chev'+(planMoreOpen?' open':'')+'"></span></button></div>'+(planMoreOpen?inner:'')}
 function modeSwitch(){
   var tip='<p style="margin:0"><b>Простой</b> - записываешь траты и видишь, сколько потрачено и укладываешься ли в план на день. Хватает большинству.</p><p style="margin:6px 0 0"><b>Полный</b> - для планирования от зарплаты до зарплаты. Добавляет:</p><ul style="margin:4px 0 0;padding-left:18px"><li>вкладку «Платежи»: зарплата и обязательные платежи по дням;</li><li>«Доступно в день» до зарплаты с учётом будущих платежей;</li><li>раскладку зарплаты по копилкам одной кнопкой;</li><li>тип траты (нужно, хотелось, спонтанно) и «Финансовое здоровье».</li></ul><p style="margin:6px 0 0">Переключаться можно когда угодно, данные не теряются.</p>';
   return '<div class="tiprow" style="margin:-4px 0 4px"><div class="seg" style="flex:1" role="group" aria-label="Режим приложения"><button type="button" data-a="setMode" data-v="simple" aria-pressed="'+(S.simple?'true':'false')+'" class="'+(S.simple?'on':'')+'">Простой режим</button><button type="button" data-a="setMode" data-v="full" aria-pressed="'+(S.simple?'false':'true')+'" class="'+(S.simple?'':'on')+'">Полный режим</button></div>'+tipBtn('mode')+'</div>'+tipBox('mode',tip)}
@@ -4263,33 +4242,34 @@ function incomeSourceSheet(){
  var inp=function(id,val,mode){return '<input id="is_'+id+'" inputmode="'+(mode||'decimal')+'" value="'+esc(val)+'">'};
  var field=function(id,label,control,box){return '<div class="f"'+(box?' id="is_'+box+'"':'')+'><label for="is_'+id+'">'+label+'</label>'+control+'</div>'};
  openSheet('<h3>'+(sh.id?'Изменить':'Добавить')+' источник дохода</h3><form id="fm" class="f incomeForm">'+
- '<div class="f isGroup"><div class="isTitle">1. Откуда приходят деньги?</div>'+
- '<div class="f"><label for="is_name">Название</label><input id="is_name" value="'+esc(d.name||'')+'" placeholder="Работа, подработка, пенсия"></div>'+
- field('kind','Вид дохода',sel('kind',[['tk','Зарплата по трудовому договору'],['ip','ИП'],['npd','Самозанятость'],['other','Другой доход']],p.kind||'other'))+'</div>'+
- '<div class="f isGroup"><div class="isTitle">2. Сколько платят?</div>'+
- '<div class="two">'+field('amount','Сумма, '+sym(),inp('amount',amount))+field('basis','Это сумма',sel('basis',[['payment','За выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment'))+'</div>'+
- '<div class="two" id="is_taxrow">'+field('taxmode','Сумма указана',sel('taxmode',[['net','На руки'],['gross','До налогов']],p.net===false?'gross':'net'))+
- field('tax','Налог, %',inp('tax',p.tax==null?13:p.tax),'taxbox')+'</div>'+
- '<span class="fine" id="is_taxhint">Укажи свой процент налога для прогноза.</span>'+
+ '<div class="f isGroup">'+
+ '<div class="f"><label for="is_name">Откуда деньги?</label><input id="is_name" value="'+esc(d.name||'')+'" placeholder="Работа, подработка, пенсия"></div>'+
+ '</div>'+
+ '<div class="f isGroup">'+
+ '<div class="two">'+field('amount','На руки, '+sym(),inp('amount',amount))+field('basis','За какой период?',sel('basis',[['payment','За выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment'))+'</div>'+
  field('quantity','Часов / дней / смен за выплату',inp('quantity',p.quantity||1),'qtybox')+'</div>'+
- '<div class="f isGroup"><div class="isTitle">3. Когда приходят деньги?</div>'+
- field('freq','Как часто',sel('freq',[['daily','Каждый день'],['weekly','Раз в неделю'],['biweekly','Раз в две недели'],['twice','Два раза в месяц'],['monthly','Раз в месяц'],['custom','Свой интервал'],['dates','По числам месяца'],['once','Разовое поступление'],['irregular','Нерегулярно']],q))+
+ '<div class="f isGroup">'+
+ field('freq','Как часто платят?',sel('freq',[['daily','Каждый день'],['weekly','Раз в неделю'],['biweekly','Раз в две недели'],['twice','Два раза в месяц'],['monthly','Раз в месяц'],['custom','Свой интервал'],['dates','По числам месяца'],['once','Разовое поступление'],['irregular','Нерегулярно']],q))+
  '<div id="is_datesbox" class="two"><div class="f"><label for="is_first" id="is_firstlabel">Число месяца</label>'+inp('first',dt[0]||10,'numeric')+'</div>'+
  '<div class="f" id="is_secondbox"><label for="is_second" id="is_secondlabel">Окончаловка</label>'+inp('second',dt[1]||10,'numeric')+'</div></div>'+
  field('many','Числа месяца через запятую',inp('many',dt.join(', ')),'manybox')+
  '<div class="f" id="is_custombox"><label for="is_interval">Повторять каждые</label><div class="two">'+inp('interval',p.interval||45,'numeric')+sel('unit',[['days','дней'],['weeks','недель'],['months','месяцев']],p.unit||'days')+'</div></div>'+
  '<div class="f" id="is_startbox"><label id="is_startlabel" for="is_start">Дата первой выплаты</label><input type="date" id="is_start" value="'+esc(p.start||(old?T.slice(0,7)+'-01':T))+'"></div>'+
- '<div id="is_shiftbox"><label class="chk"><input id="is_shift" type="checkbox"'+((p.shift==null?old:p.shift)?' checked':'')+'> Если выходной, деньги приходят раньше</label><span class="fine">Перенос на рабочий день по календарю РФ.</span></div></div>'+
- '<div class="f isGroup" id="is_calcgroup"><div class="isTitle">4. Как считают зарплату?</div>'+
- '<div class="f" id="is_methodbox">'+field('method','Размер двух выплат',sel('method',[['days','По отработанным дням'],['hours','По часам (неполная ставка)'],['fixed','Фиксированные доли']],p.method||'days'))+
+ '</div>'+
+ '<div class="f isGroup" id="is_calcgroup"><div class="isTitle">Как делят зарплату?</div>'+
+ '<div class="f" id="is_methodbox">'+field('method','Как считают две выплаты?',sel('method',[['days','По рабочим дням'],['hours','По рабочим часам'],['fixed','Заранее известные доли']],p.method||'days'))+
  '<div class="f" id="is_workbox"><label>Твой рабочий график</label><div class="isDays">'+[[1,'Пн'],[2,'Вт'],[3,'Ср'],[4,'Чт'],[5,'Пт'],[6,'Сб'],[0,'Вс']].map(function(o){return '<label><input type="checkbox" name="is_wd" value="'+o[0]+'"'+(days.indexOf(o[0])>=0?' checked':'')+'>'+o[1]+'</label>'}).join('')+'</div>'+
  field('hours','Часов в рабочий день',inp('hours',p.hours||8),'hoursbox')+
  '<span id="is_workhint" class="fine"></span></div></div>'+
  field('share','Первая выплата, % от месячной суммы',inp('share',p.share==null?50:p.share),'sharebox')+'</div>'+
- '<div class="f isGroup" id="is_linkbox"><div class="isTitle">Объединить старые выплаты</div><span class="fine">Если аванс и окончаловка уже есть в плане, выбери здесь вторую запись. Не создавай дубль и не удаляй её вручную.</span>'+
+ '<div class="f isGroup" id="is_linkbox"><div class="isTitle">Объединить старые выплаты</div><span class="fine">Если в плане уже есть вторая выплата, выбери её.</span>'+
  field('link','Вторая запись в плане',sel('link',[['','Не объединять']].concat(choices.map(function(x){return [x.id,x.name+' · '+x.day+'-го']})).concat(linked&&!choices.some(function(x){return x.id===linked.id})?[[linked.id,linked.name+' · '+linked.day+'-го']]:[]),p.secondId||''))+'</div>'+
  '<div class="f isGroup isPreview"><div class="isTitle">Ближайшие выплаты (прогноз)</div><div id="is_preview" aria-live="polite"></div><span id="is_info" class="fine"></span></div>'+
- '<details id="is_advanced" class="f"><summary>Дополнительные настройки</summary><div id="is_startmount" class="f" style="margin-top:8px"></div></details>'+
+ '<details id="is_advanced" class="f isExtra"'+(p.kind&&p.kind!=='other'||p.net===false||p.shift?' open':'')+'><summary>Вид работы, налоги и перенос дат</summary>'+ field('kind','Вид дохода',sel('kind',[['tk','Зарплата по трудовому договору'],['ip','ИП'],['npd','Самозанятость'],['other','Другой доход']],p.kind||'other'))+
+ '<div class="two" id="is_taxrow">'+field('taxmode','Сумма указана',sel('taxmode',[['net','На руки'],['gross','До налогов']],p.net===false?'gross':'net'))+
+ field('tax','Налог, %',inp('tax',p.tax==null?13:p.tax),'taxbox')+'</div>'+
+ '<span class="fine" id="is_taxhint">Укажи свой процент налога для прогноза.</span>'+
+ '<div id="is_shiftbox"><label class="chk"><input id="is_shift" type="checkbox"'+((p.shift==null?old:p.shift)?' checked':'')+'> Если день выплаты выходной, платят раньше</label></div><div id="is_startmount" class="f"></div></details>'+
  '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
  '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
  (sh.id?(sh.confirm?'<button type="button" class="btn danger" data-a="delPlan">Точно удалить</button>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+'</form>');
@@ -4317,20 +4297,21 @@ function sourceFormPreview(p){
  var max=p.freq==='custom'&&p.unit==='months'?Math.min(368,p.interval+2):p.freq==='custom'?Math.min(86,Math.ceil(p.interval*(p.unit==='weeks'?7:1)/28)+2):3;
  for(var i=0;i<max&&rows.length<4;i++){var ym=nextYM(m,i);rows=rows.concat(incomeRows(ym,def).filter(function(r){return r.scheduled>=T&&!doneFor('iid',r.id,ym)}))}
  rows.sort(function(a,b){return a.scheduled.localeCompare(b.scheduled)});
- el.innerHTML=rows.length?rows.slice(0,4).map(function(r){return '<div class="row"><span class="grow fine">'+esc(dlabel(r.scheduled))+(r.name?' · '+esc(r.name.replace(/^ · /,'')):'')+'</span><strong style="color:var(--in);white-space:nowrap">≈ '+money(r.amt)+'</strong></div>'}).join(''):'<span class="fine">Нет ближайших выплат по этому графику.</span>';
+ el.innerHTML=rows.length?rows.slice(0,2).map(function(r){return '<div class="row"><span class="grow fine">'+esc(dlabel(r.scheduled))+(r.name?' · '+esc(r.name.replace(/^ · /,'')):'')+'</span><strong style="color:var(--in);white-space:nowrap">≈ '+money(r.amt)+'</strong></div>'}).join(''):'<span class="fine">Нет ближайших выплат по этому графику.</span>';
 }
 function sourceFormLive(){
  var get=function(id){return document.getElementById('is_'+id)},v=function(id){return get(id).value},hide=function(id,b){get(id).style.display=b?'none':''};
  if(!get('freq'))return;
  var p=sourceFormConfig(),f=p.freq,basis=p.basis,tk=p.kind==='tk',tw=f==='twice',cal=tk&&tw&&basis==='month',method=p.method,monthly=['monthly','twice','dates'].indexOf(f)>=0,rate=['hour','day','shift'].indexOf(basis)>=0,share=tw&&basis==='month'&&(!cal||method==='fixed');
+ var amountLabel=document.querySelector('label[for="is_amount"]');if(amountLabel)amountLabel.textContent=(p.net?'На руки, ':'До налогов, ')+sym();
  hide('taxbox',p.net);hide('taxhint',p.net);get('taxrow').style.gridTemplateColumns=p.net?'minmax(0,1fr)':'';
  hide('qtybox',!rate);hide('datesbox',f!=='monthly'&&!tw);get('datesbox').style.gridTemplateColumns=tw?'':'minmax(0,1fr)';hide('secondbox',!tw);hide('manybox',f!=='dates');hide('custombox',f!=='custom');
- var sb=get('startbox'),mount=get('startmount'),adv=get('advanced');if(monthly&&sb.parentNode!==mount)mount.appendChild(sb);else if(!monthly&&sb.parentNode===mount)get('shiftbox').before(sb);
- hide('advanced',!monthly);hide('startbox',f==='irregular');get('startlabel').textContent=monthly?'С какого дня действует график':'Дата первой выплаты';
+ var sb=get('startbox'),mount=get('startmount'),adv=get('advanced');if(monthly&&sb.parentNode!==mount)mount.appendChild(sb);else if(!monthly&&sb.parentNode===mount)get('custombox').after(sb);
+ hide('advanced',false);hide('startbox',f==='irregular');get('startlabel').textContent=monthly?'С какого дня действует график':'Дата первой выплаты';
  hide('calcgroup',!cal&&!share);hide('methodbox',!cal);hide('workbox',method==='fixed');hide('hoursbox',method!=='hours');hide('sharebox',!share);hide('linkbox',!tw||(!sh.id&&get('link').options.length<2)||get('link').options.length<2);hide('shiftbox',f==='irregular');
- get('firstlabel').textContent=tw?(tk?'Аванс, число':'1-я выплата, число'):'Число месяца';get('secondlabel').textContent=tk?'Окончаловка, число':'2-я выплата, число';
- get('workhint').textContent=method==='hours'?'В поле «Сумма» укажи месячный оклад полной ставки, а здесь — свои часы.':'Аванс за 1–15 число, остаток за 16–конец прошлого месяца.';
- get('info').textContent=f==='irregular'?'Записывай фактические поступления.':cal&&method!=='fixed'?'Расчёт по рабочему календарю; фактические суммы могут отличаться.':'Фактическую сумму можно уточнить при получении.';
+ get('firstlabel').textContent=tw?(tk?'Аванс, число':'1-я выплата, число'):'Число месяца';get('secondlabel').textContent=tk?'Остаток зарплаты, число':'2-я выплата, число';
+ get('workhint').textContent=method==='hours'?'Введи оклад за полный месяц на полной ставке и свои рабочие часы.':'Аванс за первую половину месяца, остаток — за вторую.';
+ get('info').textContent=f==='irregular'?'Записывай фактические поступления.':cal&&method!=='fixed'?'По рабочему календарю.':'Суммы можно уточнить при получении.';
  sourceFormPreview(p);
 }
 function saveIncomeSource(){

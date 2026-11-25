@@ -65,6 +65,7 @@ test('guided form links existing salary and previews upcoming payments before sa
  await expect(page.locator('#is_calcgroup')).toBeHidden();
  await expect(page.locator('#is_taxbox')).toBeHidden();
  await page.fill('#is_name','ТК');
+ await page.locator('#is_advanced summary').click();
  await page.selectOption('#is_kind','tk');
  await page.selectOption('#is_basis','month');
  await page.fill('#is_amount','132000');
@@ -74,6 +75,7 @@ test('guided form links existing salary and previews upcoming payments before sa
  await expect(page.locator('#is_calcgroup')).toBeVisible();
  await page.selectOption('#is_link','final');
  await expect(page.locator('#is_second')).toHaveValue('10');
+ await page.locator('#is_advanced summary').click();
  await expect(page.locator('#is_start')).toBeHidden();
  await expect(page.locator('#is_preview')).toContainText(/51\s*678/);
  await expect(page.locator('#is_preview')).toContainText(/63\s*162/);
@@ -206,4 +208,45 @@ test('history removes automatic rule label, not rule or transaction data',async 
   return {html,manual:transferHistoryNote({note:'на отпуск'}),duplicate:transferHistoryNote({note:'Платежи · по плану'}),unchanged:before===JSON.stringify([S.entries,S.rules])};
  });
  expect(res.html).toContain('ИИ · по плану');expect(res.html).not.toContain('Claude');expect(res.manual).toBe('на отпуск');expect(res.duplicate).toBe('по плану');expect(res.unchanged).toBe(true);
+});
+
+test('monthly completed payments are collapsed, and extra planning prioritizes savings',async ({page})=>{
+ await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=false;S.rucal={};
+  S.incomes=[{id:'salary',name:'Работа',day:25,amt:1000}];S.recur=[];S.rules=[];S.entries=[{id:'income',type:'i',iid:'salary',date:T,amt:1000,cat:'salary',acc:defAcc()}];closeSheet();save();tab='plan';ptab='m';uiFold('markedMonth',true);render();
+ });
+ const marked=page.locator('[data-a=fold][data-v=markedMonth]');
+ await expect(marked).toHaveAttribute('aria-expanded','false');
+ // The same income can also appear in the previous-month reminders.
+ const markedCard=page.locator('.card').filter({has:marked});
+ const completedIncome=markedCard.locator('[data-a=editPlan][data-k=i][data-id=salary]');
+ await expect(completedIncome).toHaveCount(0);
+ await marked.click();
+ await expect(marked).toHaveAttribute('aria-expanded','true');
+ await expect(completedIncome).toBeVisible();
+ await expect(completedIncome).toContainText('Работа');
+ await expect(completedIncome).toContainText('пришло');
+ await marked.click();
+ await expect(marked).toHaveAttribute('aria-expanded','false');
+ await expect(completedIncome).toHaveCount(0);
+ await page.locator('[data-a=ptab][data-v=p]').click();
+ await page.locator('[data-a=planMore]').click();
+ const heads=await page.locator('.foldhead .h2like').allTextContents();
+ expect(heads.indexOf('Раскладка по копилкам')).toBeGreaterThanOrEqual(0);
+ expect(heads.indexOf('Раскладка по копилкам')).toBeLessThan(heads.indexOf('План по категориям'));
+ expect(heads.indexOf('План по категориям')).toBeLessThan(heads.indexOf('Редкие траты'));
+ await expect(page.getByText('План на 3 месяца',{exact:true})).toHaveCount(0);
+});
+test('new income form shows basic questions and keeps advanced options available',async ({page})=>{
+ await probe(page,()=>{sh={id:null,k:'i',d:{name:'',day:'',amt:''}};incomeSourceSheet()});
+ await expect(page.locator('#is_name')).toBeVisible();
+ await expect(page.locator('#is_amount')).toBeVisible();
+ await expect(page.locator('#is_freq')).toBeVisible();
+ await expect(page.locator('#is_kind')).toBeHidden();
+ await page.locator('#is_advanced summary').click();
+ await expect(page.locator('#is_kind')).toBeVisible();
+ await page.selectOption('#is_taxmode','gross');
+ await expect(page.locator('label[for=is_amount]')).toContainText('До налогов');
+ await page.selectOption('#is_freq','weekly');
+ await expect(page.locator('#is_start')).toBeVisible();
 });

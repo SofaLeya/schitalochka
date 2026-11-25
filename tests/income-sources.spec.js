@@ -113,5 +113,5 @@ test('targeted income file preserves current transactions, accounts and savings 
    const rows=incomeRows('2026-12');
    return {rejected,unchanged,kept:before===keep(),repeat:JSON.stringify(prepareIncomeUpdate(file))===JSON.stringify(S.incomes),rows:rows.map(r=>[r.id,r.amt]),actual:incomeFor(incomeRows('2026-11').find(r=>r.id==='a'),'2026-11')};
  });
- expect(res).toEqual({rejected:true,unchanged:true,kept:true,repeat:true,rows:[['a',57420],['b',63162],['c',1000]],actual:51678});
+ expect(res).toEqual({rejected:true,unchanged:true,kept:true,repeat:true,rows:[['a',57420],['b',63162],['b~2027-01-10',57420],['c',1000]],actual:51678});
 });

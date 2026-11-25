@@ -4528,7 +4528,7 @@ function settingsSheet(){
    grp('Деньги')+
    '<div class="srow"><div class="grow"><b>🎯 План трат на день</b><span class="ss">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'пока не задан')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="planOpen">'+(pi.v?'Изменить':'Задать')+'</button></div>'+
    '<div class="srow"><div class="grow"><b>💱 Валюта</b><span class="ss">'+esc(sym()+' · '+CUR[baseCur()][1])+(fxCurs().length?', ещё '+fxCurs().map(function(c){return sym(c)}).join(' '):'')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="curOpen">Изменить</button></div>'+
-   '<div class="help f" style="gap:8px">'+det('🗓️ График поступлений',incomeCalendarSettings()+det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0]),hasIncomeSchedule()?configuredIncomeRoots().length+' источника дохода':payDays().length?payDays().join(' и ')+' числа':S.irreg?'нерегулярный доход':'не задан')+
+   '<div class="help f" style="gap:8px">'+det('🗓️ График поступлений',incomeCalendarSettings()+det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0]),hasIncomeSchedule()?configuredIncomeRoots().length+' источника дохода':payDays().length?payDays().join(' и ')+' числа':S.irreg?'без фиксированных дат':'не задан')+
 
     det('💸 Нерегулярный доход',irrSetHtml(),S.irreg?'включён':'смены, почасовая, фриланс')+
     det('🌴 Отпуск и больничный',perSetHtml(),(S.periods||[]).some(function(p){return p.to>=T})?'отмечено':'отметить, чтобы прикинуть суммы')+

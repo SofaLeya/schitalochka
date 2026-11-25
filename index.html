@@ -1298,14 +1298,23 @@ function readBackupText(txt){txt=String(txt||'');var k=txt.indexOf('SCH1:');
   try{var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
     var st=new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'));
     return new Response(st).text().then(function(t){return JSON.parse(t)})}catch(e){return Promise.reject(e)}}
+function shareMobileFile(blob,name,type){
+  var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||
+    // Safari на iPad может представляться настольным Safari.
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!mobile||!window.File||typeof navigator.canShare!=='function'||typeof navigator.share!=='function')return null;
+  var data={files:[new File([blob],name,{type:type})]};
+  return navigator.canShare(data)?navigator.share(data):null;
+}
 function markBackup(){S.lastBackup=T;save()}
 function doDownload(){
   var json=JSON.stringify(S),name='schitalochka-'+T+'.json';
   try{
     var blob=new Blob([json],{type:'application/json'});
-    if(navigator.canShare&&window.File){var f=new File([blob],name,{type:'text/plain'});if(navigator.canShare({files:[f]})){navigator.share({files:[f]}).then(markBackup,function(e){
+    var share=shareMobileFile(blob,name,'text/plain');
+    if(share){share.then(markBackup,function(e){
       if(e&&e.name==='AbortError')return; // сама закрыла окно
-      var r=dlBlob(blob,name),m=document.getElementById('s_msg0');if(m){m.textContent=r?'Файл сохранён, ищи в «Загрузках».':'Не получилось сохранить файл. Нажми «Копировать текст».';m.hidden=false}});return 'share'}}
+      var r=dlBlob(blob,name),m=document.getElementById('s_msg0');if(m){m.textContent=r?'Файл сохранён, ищи в «Загрузках».':'Не получилось сохранить файл. Нажми «Копировать текст».';m.hidden=false}});return 'share'}
     return dlBlob(blob,name)?'dl':'err';
   }catch(e){return 'err'}
 }
@@ -4255,7 +4264,8 @@ function csvGo(){
     rows.push([d[2]+'.'+d[1]+'.'+d[0],ty,x.type==='t'?'':(CMAP[x.cat]||CMAP.other).name,String(Math.round(x.amt*100)/100).replace('.',','),x.note||'',acc,x.skip?'да':''])});
   var csv='﻿'+rows.map(function(r){return r.map(q).join(';')}).join('\r\n'),name='schitalochka-'+f+'_'+t+'.csv';
   try{var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-    if(navigator.canShare&&window.File){var fl=new File([blob],name,{type:'text/csv'});if(navigator.canShare({files:[fl]})){navigator.share({files:[fl]}).catch(function(){});closeSheet();return}}
+    var share=shareMobileFile(blob,name,'text/csv');
+    if(share){share.catch(function(){});closeSheet();return}
     var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);closeSheet();toast('Таблица скачана: '+L.length+' записей');
   }catch(e){m.textContent='Не получилось сохранить файл.';m.hidden=false}
 }
@@ -4962,7 +4972,8 @@ document.addEventListener('click',function(ev){
       return dl.save({filename:xn,data:xt2}).then(function(){say('Файл сохранён.')},function(){say('Не сохранили файл.')});
     }).catch(function(){});return}
     try{var bl=new Blob([xt2],{type:'text/plain'});
-      if(navigator.canShare&&window.File){var ff=new File([bl],xn,{type:'text/plain'});if(navigator.canShare({files:[ff]})){navigator.share({files:[ff]}).catch(function(){});say('Выбери, куда отправить файл.');return}}
+      var share=shareMobileFile(bl,xn,'text/plain');
+      if(share){share.catch(function(){});say('Выбери, куда отправить файл.');return}
       var uu=URL.createObjectURL(bl),aa=document.createElement('a');aa.href=uu;aa.download=xn;document.body.appendChild(aa);aa.click();aa.remove();setTimeout(function(){URL.revokeObjectURL(uu)},4000);say('Файл сохранён, ищи в «Загрузках».');
     }catch(e){say('Не получилось. Нажми «Скопировать».')}}
   else if(a==='newCard'){sh={ac:true,id:null,d:{name:'',type:'other',start:'',cur:baseCur(),live:true,planSpend:true}};accSheet()}

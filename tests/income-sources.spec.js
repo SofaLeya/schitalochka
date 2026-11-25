@@ -119,10 +119,11 @@ test('targeted income file preserves current transactions, accounts and savings 
 test('JSON plan picker survives screen rerender and imports salary via real file change', async ({page})=>{
  await probe(page,()=>{
    S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420}];
-   S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
+   S.demo=false;S.simple=false;S.setup=1;S.onb=1;S.entries=[];S.rules=[];S.recur=[];closeSheet();save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
    window.__planPicker=document.getElementById('pl_file');
    window.__rerenderPlan=()=>render();
  });
+ await expect(page.locator('#ov')).toBeHidden();
  await expect(page.locator('button[data-a="choosePlanFile"]')).toBeVisible();
  const [picked]=await Promise.all([page.waitForEvent('filechooser',{timeout:8000}),page.locator('button[data-a="choosePlanFile"]').click()]);
  await page.evaluate(()=>window.__rerenderPlan());
@@ -142,8 +143,9 @@ test('JSON plan picker survives screen rerender and imports salary via real file
 test('paste JSON fallback validates and applies the same salary update',async ({page})=>{
  await probe(page,()=>{
   S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420}];
-  S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
+  S.demo=false;S.simple=false;S.setup=1;S.onb=1;S.entries=[];S.rules=[];S.recur=[];closeSheet();save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
  });
+ await expect(page.locator('#ov')).toBeHidden();
  await page.getByText('Или вставить JSON текстом',{exact:true}).click();
  const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};
  const file={app:'schitalochka-income-update',v:1,sources:[{advanceId:'a',finalId:'b',advanceName:'Аванс',finalName:'Остаток',name:'Работа',source:p}]};

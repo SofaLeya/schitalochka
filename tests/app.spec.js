@@ -262,7 +262,9 @@ test('разложенный чек помечен и показывает св�
   await page.fill('#f_note', 'Заказ продукты');
   await page.click('[data-a=amtMore]'); await page.click('[data-a=partsOn]');
   await page.fill('#pa0', '300');
+  await expect(page.locator('#f_prest')).toContainText('700');
   await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
   await page.click('.tabs [data-a=tab][data-v=hist]');
   await expect(page.locator('text=часть чека 1 000').first()).toBeVisible();
   await page.locator('.row:has-text("Продукты")').first().click();
@@ -1049,6 +1051,7 @@ test('гибкая раскладка: пришло меньше - суммы п
   expect(st.entries.filter(e => e.type === 't' && e.to === 'k2')[0].amt).toBe(100);
   expect(st.carry).toEqual([expect.objectContaining({ acc: 'k2', amt: 400 })]);
   // после раскладки можно открыть и поправить: снять галочку у Клоды, поменять сумму, поставить снова
+  await page.locator('[data-a=fold][data-v=donePayouts]').click();
   await page.click('[data-a=editP]');
   await expect(page.locator('.po_in[data-rule=r2]')).toHaveValue('100');
   await page.locator('.po_in[data-rule=r2] + .po_ck').uncheck();

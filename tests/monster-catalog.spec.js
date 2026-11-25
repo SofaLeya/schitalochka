@@ -202,3 +202,53 @@ test('комментарии сохраняются отдельно, импор
   await expect(page.locator('#progress')).toHaveText('1 / 247 согласовано');
   expect(await page.evaluate(() => localStorage.getItem('test-existing-app-data'))).toBe('{"pet":"Вупсень","level":7}');
 });
+
+test('автономный HTML открывается без сети', async ({ page }) => {
+  const { execFileSync } = require('node:child_process');
+  const { mkdtemp, readFile, rm } = require('node:fs/promises');
+  const { tmpdir } = require('node:os');
+  const { join } = require('node:path');
+  const { pathToFileURL } = require('node:url');
+  const folder = await mkdtemp(join(tmpdir(), 'monster-catalog-'));
+  const file = join(folder, 'monster-catalog-offline.html');
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const requests = [];
+  await page.route(/^https?:/, route => {
+    requests.push(route.request().url());
+    return route.abort();
+  });
+  try {
+    execFileSync('python3', ['monster-catalog/qa/standalone.py', file]);
+    if (process.env.GITHUB_ACTIONS) {
+      await page.goto(pathToFileURL(file).href);
+    } else {
+      // Managed Chromium can block file://. The bundled content still runs
+      // in a blank document without an HTTP origin or a running server.
+      await page.setContent(await readFile(file, 'utf8'));
+    }
+    const character = page.locator('#character');
+    const progress = page.locator('#progress');
+    await expect(progress).toHaveText('0 / 247 согласовано');
+    await expect(character.locator('option')).toHaveCount(19);
+    await expect(page.locator('#moves button')).toHaveCount(13);
+    await page.locator('summary').click();
+    for (const id of await character.locator('option').evaluateAll(options => options.map(option => option.value))) {
+      await character.selectOption(id);
+      await expect(page.locator('#asset-status')).toBeEmpty();
+      await expect(page.locator('#reference')).toHaveJSProperty('complete', true);
+      expect(await page.locator('#reference').evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
+    }
+    await expect(page.locator('#reference-link')).toHaveAttribute('href', /^blob:/);
+    await page.getByRole('button', { name: /^Сальтуха/ }).click();
+    await expect(page.locator('#playing')).toHaveText('Сальтуха');
+    await page.locator('#phase').fill('500');
+    const frame = await page.locator('#stage').evaluate(canvas => canvas.toDataURL());
+    await page.locator('#phase').fill('100');
+    expect(await page.locator('#stage').evaluate(canvas => canvas.toDataURL())).not.toBe(frame);
+    expect(requests).toEqual([]);
+    expect(errors).toEqual([]);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});

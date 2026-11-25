@@ -809,8 +809,8 @@ function healLinks(){ // записи, отмеченные до перезаг�
     if(e.type==='e'&&orphan(S.recur||[],e.rid)){
       c=(S.recur||[]).filter(function(r){return norm(r.name)===n});
       if(c.length===1&&!dup('rid',c[0].id,ym)){e.rid=c[0].id;fix++}}
-    else if(e.type==='i'&&orphan(S.incomes||[],e.iid)){
-      c=(S.incomes||[]).filter(function(r){return norm(r.name)===n});
+    else if(e.type==='i'&&e.iid&&!incomeKnown(e.iid,ym)){
+      c=incomeRows(ym).filter(function(r){return norm(r.name)===n});
       if(c.length===1&&!dup('iid',c[0].id,ym)){e.iid=c[0].id;fix++}}
     else if(e.type==='t'&&orphan(S.rules||[],e.rule)){
       c=(S.rules||[]).filter(function(r){return norm(r.name+' · по плану')===n});
@@ -956,7 +956,9 @@ function incomeRows(ym){
          row.payroll={gross:p.amount,tax:p.net?0:p.tax,mode:p.method,days:p.days,hours:p.hours,part:o.slot===0?'first':'second'};
          row.amt=payrollExpected(row,m);delete row.payroll;
        }else if(p.basis==='month'){
-         if(p.freq==='twice'){row.amt=net*(o.slot===0?p.share/100:1-p.share/100)}
+         if(p.freq==='custom'&&p.unit==='months'&&p.interval>1)row.amt=net*p.interval;
+         else if(p.freq==='custom'&&p.unit!=='months'&&p.interval*(p.unit==='weeks'?7:1)>31)row.amt=net*p.interval*(p.unit==='weeks'?7:1)/30.4375;
+         else if(p.freq==='twice'){row.amt=net*(o.slot===0?p.share/100:1-p.share/100)}
          else row.amt=n?net/n:0;
        }else if(['hour','day','shift'].indexOf(p.basis)>=0)row.amt=net*p.quantity;
        else row.amt=net;
@@ -967,7 +969,7 @@ function incomeRows(ym){
  return out;
 }
 function sourceForecastDays(){return (S.incomes||[]).some(function(r){return r.source&&(r.source.freq==='custom'||r.source.freq==='once')})?366:62}
-function sourceOwner(id){return (S.incomes||[]).find(function(r){return r.id===id||id.indexOf(r.id+'~')===0||(r.source&&r.source.secondId===id)})}
+function sourceOwner(id){if(!id)return null;var rows=S.incomes||[];return rows.find(function(r){return !r.sourceParent&&(r.id===id||id.indexOf(r.id+'~')===0||(r.source&&r.source.secondId===id))})||null}
 function incomeKnown(id,ym){return !!id&&(!!sourceOwner(id)||incomeRows(ym).some(function(r){return r.id===id}))}
 function itemDate(kind,r,ym){return kind==='i'?(r.scheduled||payDateIn(ym,r.day)):planned(ym,r.day)}
 function markSkipped(kind,id,ym){return (S.markSkip||[]).indexOf(kind+':'+id+':'+ym)>=0}
@@ -4214,6 +4216,7 @@ function sourceFormLive(){
 function saveIncomeSource(){
  var g=function(id){return document.getElementById('is_'+id)},v=function(id){return g(id).value},name=v('name').trim(),freq=v('freq'),basis=v('basis'),amount=num(v('amount')),tax=v('taxmode')==='net'?0:num(v('tax')),start=v('start'),interval=+v('interval'),quantity=num(v('quantity')),share=num(v('share')),hours=num(v('hours')),kind=v('kind'),method=v('method');
  if(!name||!(amount>0)||!(tax>=0&&tax<100))return showErr('Проверь название, сумму и налог.');
+ if(freq==='once'&&basis==='month')return showErr('Для разового поступления выбери сумму за выплату.');
  if(freq!=='irregular'&&!/^\d{4}-\d\d-\d\d$/.test(start))return showErr('Укажи дату начала.');
  if(freq==='custom'&&(!Number.isInteger(interval)||interval<1||interval>366))return showErr('Интервал должен быть целым числом от 1 до 366.');
  if(['hour','day','shift'].indexOf(basis)>=0&&!(quantity>0))return showErr('Укажи количество часов, дней или смен.');
@@ -4366,7 +4369,7 @@ var PKIND={vac:['🌴','Отпуск'],unpaid:['🏖','За свой счёт'],
 function perOn(d){return (S.periods||[]).filter(function(p){return d>=p.from&&d<=p.to})[0]||null}
 /* средний доход в месяц за последние 12 месяцев (только месяцы, где доход был), без возвратов */
 function avgMonthInc(){var cur=T.slice(0,7),tot=0,n=0;for(var k=1;k<=12;k++){var m=nextYM(cur,-k),v=S.entries.reduce(function(a,x){return a+(x.type==='i'&&!x.skip&&!x.demo&&x.cat!=='refund'&&x.date.slice(0,7)===m?x.amt:0)},0);if(v>0){tot+=v;n++}}
-  if(!n){(S.incomes||[]).forEach(function(r){tot+=+r.amt||0});return tot}return tot/n}
+  if(!n){incomeRows(T.slice(0,7)).forEach(function(r){tot+=payrollExpected(r,T.slice(0,7))});return tot}return tot/n}
 function wdIn(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),c=0;for(var i=1;i<=n;i++)if(isWorkday(ym+'-'+p2(i)))c++;return c||1}
 function perEst(p){var am=avgMonthInc(),ad=am/29.3,miss={},days=0,d=p.from;
   while(d<=p.to){days++;if(isWorkday(d)){var ym=d.slice(0,7);miss[ym]=(miss[ym]||0)+1}d=iso(addDays(parse(d),1))}
@@ -4587,7 +4590,7 @@ document.addEventListener('click',function(ev){
   else if(a==='newPlan'&&k!=='x'){sh={id:null,k:k,d:{name:'',amt:'',day:'',cat:'other'}};planSheet()}
   else if(a==='newPlan'&&k==='x'){sh={id:null,k:'x',d:{name:'',amt:'',mon:0,cat:'gift'}};rareSheet()}
   else if(a==='editPlan'&&k==='x'){var rx=rareList().filter(function(e){return e.id===id})[0];if(rx){sh={id:id,k:'x',d:{name:rx.name,amt:rx.amt,mon:rx.mon||0,cat:rx.cat||'other'}};rareSheet()}}
-  else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=k==='i'?sourceOwner(id):arr.filter(function(e){return e.id===id})[0];if(r){sh={id:id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||'',payroll:r.payroll||null,source:r.source||null}};planSheet()}}
+  else if(a==='editPlan'){var arr=k==='r'?S.recur:S.incomes,r=k==='i'?sourceOwner(id):arr.filter(function(e){return e.id===id})[0];if(r){sh={id:r.id,k:k,d:{name:r.name,amt:r.amt,day:r.day,cat:r.cat||'other',acc:r.acc||'',every:r.every||1,from:r.from||'',payroll:r.payroll||null,source:r.source||null}};planSheet()}}
   else if(a==='delPlan'){var _sn=JSON.stringify(S);if(sh.k==='x')S.rare=rareList().filter(function(e){return e.id!==sh.id});else if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id&&e.sourceParent!==sh.id});save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='toggle'){
     var ym=/^\d{4}-\d\d$/.test(v||'')?v:T.slice(0,7),isR=k==='r',item=(isR?S.recur:incomeRows(ym)).filter(function(e){return e.id===id})[0];if(!item)return;

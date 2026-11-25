@@ -124,7 +124,7 @@ test('JSON plan picker survives screen rerender and imports salary via real file
    window.__rerenderPlan=()=>render();
  });
  await expect(page.locator('button[data-a="choosePlanFile"]')).toBeVisible();
- const [picked]=await Promise.all([page.waitForEvent('filechooser'),page.locator('button[data-a="choosePlanFile"]').click()]);
+ const [picked]=await Promise.all([page.waitForEvent('filechooser',{timeout:8000}),page.locator('button[data-a="choosePlanFile"]').click()]);
  await page.evaluate(()=>window.__rerenderPlan());
  expect(await page.evaluate(()=>window.__planPicker===document.getElementById('pl_file'))).toBe(true);
  const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};
@@ -137,4 +137,21 @@ test('JSON plan picker survives screen rerender and imports salary via real file
  expect(data.find(r=>r.id==='a').source.secondId).toBe('b');
  await page.locator('#pl_file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('broken')});
  await expect(page.locator('#pl_msg')).toContainText('Не удалось загрузить файл');
+});
+
+test('paste JSON fallback validates and applies the same salary update',async ({page})=>{
+ await probe(page,()=>{
+  S.incomes=[{id:'a',name:'Аванс',day:25,amt:57420},{id:'b',name:'Остаток',day:10,amt:57420}];
+  S.demo=false;S.simple=false;S.entries=[];S.rules=[];S.recur=[];save();tab='plan';ptab='p';planMoreOpen=true;uiFold('plfile',false);render();
+ });
+ await page.getByText('Или вставить JSON текстом',{exact:true}).click();
+ const p={kind:'tk',freq:'twice',basis:'month',amount:132000,net:false,tax:13,start:'2026-11-01',dates:[25,10],days:[1,2,3,4,5],hours:8,method:'days',shift:true,share:50};
+ const file={app:'schitalochka-income-update',v:1,sources:[{advanceId:'a',finalId:'b',advanceName:'Аванс',finalName:'Остаток',name:'Работа',source:p}]};
+ await page.fill('#pl_text',JSON.stringify(file));
+ await page.locator('[data-a="pastePlanJson"]').click();
+ await expect(page.locator('.dlg .msg')).toContainText('Обновить только 1');
+ await page.locator('.dlg .yes').click();
+ await expect(page.locator('#toast')).toContainText('Настройки доходов обновлены');
+ const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('podkopka-v1')).incomes);
+ expect(data.find(r=>r.id==='a').source.secondId).toBe('b');
 });

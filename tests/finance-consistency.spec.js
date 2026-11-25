@@ -21,3 +21,19 @@ test('refund on another day or account is attributed once to original expense',a
  });
  expect(r.prior).toBe(1500);expect(r.today).toBe(0);expect(r.month).toBe(1500);expect(r.cash).toBe(3500);
 });
+
+test('full mode ordinary subscription is not a rare expense merely because of category',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-25';S.demo=false;S.simple=false;S.irreg=false;S.incomes=[{id:'i',day:10,amt:50000}];S.rare=[{id:'rare',cat:'subs',name:'Annual license',amt:12000}];S.accounts=[{id:'main',type:'main',start:10000}];S.entries=[{id:'normal',type:'e',cat:'subs',note:'AI',amt:3499,date:T,acc:'main'},{id:'refund',type:'i',cat:'refund',amt:2000,date:T,acc:'main',for:'normal'},{id:'rarePay',type:'e',cat:'subs',note:'Annual license',amt:1000,date:T,acc:'main'}];return dayNet(T).v;
+ });expect(r).toBe(1499);
+});
+test('explicit cross-month refund is linked, future refund and expected cash are not received',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=3000;S.incomes=[];S.accounts=[{id:'main',type:'main',start:10000}];S.entries=[{id:'a',type:'e',cat:'subs',amt:3000,date:'2026-10-31',acc:'main'},{id:'b',type:'i',cat:'refund',amt:1000,date:T,acc:'main',for:'a'},{id:'c',type:'i',cat:'refund',amt:500,date:'2026-11-26',acc:'main',for:'a'},{id:'d',type:'e',cat:'cafe',amt:900,split:600,date:T,acc:'main'}];return {old:dayNet('2026-10-31').v,today:dayNet(T).v,received:receivedNetOf(S.entries[3],refLinks())};
+ });expect(r).toEqual({old:2000,today:300,received:900});
+});
+test('historical limit snapshots preserve completed day thresholds',async({page})=>{
+ const r=await probe(page,()=>{
+ T='2026-11-24';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];S.dayLimit=1000;S.planDayHistory={};rememberDayLimit();T='2026-11-25';S.dayLimit=2000;rememberDayLimit();return [dayLimitAt('2026-11-24'),dayLimitAt(T)];
+ });expect(r).toEqual([1000,2000]);
+});

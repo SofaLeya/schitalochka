@@ -499,6 +499,13 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 .hero .stats>.stat>b{margin-top:2px;line-height:20px;min-height:20px}
 .hero .stats>.stat>.pbar+.fine{margin-top:3px}
 .hero .home-detail-link{padding:3px 0;min-height:24px}
+.hero .stats>.stat>.lbl{height:auto;min-height:16px;line-height:1.2;white-space:normal;overflow:visible}
+.hero .stats>.stat>b{margin-top:3px}
+.hero #tip_h_can .budget-plan{font:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;padding:0;cursor:pointer}
+.hero #tip_h_can .budget-month{margin-top:4px;padding-top:4px;border-top:1px solid var(--line)}
+.hero #tip_h_can .budget-month>.pbar{display:block;height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 3px}
+.hero #tip_h_can .budget-month>.pbar>i{display:block;height:100%;border-radius:3px}
+
 .hero #tip_h_can{padding:8px 10px;margin-top:2px;font-size:12px;line-height:1.35}.hero #tip_h_can .row{gap:6px;padding:2px 0}.hero #tip_h_can .row b{text-align:right;flex-shrink:0;max-width:50%;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.hero #tip_h_can .budget-period{margin:4px 0 0;padding-top:4px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
 
 .hero .fcb{margin-top:2px;height:auto;min-height:34px;padding:4px 8px}
@@ -1633,7 +1640,7 @@ function announce(b,a){return;
 }
 
 /* ---------- ui state ---------- */
-var tab='home',vym=T.slice(0,7),hf='all',sh=null,canTomorrow=false;
+var tab='home',vym=T.slice(0,7),hf='all',sh=null;
 
 var IC={
  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h12v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2" fill="currentColor"/></svg>',
@@ -2440,10 +2447,10 @@ function homeBalanceHelp(){
   var rows=activeAccounts().map(function(a){return '<div class="row"><span class="grow">'+esc(a.type==='main'?(a.name||'Основная карта'):accName(a))+(isLive(a)?'':' <span class="fine">не входит</span>')+'</span><b>'+money(accBal(a))+'</b></div>'}).join('');
   return tipBox('h_bal','<b>В свободных деньгах</b> - остатки карт на жизнь. Копилки и долги отдельно.'+rows+'<div class="row"><b class="grow">Итого</b><b>'+money(balance())+'</b></div>');
 }
-function homeBudgetDetails(pd,spent,left){
+function homeBudgetDetails(pd,spent,left,metrics){
   var lim=dayLimit(),tomorrow=pd?(pd.waitingToday?'Ждём доход':money(Math.max(0,Math.min(balance(),pd.val)))):null;
   function line(label,value){return '<div class="row"><span class="grow">'+label+'</span><b>'+value+'</b></div>'}
-  var h=line('План',lim>0?money(lim):'Не задан')+line('Потрачено сегодня',money(spent))+line('Осталось',left==null?'Не задан план':money(left));
+  var h=line('План','<button type="button" class="budget-plan" data-a="planOpen" aria-label="Изменить план на день">'+(lim>0?money(lim):'Задать')+'</button>')+line('Потрачено сегодня',money(spent))+line('Осталось',left==null?'Не задан план':money(left));
   h+=line('На завтра',pd?tomorrow:lim>0?money(Math.max(0,Math.min(balance(),lim))):'Не задан план');
   if(pd){
     if(pd.due!==0)h+=line('Будущие платежи',money(pd.due));
@@ -2451,28 +2458,31 @@ function homeBudgetDetails(pd,spent,left){
     h+='<p class="fine budget-period">'+(pd.waitingToday?'Доход сегодня ещё не отмечен.':'До '+dlabel(pd.nextIn)+' · '+n+' '+word)+'</p>';
     if(pd.val<0)h+='<p class="fine budget-period">Может не хватить '+money(-pd.val*pd.days)+'. Проверь платежи.</p>';
   }
+  if(metrics){
+    h+='<div class="budget-month">'+line('В среднем за день',money(metrics.avg))+planBar(metrics.avg)+line('Потрачено за месяц',money(metrics.total))+(metrics.extra>0?line('Отдельные траты',money(metrics.extra)):'')+(metrics.irrNote?'<p class="fine budget-period">'+metrics.irrNote+'</p>':'')+'</div>';
+  }
   return '<button type="button" class="fine home-detail-link" data-a="tip" data-v="h_can" aria-expanded="false" aria-controls="tip_h_can">Подробнее</button>'+tipBox('h_can',h);
 }
 function viewHomeSimple(){
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym),exp=sum(me,'e'),ref=refunds(me),net=exp-ref,dnum=parseInt(PDm.slice(8),10),lnet=lifeNet(me),lout=Math.max(0,Math.round(exp-sum(life(me),'e')));
+  var irr=S.irreg?irrSummary():null;
   var demo=S.demo?'<div class="note info"><b>Это примеры</b><span class="fine">Записи ниже показаны для знакомства.</span><div class="btns" style="margin-top:8px"><button class="btn sm" data-a="clearDemo">Очистить примеры</button><button class="btn sm ghost" data-a="help">Как пользоваться</button></div></div>':'';
-  var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+'<div class="stats">'+(S.irreg?irrTile():statTile('Можно сегодня',dayLimit()>0?money(Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v)))):'—',dayLimit()>0?'по плану':planSub(),null,'main'))+statTile('В среднем',money(lnet/dnum),planSub(),planBar(lnet/dnum))+statTile('Потрачено',money(lnet),'за месяц')+'</div>'+homeBudgetDetails(null,Math.max(0,dayNet(T).v),dayLimit()>0?Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v))):null)+'</div>';
+  var hero='<div class="card hero"><span class="lbl">Свободные деньги '+tipBtn('h_bal')+'</span>'+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+'<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('Можно сегодня',dayLimit()>0?money(Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v)))):'—',null,null,'main'))+statTile('В среднем',money(lnet/dnum))+statTile('Потрачено',money(lnet))+'</div>'+homeBudgetDetails(null,Math.max(0,dayNet(T).v),dayLimit()>0?Math.max(0,Math.min(bal,dayLimit()-Math.max(0,dayNet(T).v))):null,{avg:lnet/dnum,total:lnet,extra:0,irrNote:irr&&irr.note})+'</div>';
   var rec=S.entries.slice().reverse().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,6);
   var recent='<div class="card"><h2>🧾 Последние записи</h2>'+(rec.length?'<div class="list">'+rec.map(entryRow).join('')+'</div>':'<p class="empty">Пока пусто. Запиши первую трату, и тут появится история.</p><div class="btns"><button class="btn sm" data-a="newEntry">Добавить трату</button></div>')+'<div class="btns"><button class="btn ghost sm" data-a="tab" data-v="hist">Вся история</button></div></div>';
   return demo+oneNote()+fcHero(hero)+monsterCard(me,lnet,dnum)+tplCard()+progCard()+accountsCard()+recent;
 }
-function irrTile(){var P=fcPace();if(P.kn<5)return statTile('Хватит','…','мало записей',null,'main');var r=fcRun(P.pace);return statTile('Хватит',r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ мес.',r.date?'до '+r.date.slice(8)+'.'+r.date.slice(5,7):'при этом темпе',null,'main')}
+function irrSummary(){var P=fcPace();if(P.kn<5)return {value:'…',note:'Мало записей для прогноза'};var r=fcRun(P.pace);return {value:r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ мес.',note:r.date?'Хватит до '+r.date.slice(8)+'.'+r.date.slice(5,7):'Хватит при этом темпе'}}
 function statTile(l,v,sub,bar,cls){return '<div class="stat'+(cls?' '+cls:'')+'"><span class="lbl">'+l+'</span><b>'+v+'</b>'+(bar||'')+(sub?'<span class="fine">'+sub+'</span>':'')+'</div>'}
 function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#7ee2a8':r<=1?'#ffd166':'#ff8f8f';return '<span class="pbar"><i style="width:'+Math.min(100,Math.round(r*100))+'%;background:'+c+'"></i></span>'}
-function planSub(){return dayLimit()?'<button class="fine plan-link" data-a="planOpen" aria-label="Изменить план на день">план '+money(dayLimit())+'</button>':'<button class="fine plan-link" data-a="planOpen">задать план</button>'}
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
-  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday));
+  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday)),irr=S.irreg?irrSummary():null;
   var hero='<div class="card hero"><span class="lbl">'+'Свободные деньги'+' '+tipBtn('h_bal')+'</span>'+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
-   '<div class="stats">'+(S.irreg?irrTile():'<div class="stat main can-switch" data-a="canDay" role="button" tabindex="0" aria-label="Показать бюджет на '+(canTomorrow?'сегодня':'завтра')+'"><span class="can-head"><span class="lbl">Можно</span><span class="can-toggle" aria-hidden="true">⇄</span></span><b>'+(canTomorrow&&pd.waitingToday?'—':money(canTomorrow?Math.max(0,Math.min(balance(),pd.val)):todayLeft))+'</b><span class="fine can-day">'+(canTomorrow?'Завтра':'Сегодня')+'</span><span class="fine can-date">'+(canTomorrow&&pd.waitingToday?'Ждём доход':pd.nextIn?'до '+pd.nextIn.slice(8)+'.'+pd.nextIn.slice(5,7):'на день')+'</span></div>')+
-   statTile('В среднем',money(lifeNet(me)/dnum),planSub(),planBar(lifeNet(me)/dnum))+
-   statTile('Потрачено',money(lifeNet(me)),Math.round(exp-sum(life(me),'e'))>0?'за месяц<br>+ отдельно '+money(Math.round(exp-sum(life(me),'e'))):'за месяц')+'</div>'+homeBudgetDetails(pd,spentToday,todayLeft)+'</div>';
+   '<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('Можно сегодня',money(todayLeft),null,null,'main'))+
+   statTile('В среднем',money(lifeNet(me)/dnum))+
+   statTile('Потрачено',money(lifeNet(me)))+'</div>'+homeBudgetDetails(pd,spentToday,todayLeft,{avg:lifeNet(me)/dnum,total:lifeNet(me),extra:Math.round(exp-sum(life(me),'e')),irrNote:irr&&irr.note})+'</div>';
   var main;
   if(fc.date){
     main='<div class="note bad"><b>Главное сейчас</b><span>При тратах около '+money(fc.avg)+' в день денег может не хватить к '+dlabel(fc.date)+'. Сократи необязательные траты или сверься с планом платежей.</span></div>';
@@ -4395,7 +4405,7 @@ function helpSheet(){
   q('🚀 С чего начать',ul(['Впиши, сколько сейчас денег на карте: карандашик рядом с суммой на главной. От этой суммы всё считается.','Карт несколько? Нажми карандашик у суммы → «＋ Ещё карта или счёт».','Задай план трат на день: шестерёнка → «План трат на день». Можно и без плана - просто будет видно, сколько уходит.','Дальше записывай траты, когда тратишь. Больше ничего не нужно.']),1)+
   q('✍️ Как записать трату',ul(['Кнопка «+» внизу → сумма и на что: «Пятёрочка», «такси». Категория подберётся сама, у каждой своя картинка: 🛒 продукты, ☕ кафе, 🚕 такси.','Вернули деньги - вкладка «↩️ Вернули». Зарплата и другие поступления - «➕ Доход». Перекладываешь между своими счетами - «🔁 Свои счета».','Платишь в другой валюте (например, евро в поездке) - нажми на ₽ рядом с суммой и выбери валюту.','Платишь за двоих - отметь «Делю с кем-то». Монстрик напомнит, когда ждать возврат.','Один чек на разное (продукты и бытовое) - «🧩 Разложить по категориям» в записи. Несколько сумм складываются кнопкой «+» рядом с суммой.','Ошибка в записи? Открой её в «Истории» и поправь или удали. Сразу после добавления или удаления можно нажать «Отменить».']))+
   q('🔔 Траты из уведомлений банка',ul(['<b>Только Android-приложение (APK).</b> Открой настройки телефона → «Приложения» → «Специальный доступ» → «Доступ к уведомлениям». Названия разделов могут отличаться.','Найди «считалОчка» и включи доступ к уведомлениям. Если телефон предлагает выбрать приложения, разреши уведомления своих банков.','После покупки дождись уведомления банка и открой считалОчку: она предложит проверить операцию перед добавлением. Автоматически ничего не записывается.','Если не работает: проверь, что банк присылает уведомления с суммой в рублях, и что доступ включён.','<b>На iPhone эта функция не работает:</b> iOS не позволяет считалОчке читать уведомления других приложений. В браузерной версии на Android тоже не работает.']))+
-  q('🎯 Что такое план на день',ul(['Сколько можно тратить в день на жизнь (еда, транспорт, кафе, мелочи), чтобы хватило на обязательное и получилось отложить.','Можно задать сумму вручную в режиме «Учёт трат» или рассчитать её по доходам, платежам и накоплениям. В режиме «Планирование» учитываются настроенные доходы и платежи.','На главной нажми «Подробнее», чтобы увидеть план, траты сегодня, остаток и сумму на завтра. В «Учёте трат» будущие платежи не вычитаются; в «Планировании» расчёт доступной суммы учитывает будущие платежи до следующего дохода. Прогноз на завтра - без новых трат и поступлений.','«Потрачено» - траты на жизнь за месяц с учётом возвратов. «В среднем» - эта сумма за один прошедший день. Чтобы изменить дневной план, нажми на подчёркнутую строку «план» в средней плитке. Монстрик и «Анализ» помогают следить за планом.']))+
+  q('🎯 Что такое план на день',ul(['Сколько можно тратить в день на жизнь (еда, транспорт, кафе, мелочи), чтобы хватило на обязательное и получилось отложить.','Можно задать сумму вручную в режиме «Учёт трат» или рассчитать её по доходам, платежам и накоплениям. В режиме «Планирование» учитываются настроенные доходы и платежи.','На главной нажми «Подробнее», чтобы увидеть план, траты сегодня, остаток и сумму на завтра. В «Учёте трат» будущие платежи не вычитаются; в «Планировании» расчёт доступной суммы учитывает будущие платежи до следующего дохода. Прогноз на завтра - без новых трат и поступлений.','«Потрачено» - траты на жизнь за месяц с учётом возвратов. «В среднем» - эта сумма за один прошедший день. Чтобы изменить дневной план, открой «Подробнее» и нажми на сумму напротив «План». Там же видны периоды и отдельные траты. Монстрик и «Анализ» помогают следить за планом.']))+
   q('🔀 Режимы приложения',ul(['<b>Учёт трат</b> - записывай покупки и следи за дневным планом.','<b>Планирование</b> - добавляет вкладку «Платежи»: будущие доходы, обязательные платежи и бюджет до следующего дохода.','Дополнительно: «Платежи → План → Ещё планирование» - автопополнение копилок, план по категориям и редкие и крупные траты.','Режим меняется вверху главной. Записи сохраняются.']))+
   q('💳 Карты и валюты',ul(['Основная валюта - в шестерёнке → «Валюта». В ней считаются свободные деньги, план и анализ.','Вторая карта, в том числе в другой валюте: карандашик у «Свободных денег» → «＋ Ещё карта или счёт». Карты на жизнь видны прямо под суммой. Новая - кнопкой «＋ карта» рядом с карандашиком.','«Трачу с неё на жизнь» включает остаток карты в свободные деньги. «Учитывать траты в дневном плане» отдельно включает её расходы в план. Нажми i у свободных денег, чтобы увидеть, какие счета входят в сумму.','С какой карты платишь - выбираешь в записи в «Чем оплачено».','Обмен валюты - «🔁 Свои счета»: сколько ушло и сколько пришло. Курс подтягивается из интернета раз в день, можно вписать свой.']))+
   q('💰 Копилки и долги',ul(['Копилка - деньги, отложенные на цель. В «Свободные деньги» они не входят.','Завести копилку или долг - на главной.','«Отложить» и «Достать» - переводы, не траты. Покупку из копилки запиши как трату и выбери эту копилку в «Чем оплачено». Нажми на копилку, чтобы задать цель.']))+
@@ -4658,7 +4668,6 @@ document.addEventListener('click',function(ev){
   if(!b){if(ev.target.id==='ov')closeSheet();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
   if(a==='tab'){var tt=document.getElementById('toast');if(tt&&!tt.querySelector('button'))tt.style.display='none';if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
-  else if(a==='canDay'){canTomorrow=!canTomorrow;render()}
   else if(a==='tip'){var tb=document.getElementById('tip_'+v);if(tb){tb.hidden=!tb.hidden;b.setAttribute('aria-expanded',tb.hidden?'false':'true')}}
   else if(a==='mprev'){vym=nextYM(vym,-1);render()}
   else if(a==='mnext'){vym=nextYM(vym,1);render()}

@@ -152,6 +152,7 @@ function refresh() {
 function setState(index) {
   selection = index;
   elapsed = 0;
+  get('playing').textContent = states[selection].label;
   updateReviews();
   refresh();
 }

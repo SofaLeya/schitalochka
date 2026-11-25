@@ -44,7 +44,7 @@ def components(mask, minimum=10, biggest=False):
     return (labels != 0) & (counts[labels] >= minimum)
 
 
-def matte(image, box=None, erase=(), concept=False, shadow=False, arrow=None, trace=None, clip=None, restore=None):
+def matte(image, box=None, erase=(), concept=False, shadow=False, arrow=None, trace=None, clip=None, restore=(), color_key=None):
     rgba = np.array(image.convert('RGBA'))
     h, w = rgba.shape[:2]
     x1, y1, x2, y2 = box or (0, 0, w, h)
@@ -96,19 +96,50 @@ def matte(image, box=None, erase=(), concept=False, shadow=False, arrow=None, tr
     mask = ndi.binary_fill_holes(components(((seeds & 1) != 0) & allowed, biggest=True)) & allowed
     if trace:
         mask = polygon((w, h), trace) > 0
-    if restore:
-        mask |= polygon((w, h), restore) > 0
-    if not shadow and not concept and not trace:
+    if color_key in ('gold', 'fruit', 'cherry'):
+        # Use the studio colour separation where the subject has a yellow,
+        # red or green silhouette. Fill enclosed details such as the eyes.
+        if color_key == 'gold':
+            material = (r > b + 28) & (g > 39) & (r > 95)
+        else:
+            material = ((r > b + 22) | (g > b + 24) | ((g > 122) & (b < r + 9))) & ((g > 39) | (r > 104))
+        mask = components(material & allowed, biggest=True)
+        filled = ndi.binary_fill_holes(mask)
+        holes, count = ndi.label(filled & ~mask)
+        for n in range(1, count + 1):
+            region = holes == n
+            # Preserve the open space between the shared cherry stems.
+            violet = (r < 74) & (g < 34) & (b > g + 11) & (b > r * .8)
+            if region.sum() < 12 or violet[region].mean() < .75:
+                mask |= region
+        if color_key == 'cherry' and not concept:
+            between_stems = np.arange(h)[:, None] < 116
+            purple = (g < 45) & (r < 90) & (b > g + 9)
+            mask &= ~(between_stems & purple)
+    if color_key == 'blue-fur':
+        exterior = mask & ~ndi.binary_erosion(mask, iterations=3)
+        mask &= ~(exterior & (g < 31) & (r < 90) & (b < 104) & (b > g + 15))
+    if color_key in ('teal', 'horn', 'one-eye'):
+        pink_bg = (r > g + 11) & (b > g + 18) & (b > r - 6)
+        exterior = mask & ~ndi.binary_erosion(mask, iterations=5)
+        if color_key == 'horn':
+            exterior[:96, :] = mask[:96, :]
+        mask &= ~(exterior & pink_bg)
+    for vertices in restore:
+        mask |= polygon((w, h), vertices) > 0
+    if not shadow and not concept and not trace and not color_key:
         # Remove background at the exterior of an otherwise embedded dark rim.
         edge = mask & ~ndi.binary_erosion(mask, iterations=3)
         paint = (g > 42) | (r > 92) | (r > b + 19) | (b > 120)
         mask &= ~(edge & ~paint & (b > r * .91))
+    mask = components(mask, minimum=17)
     inside = ndi.distance_transform_edt(mask)
     _, nearest = ndi.distance_transform_edt(inside < 2, return_indices=True)
-    # Only the outermost mixed pixels borrow colour from the interior.
-    rim = mask & (inside < 1.5)
+    coverage = np.clip((ndi.gaussian_filter(mask.astype(float), .68) - .12) / .76, 0, 1)
+    # The subpixel rim uses the edge colour on the opaque side of the mask.
+    rim = (coverage > 0) & (inside < 1.5)
     rgba[rim, :3] = rgb[nearest[0][rim], nearest[1][rim]]
-    rgba[:, :, 3] = np.where(mask, np.minimum(255, 164 + (inside - 1) * 190), 0).astype(np.uint8)
+    rgba[:, :, 3] = np.uint8(coverage * 255)
     return Image.fromarray(rgba)
 
 
@@ -204,7 +235,8 @@ def build():
         folder.mkdir(exist_ok=True)
         original = Image.open(REF / char['neutral'])
         clean = matte(original, cfg.get('neutralBox'), cfg.get('erase', ()), shadow=cfg.get('shadow', False),
-                      trace=cfg.get('trace'), clip=cfg.get('clip'), restore=cfg.get('restore'))
+                      trace=cfg.get('trace'), clip=cfg.get('clip'), restore=cfg.get('restore', ()),
+                      color_key=cfg.get('colorKey'))
         l, t, r, b = clean.getbbox()
         rig = {
             'id': ident, 'name': name, 'reference': '../monster-references/' + char['concept'],
@@ -309,6 +341,7 @@ def build():
                     for polygon in cfg.get('viewErase', {}).get(label, [])
                 ]
                 cleaned = matte(view, erase=erase, concept=True,
+                                color_key=cfg['colorKey'] if ident in ('cherry', 'strawberry', 'duck') else None,
                                 arrow='pink' if label == 'flip2' and ident not in ('jelly', 'pushistik', 'octopus', 'mohnatik', 'skeletoness') else None)
                 rig['views'][label] = save(cleaned, folder, label)
             rig['flipSource'] = ('Два ракурса из концепт-листа' if ident == 'jelly' else

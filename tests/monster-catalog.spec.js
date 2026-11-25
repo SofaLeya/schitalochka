@@ -35,6 +35,11 @@ for (const width of widths) {
         select.value = rig.id;
         select.dispatchEvent(new Event('change'));
         await renderer.load(rig);
+        const assetStatus = document.querySelector('#asset-status');
+        while (assetStatus.textContent === 'Загрузка слоёв…') {
+          await new Promise(requestAnimationFrame);
+        }
+        if (assetStatus.textContent) failures.push(`${rig.id}: ${assetStatus.textContent}`);
         const concept = new Image();
         concept.src = rig.reference;
         await concept.decode();
@@ -96,7 +101,20 @@ for (const width of widths) {
       const byId = Object.fromEntries(rigs.map(rig => [rig.id, rig]));
       const oneEye = byId['one-eye'];
       if (oneEye.limbs.length !== 6 || oneEye.eyes.length !== 1) failures.push('Одноглазик');
-      if (byId.jelly.limbs.length !== 4 || byId.slime.limbs.length !== 0 || byId.duck.limbs.length !== 4) failures.push('Анатомия');
+      if (byId.jelly.limbs.length !== 4 || byId.slime.limbs.length !== 0 ||
+          byId.duck.limbs.filter(part => part.role === 'крылышко').length !== 2 ||
+          byId.duck.limbs.filter(part => part.role === 'перепончатая ножка').length !== 2) failures.push('Анатомия');
+      const cherry = byId.cherry.neutral;
+      const [cherryX, cherryY, cherryWidth, cherryHeight] = cherry.box;
+      const sourceCanvas = document.createElement('canvas');
+      sourceCanvas.width = cherryWidth;
+      sourceCanvas.height = cherryHeight;
+      const sourceContext = sourceCanvas.getContext('2d');
+      sourceContext.drawImage(renderer.images.get(cherry.src).image, 0, 0);
+      const alphaAt = (x, y) => sourceContext.getImageData(x - cherryX, y - cherryY, 1, 1).data[3];
+      if (alphaAt(103, 81) < 225 || alphaAt(165, 81) < 225 || alphaAt(137, 84) !== 0) {
+        failures.push('Вишенка: целые черешки с прозрачным просветом');
+      }
       const jelly = byId.jelly;
       const joints = renderer.geometry(jelly, 'thought', .55).joints;
       const p2 = joints.find(joint => joint.id === 'P2');

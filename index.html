@@ -842,10 +842,11 @@ function prepareIncomeUpdate(o){
  if(!isIncomeUpdate(o)||!Array.isArray(o.sources)||!o.sources.length)throw Error('Некорректный файл обновления доходов.');
  var next=JSON.parse(JSON.stringify(S.incomes||[])),used=new Set();
  o.sources.forEach(function(x){
+  if(!x||typeof x!=='object')throw Error('Некорректная запись источника.');
   var a=next.find(function(r){return r.id===x.advanceId}),b=next.find(function(r){return r.id===x.finalId}),p=x.source;
   if(!a||!b||a===b||used.has(a.id)||used.has(b.id)||a.sourceParent||b.source||b.sourceParent&&b.sourceParent!==a.id||a.source&&a.source.secondId!==b.id)throw Error('Не найдена исходная пара выплат. Данные не изменены.');
-  if(!a.source&&(a.name!==x.advanceName||b.name!==x.finalName||+a.day!==p.dates[0]||+b.day!==p.dates[1]))throw Error('Исходный план изменился. Данные не изменены.');
   if(!p||p.kind!=='tk'||p.freq!=='twice'||p.basis!=='month'||!Number.isFinite(p.amount)||p.amount<=0||typeof p.net!=='boolean'||!Number.isFinite(p.tax)||p.tax<0||p.tax>=100||!Array.isArray(p.dates)||p.dates.length!==2||p.dates.some(function(d){return !Number.isInteger(d)||d<1||d>31})||p.dates[0]===p.dates[1]||!Array.isArray(p.days)||!p.days.length||p.days.some(function(d){return !Number.isInteger(d)||d<0||d>6})||!['days','hours','fixed'].includes(p.method)||!(p.hours>0&&p.hours<=24)||!(p.share>0&&p.share<100)||typeof p.shift!=='boolean'||!/^\d{4}-\d\d-\d\d$/.test(p.start)||typeof x.name!=='string'||!x.name.trim())throw Error('Проверь настройки расчёта зарплаты в файле.');
+  if(!a.source&&(a.name!==x.advanceName||b.name!==x.finalName||+a.day!==p.dates[0]||+b.day!==p.dates[1]))throw Error('Исходный план изменился. Данные не изменены.');
   used.add(a.id);used.add(b.id);
   a.name=x.name.trim();a.source=Object.assign({},p,{secondId:b.id});a.day=p.dates[0];a.amt=sourceNet(p);delete a.payroll;b.sourceParent=a.id;
  });

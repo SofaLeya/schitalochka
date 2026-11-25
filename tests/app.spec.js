@@ -211,6 +211,7 @@ test('один чек раскладывается по категориям, с
   await page.locator('#pa0').pressSequentially('250');
   await expect(page.locator('#f_prest')).toContainText('1 951');
   await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
   const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => !e.demo && e.type === 'e').map(e => e.cat + ':' + e.amt).sort());
   expect(es).toEqual(['home:650', 'prod:1951']);
 });

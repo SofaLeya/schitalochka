@@ -52,15 +52,17 @@ test('P1: grouped cheque shares refund and remaining split',async({page})=>{
    {id:'r',type:'i',cat:'refund',amt:100,date:T,acc:'main',for:'a'}
   ];
   const LK=refLinks();
-  return {day:dayNet(T).v,netA:netOf(S.entries[0],LK),netB:netOf(S.entries[1],LK),pendA:backOf(S.entries[0],LK).pend,cats:netByCat(S.entries)};
+  return {day:dayNet(T).v,netA:netOf(S.entries[0],LK),netB:netOf(S.entries[1],LK),pendA:backOf(S.entries[0],LK).pend,pendB:backOf(S.entries[1],LK).pend,cats:netByCat(S.entries),refunds:refunds(S.entries)};
  });
  // R=100 across 600/400 → a:60 back, b:40 back. P=200 → a:120 raw, b:80 raw.
- // pendA=max(0,120-60)=60, pendB=max(0,80-40)=40
+ // pendA=max(0,120-60)=60, pendB=max(0,80-40)=40; refunds = got 100 + pend 100 = 200
  // netA=600-60-60=480, netB=400-40-40=320, day=800
  expect(r.day).toBe(800);
  expect(r.netA).toBeCloseTo(480,6);
  expect(r.netB).toBeCloseTo(320,6);
  expect(r.pendA).toBeCloseTo(60,6);
+ expect(r.pendB).toBeCloseTo(40,6);
+ expect(r.refunds).toBeCloseTo(200,6);
  expect(r.cats.cafe).toBeCloseTo(480,6);
  expect(r.cats.prod).toBeCloseTo(320,6);
 });

@@ -809,7 +809,7 @@ test('нерегулярный доход: на сколько дней хват
   expect(st.pct[0].pct).toBe(10);
   expect(st.cushion).toBe('cu');
   await page.locator('#ov [data-a=close]').last().click();
-  await expect(page.locator('.row', { hasText: 'Подушка' }).first()).toContainText('из 3 мес. жизни');
+  await expect(page.locator('.row:visible', { hasText: 'Подушка' }).filter({hasText:'из 3 мес. жизни'})).toContainText('из 3 мес. жизни');
   // доход 5 000 -> предложение отложить 500
   await page.click('.tabs .plus');
   await page.click('[data-a=stype][data-v=i]');

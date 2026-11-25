@@ -176,8 +176,9 @@ test('income calendar takes actual source dates in both modes, not obsolete manu
 });
 test('simple mode can configure income sources without enabling payments tab',async ({page})=>{
  await probe(page,()=>{
-   T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=true;S.incomes=[];S.entries=[];S.recur=[];S.rules=[];S.payDays=[10,25];closeSheet();save();tab='home';render();settingsSheet();
+   T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=true;S.incomes=[];S.entries=[];S.recur=[];S.rules=[];S.payDays=[10,25];closeSheet();save();tab='home';render();
  });
+ await page.locator('#app [data-a="settings"]').click();
  await page.locator('#ov summary',{hasText:'График поступлений'}).click();
  await expect(page.locator('#pd_in')).toHaveValue('10, 25');
  await page.locator('[data-a="editIncomeCalendar"]').click();

@@ -813,7 +813,8 @@ function snapTake(why,force){try{
   SNAPS=keep;snapPut(keep)}catch(e){}}
 function snapHtml(){var a=snaps();if(!a.length)return '<p class="fine">Пока нет - появятся сами после первых записей.</p>';
   return '<div class="list">'+a.map(function(x,i){var dt=new Date(x.t);return '<div class="row"><div class="grow"><div class="t" style="font-size:14px">'+dlabel(x.d)+', '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')+'</div><div class="s">'+(x.why==='day'?'':'перед восстановлением · ')+x.n+' '+(x.n%10===1&&x.n%100!==11?'запись':x.n%10>=2&&x.n%10<=4&&(x.n%100<10||x.n%100>=20)?'записи':'записей')+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="snapBack" data-v="'+i+'">Вернуть</button></div>'}).join('')+'</div>'}
-function isPlanFile(o){return o&&o.app==='schitalochka-plan'}
+function isIncomeUpdate(o){return o&&o.app==='schitalochka-income-update'&&o.v===1}
+function isPlanFile(o){return o&&(o.app==='schitalochka-plan'||isIncomeUpdate(o))}
 function okBackup(o){return isPlanFile(o)||(o&&Array.isArray(o.entries))}
 /* импорт плана платежей и раскладки (файл schitalochka-plan): заменяет доходы, платежи и правила, создаёт недостающие копилки */
 function healLinks(){ // записи, отмеченные до перезагрузки плана, потеряли связь с платежом: возвращаем её по названию
@@ -837,7 +838,24 @@ function keepId(old,used,name,day){ // тот же платёж/доход/пр�
   var n=norm(name),free=old.filter(function(x){return !used[x.id]&&norm(x.name)===n});
   var m=free.filter(function(x){return +x.day===+day})[0]||free[0];
   if(m){used[m.id]=1;return m.id}return uid()}
-function applyPlan(o){snapTake('pre',true);
+function prepareIncomeUpdate(o){
+ if(!isIncomeUpdate(o)||!Array.isArray(o.sources)||!o.sources.length)throw Error('Некорректный файл обновления доходов.');
+ var next=JSON.parse(JSON.stringify(S.incomes||[])),used=new Set();
+ o.sources.forEach(function(x){
+  var a=next.find(function(r){return r.id===x.advanceId}),b=next.find(function(r){return r.id===x.finalId}),p=x.source;
+  if(!a||!b||a===b||used.has(a.id)||used.has(b.id)||a.sourceParent||b.source||b.sourceParent&&b.sourceParent!==a.id||a.source&&a.source.secondId!==b.id)throw Error('Не найдена исходная пара выплат. Данные не изменены.');
+  if(!a.source&&(a.name!==x.advanceName||b.name!==x.finalName||+a.day!==p.dates[0]||+b.day!==p.dates[1]))throw Error('Исходный план изменился. Данные не изменены.');
+  if(!p||p.kind!=='tk'||p.freq!=='twice'||p.basis!=='month'||!Number.isFinite(p.amount)||p.amount<=0||typeof p.net!=='boolean'||!Number.isFinite(p.tax)||p.tax<0||p.tax>=100||!Array.isArray(p.dates)||p.dates.length!==2||p.dates.some(function(d){return !Number.isInteger(d)||d<1||d>31})||p.dates[0]===p.dates[1]||!Array.isArray(p.days)||!p.days.length||p.days.some(function(d){return !Number.isInteger(d)||d<0||d>6})||!['days','hours','fixed'].includes(p.method)||!(p.hours>0&&p.hours<=24)||!(p.share>0&&p.share<100)||typeof p.shift!=='boolean'||!/^\d{4}-\d\d-\d\d$/.test(p.start)||typeof x.name!=='string'||!x.name.trim())throw Error('Проверь настройки расчёта зарплаты в файле.');
+  used.add(a.id);used.add(b.id);
+  a.name=x.name.trim();a.source=Object.assign({},p,{secondId:b.id});a.day=p.dates[0];a.amt=sourceNet(p);delete a.payroll;b.sourceParent=a.id;
+ });
+ return next;
+}
+function applyIncomeUpdate(o){
+ var next;try{next=prepareIncomeUpdate(o)}catch(e){toast(e.message,true);return}
+ snapTake('pre',true);S.incomes=next;save();closeSheet();render();toast('Настройки доходов обновлены. Остальные данные сохранены.');
+}
+function applyPlan(o){if(isIncomeUpdate(o))return applyIncomeUpdate(o);snapTake('pre',true);
   var oldInc=(S.incomes||[]).slice(),oldRec=(S.recur||[]).slice(),oldRul=(S.rules||[]).slice(),uI={},uR={},uU={};
   function acc(name){if(!name)return '';var n=norm(name),a=activeAccounts().filter(function(x){return x.type!=='main'&&norm(x.name)===n})[0];
     if(!a){a={id:uid(),name:String(name).slice(0,40),type:'save',start:0};S.accounts.push(a)}return a.id}
@@ -5199,6 +5217,7 @@ document.addEventListener('change',function(ev){
       .catch(function(e){if(xm){xm.textContent=e&&e.message==='nosheets'?'Листы «Доходы», «Платежи», «Накопления» или «Долги» не найдены. Скачай шаблон и заполни его.':'Не получилось прочитать таблицу.';xm.hidden=false}})});return}
   if(ev.target.id==='pl_file'&&ev.target.files&&ev.target.files[0]){var plf=new FileReader(),plm=document.getElementById('pl_msg');plf.onload=function(){readBackupText(plf.result).then(function(o){
       if(!isPlanFile(o))throw new Error('notplan');
+      if(isIncomeUpdate(o)){try{prepareIncomeUpdate(o)}catch(e){if(plm){plm.textContent=e.message;plm.hidden=false}return}return uiConfirm('Обновить только '+o.sources.length+' источника дохода? Операции, остатки, платежи и правила раскладки останутся как есть.','Обновить').then(function(y){if(y)applyIncomeUpdate(o)})}
       return uiConfirm('Заменить доходы ('+(o.incomes||[]).length+'), платежи ('+(o.recur||[]).length+') и правила раскладки ('+(o.rules||[]).length+')? Записи и копилки не изменятся.','Заменить').then(function(y){if(y)applyPlan(o)})}).catch(function(e){if(plm){plm.textContent=e&&e.message==='notplan'?'Это не файл плана. Резервную копию загружай в «Резервная копия» → «Восстановить из файла».':'Не получилось прочитать файл.';plm.hidden=false}})};plf.readAsText(ev.target.files[0]);ev.target.value='';return}
   if(ev.target.id==='s_afile'&&ev.target.files&&ev.target.files[0]){var fr2=new FileReader();fr2.onload=function(){document.getElementById('s_add').value=fr2.result;var bt=document.querySelector('[data-a=addRecs]');if(bt)bt.click()};fr2.readAsText(ev.target.files[0]);return}
   if(ev.target.id!=='s_file'||!ev.target.files||!ev.target.files[0])return;

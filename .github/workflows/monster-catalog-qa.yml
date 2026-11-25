@@ -1,0 +1,52 @@
+name: Каталог монстриков · кадры для приёмки
+
+on:
+  pull_request:
+    paths:
+      - 'monster-catalog/**'
+      - '.github/workflows/monster-catalog-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Автономный HTML
+        run: python3 monster-catalog/qa/standalone.py "$RUNNER_TEMP/monster-catalog-offline.html"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monster-catalog-offline
+          path: ${{ runner.temp }}/monster-catalog-offline.html
+          retention-days: 14
+      - run: npm ci
+      - run: python3 -m pip install Pillow
+      - name: Браузер
+        run: |
+          if [ -x /usr/bin/google-chrome ]; then
+            echo "CHROME_PATH=/usr/bin/google-chrome" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Контрольные кадры, контакт-листы и GIF
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > "$RUNNER_TEMP/monster-catalog-http.log" 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          curl --fail --retry 8 --retry-connrefused --retry-delay 1 http://127.0.0.1:8765/monster-catalog/ -o /dev/null
+          node monster-catalog/qa/capture.cjs http://127.0.0.1:8765 "$RUNNER_TEMP/monster-catalog-qa"
+          python3 monster-catalog/qa/package.py "$RUNNER_TEMP/monster-catalog-qa"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monster-catalog-qa
+          path: ${{ runner.temp }}/monster-catalog-qa
+          retention-days: 14

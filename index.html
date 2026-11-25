@@ -155,6 +155,22 @@ svg text{fill:var(--muted);font-family:var(--font)}
 .f textarea{min-height:70px;resize:vertical;font-size:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ent .f{gap:5px}
+.incomeForm{gap:12px!important}
+.incomeForm .f{gap:4px;min-width:0}
+.incomeForm input:not([type=checkbox]),.incomeForm select{min-width:0;max-width:100%;padding:9px 10px;font-size:15px;min-height:40px}
+.incomeForm .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.incomeForm .isGroup{padding:10px;border:1px solid var(--line);border-radius:12px;gap:9px}
+.incomeForm .isTitle{font-size:14px;font-weight:750;color:var(--ink)}
+.incomeForm .isDays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.incomeForm .isDays label{position:relative;display:flex;justify-content:center;align-items:center;min-height:36px;border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer}
+.incomeForm .isDays input{position:absolute;opacity:0;width:1px;height:1px}
+.incomeForm .isDays label:has(input:checked){border-color:var(--accent);background:var(--accent);color:#171022;font-weight:700}
+.incomeForm .isDays label:focus-within{outline:2px solid var(--accent)}
+.incomeForm summary{cursor:pointer;font-weight:650;font-size:14px}
+.incomeForm .isPreview .row{padding-block:4px;gap:5px}
+.incomeForm .chk{text-decoration:none}
+.incomeForm .fine{font-size:12px}
+
 .ent .f input,.ent .f select{padding:9px 12px}
 .ent .f input.amount{font-size:22px;padding:7px 12px}
 .btns.hs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px;scroll-padding:0 16px}
@@ -935,9 +951,9 @@ function sourceDates(p,ym){
  return a;
 }
 function sourceNet(p){return p.amount*(p.net?1:1-p.tax/100)}
-function incomeRows(ym){
+function incomeRows(ym,definitions){
  var out=[];
- (S.incomes||[]).forEach(function(r){
+ (definitions||S.incomes||[]).forEach(function(r){
    if(r.sourceParent)return;
    var p=r.source;if(!p){out.push(r);return}
    var monthly=['monthly','twice','dates'].indexOf(p.freq)>=0;
@@ -4181,37 +4197,82 @@ function sourcePlanRow(r,ym){
 function sourceOpts(items,v){return items.map(function(x){return '<option value="'+esc(x[0])+'"'+(x[0]===v?' selected':'')+'>'+esc(x[1])+'</option>'}).join('')}
 function incomeSourceSheet(){
  var d=sh.d,p=d.source||{},old=!!sh.id&&!d.source;
- var q=p.freq||'monthly',days=p.days||[1,2,3,4,5],amount=p.amount!=null?p.amount:d.amt||'',dt=p.dates||[d.day||10,25];
- var oldChoices=(S.incomes||[]).filter(function(x){return x.id!==sh.id&&!x.source&&!x.sourceParent});
- openSheet('<h3>'+(sh.id?'Изменить':'Добавить')+' источник дохода</h3><form id="fm" class="f" style="gap:12px">'+
+ var q=p.freq||'monthly',days=p.days||[1,2,3,4,5],amount=p.amount!=null?p.amount:d.amt||'',dt=p.dates||[d.day||10,d.day===10?25:10];
+ var choices=(S.incomes||[]).filter(function(x){return x.id!==sh.id&&!x.source&&!x.sourceParent});
+ var linked=(S.incomes||[]).find(function(x){return x.id===p.secondId});
+ var sel=function(id,items,v){return '<select id="is_'+id+'">'+sourceOpts(items,v)+'</select>'};
+ var inp=function(id,val,mode){return '<input id="is_'+id+'" inputmode="'+(mode||'decimal')+'" value="'+esc(val)+'">'};
+ var field=function(id,label,control,box){return '<div class="f"'+(box?' id="is_'+box+'"':'')+'><label for="is_'+id+'">'+label+'</label>'+control+'</div>'};
+ openSheet('<h3>'+(sh.id?'Изменить':'Добавить')+' источник дохода</h3><form id="fm" class="f incomeForm">'+
+ '<div class="f isGroup"><div class="isTitle">1. Откуда приходят деньги?</div>'+
  '<div class="f"><label for="is_name">Название</label><input id="is_name" value="'+esc(d.name||'')+'" placeholder="Работа, подработка, пенсия"></div>'+
- '<div class="f"><label for="is_kind">Тип дохода</label><select id="is_kind">'+sourceOpts([['tk','Трудовой договор'],['ip','ИП'],['npd','Самозанятость'],['other','Другой доход']],p.kind||'other')+'</select></div>'+
- '<div class="f"><label for="is_basis">Как задана сумма</label><select id="is_basis">'+sourceOpts([['payment','За одну выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment')+'</select></div>'+
- '<div class="f"><label for="is_amount">Сумма, '+sym()+'</label><input id="is_amount" inputmode="decimal" value="'+esc(amount)+'"></div>'+
- '<div class="f"><label for="is_taxmode">Налоги</label><select id="is_taxmode">'+sourceOpts([['net','На руки / после налогов'],['gross','До налогов']],p.net===false?'gross':'net')+'</select></div>'+
- '<div class="f" id="is_taxbox"><label for="is_tax">Налог, % (для прогноза)</label><input id="is_tax" inputmode="decimal" value="'+esc(p.tax==null?13:p.tax)+'"><span class="fine">Укажи свою эффективную ставку. Налоги ИП, НПД, взносы и вычеты зависят от режима.</span></div>'+
- '<div class="f" id="is_qtybox"><label for="is_quantity">Часов / дней / смен за одну выплату</label><input id="is_quantity" inputmode="decimal" value="'+esc(p.quantity||1)+'"></div>'+
- '<div class="f"><label for="is_freq">Периодичность</label><select id="is_freq">'+sourceOpts([['daily','Каждый день'],['weekly','Раз в неделю'],['biweekly','Раз в две недели'],['twice','Два раза в месяц'],['monthly','Раз в месяц'],['custom','Свой интервал'],['dates','По числам месяца'],['once','Разовое поступление'],['irregular','Нерегулярно']],q)+'</select></div>'+
- '<div id="is_datesbox" class="f"><label for="is_first" id="is_firstlabel">Число месяца</label><input id="is_first" inputmode="numeric" value="'+esc(dt[0]||10)+'"><div class="f" id="is_secondbox"><label for="is_second">Окончательный расчёт - число месяца</label><input id="is_second" inputmode="numeric" value="'+esc(dt[1]||10)+'"></div></div>'+
- '<div class="f" id="is_manybox"><label for="is_many">Числа месяца через запятую</label><input id="is_many" value="'+esc(dt.join(', '))+'"></div>'+
- '<div id="is_custombox" class="f"><label for="is_interval">Повторять каждые</label><div class="two"><input id="is_interval" inputmode="numeric" value="'+esc(p.interval||45)+'"><select id="is_unit">'+sourceOpts([['days','дней'],['weeks','недель'],['months','месяцев']],p.unit||'days')+'</select></div></div>'+
- '<div class="f" id="is_startbox"><label for="is_start">Первая дата / начало графика</label><input type="date" id="is_start" value="'+esc(p.start||(old?T.slice(0,7)+'-01':T))+'"></div>'+
- '<div class="f" id="is_methodbox"><label for="is_method">Распределение зарплаты</label><select id="is_method">'+sourceOpts([['days','По рабочим дням'],['hours','По часам от оклада полной ставки'],['fixed','Фиксированные доли']],p.method||'days')+'</select><div class="f" id="is_workbox"><label>Рабочие дни</label><div style="display:flex;flex-wrap:wrap;gap:8px">'+[[1,'Пн'],[2,'Вт'],[3,'Ср'],[4,'Чт'],[5,'Пт'],[6,'Сб'],[0,'Вс']].map(function(o){return '<label class="chk"><input type="checkbox" name="is_wd" value="'+o[0]+'"'+(days.indexOf(o[0])>=0?' checked':'')+'>'+o[1]+'</label>'}).join('')+'</div><div class="f" id="is_hoursbox"><label for="is_hours">Часов в рабочий день</label><input id="is_hours" inputmode="decimal" value="'+esc(p.hours||8)+'"></div></div></div>'+
- '<div class="f" id="is_sharebox"><label for="is_share">Доля аванса, %</label><input id="is_share" inputmode="decimal" value="'+esc(p.share==null?50:p.share)+'"></div>'+
- '<div class="f" id="is_linkbox"><label for="is_link">Объединить с существующей второй выплатой (необязательно)</label><select id="is_link">'+sourceOpts([['','Создать новую']].concat(oldChoices.map(function(x){return [x.id,x.name+' · '+x.day+'-го']})).concat(p.secondId&&!oldChoices.some(function(x){return x.id===p.secondId})?[[p.secondId,'Уже связанная выплата']]:[]),p.secondId||'')+'</select><span class="fine">Сохраняет историю и идентификатор второй выплаты. Даты раскладки по копилкам не меняются.</span></div>'+
- '<div id="is_shiftbox"><label class="chk"><input id="is_shift" type="checkbox"'+((p.shift==null?old:p.shift)?' checked':'')+'> Переносить выплату на предыдущий рабочий день</label><span class="fine">По производственному календарю РФ. Для ежедневных выплат можно оставить выключенным.</span></div>'+
- '<p class="fine" id="is_info"></p><p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
+ field('kind','Вид дохода',sel('kind',[['tk','Зарплата по трудовому договору'],['ip','ИП'],['npd','Самозанятость'],['other','Другой доход']],p.kind||'other'))+'</div>'+
+ '<div class="f isGroup"><div class="isTitle">2. Сколько платят?</div>'+
+ '<div class="two">'+field('amount','Сумма, '+sym(),inp('amount',amount))+field('basis','Это сумма',sel('basis',[['payment','За выплату'],['month','За месяц'],['hour','За час'],['day','За день'],['shift','За смену']],p.basis||'payment'))+'</div>'+
+ '<div class="two" id="is_taxrow">'+field('taxmode','Сумма указана',sel('taxmode',[['net','На руки'],['gross','До налогов']],p.net===false?'gross':'net'))+
+ field('tax','Налог, %',inp('tax',p.tax==null?13:p.tax),'taxbox')+'</div>'+
+ '<span class="fine" id="is_taxhint">Укажи свой процент налога для прогноза.</span>'+
+ field('quantity','Часов / дней / смен за выплату',inp('quantity',p.quantity||1),'qtybox')+'</div>'+
+ '<div class="f isGroup"><div class="isTitle">3. Когда приходят деньги?</div>'+
+ field('freq','Как часто',sel('freq',[['daily','Каждый день'],['weekly','Раз в неделю'],['biweekly','Раз в две недели'],['twice','Два раза в месяц'],['monthly','Раз в месяц'],['custom','Свой интервал'],['dates','По числам месяца'],['once','Разовое поступление'],['irregular','Нерегулярно']],q))+
+ '<div id="is_datesbox" class="two"><div class="f"><label for="is_first" id="is_firstlabel">Число месяца</label>'+inp('first',dt[0]||10,'numeric')+'</div>'+
+ '<div class="f" id="is_secondbox"><label for="is_second" id="is_secondlabel">Окончаловка</label>'+inp('second',dt[1]||10,'numeric')+'</div></div>'+
+ field('many','Числа месяца через запятую',inp('many',dt.join(', ')),'manybox')+
+ '<div class="f" id="is_custombox"><label for="is_interval">Повторять каждые</label><div class="two">'+inp('interval',p.interval||45,'numeric')+sel('unit',[['days','дней'],['weeks','недель'],['months','месяцев']],p.unit||'days')+'</div></div>'+
+ '<div class="f" id="is_startbox"><label id="is_startlabel" for="is_start">Дата первой выплаты</label><input type="date" id="is_start" value="'+esc(p.start||(old?T.slice(0,7)+'-01':T))+'"></div>'+
+ '<div id="is_shiftbox"><label class="chk"><input id="is_shift" type="checkbox"'+((p.shift==null?old:p.shift)?' checked':'')+'> Если выходной, деньги приходят раньше</label><span class="fine">Перенос на рабочий день по календарю РФ.</span></div></div>'+
+ '<div class="f isGroup" id="is_calcgroup"><div class="isTitle">4. Как считают зарплату?</div>'+
+ '<div class="f" id="is_methodbox">'+field('method','Размер двух выплат',sel('method',[['days','По отработанным дням'],['hours','По часам (неполная ставка)'],['fixed','Фиксированные доли']],p.method||'days'))+
+ '<div class="f" id="is_workbox"><label>Твой рабочий график</label><div class="isDays">'+[[1,'Пн'],[2,'Вт'],[3,'Ср'],[4,'Чт'],[5,'Пт'],[6,'Сб'],[0,'Вс']].map(function(o){return '<label><input type="checkbox" name="is_wd" value="'+o[0]+'"'+(days.indexOf(o[0])>=0?' checked':'')+'>'+o[1]+'</label>'}).join('')+'</div>'+
+ field('hours','Часов в рабочий день',inp('hours',p.hours||8),'hoursbox')+
+ '<span id="is_workhint" class="fine"></span></div></div>'+
+ field('share','Первая выплата, % от месячной суммы',inp('share',p.share==null?50:p.share),'sharebox')+'</div>'+
+ '<div class="f isGroup" id="is_linkbox"><div class="isTitle">Объединить старые выплаты</div><span class="fine">Если аванс и окончаловка уже есть в плане, выбери здесь вторую запись. Не создавай дубль и не удаляй её вручную.</span>'+
+ field('link','Вторая запись в плане',sel('link',[['','Не объединять']].concat(choices.map(function(x){return [x.id,x.name+' · '+x.day+'-го']})).concat(linked&&!choices.some(function(x){return x.id===linked.id})?[[linked.id,linked.name+' · '+linked.day+'-го']]:[]),p.secondId||''))+'</div>'+
+ '<div class="f isGroup isPreview"><div class="isTitle">Ближайшие выплаты (прогноз)</div><div id="is_preview" aria-live="polite"></div><span id="is_info" class="fine"></span></div>'+
+ '<details id="is_advanced" class="f"><summary>Дополнительные настройки</summary><div id="is_startmount" class="f" style="margin-top:8px"></div></details>'+
+ '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
  '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
  (sh.id?(sh.confirm?'<button type="button" class="btn danger" data-a="delPlan">Точно удалить</button>':'<button type="button" class="btn danger" data-a="askDel">Удалить</button>'):'')+'</form>');
  sourceFormLive();
 }
+function sourceFormConfig(){
+ var g=function(id){return document.getElementById('is_'+id)},v=function(id){return g(id).value},freq=v('freq');
+ return {kind:v('kind'),freq:freq,basis:v('basis'),amount:num(v('amount')),net:v('taxmode')==='net',tax:v('taxmode')==='net'?0:num(v('tax')),start:v('start'),dates:freq==='dates'?v('many').split(',').map(function(x){return +x.trim()}):freq==='twice'?[+v('first'),+v('second')]:[+v('first')],interval:+v('interval'),unit:v('unit'),quantity:num(v('quantity')),share:num(v('share')),days:Array.from(document.querySelectorAll('input[name="is_wd"]:checked')).map(function(x){return +x.value}),hours:num(v('hours')),method:v('method'),shift:g('shift').checked,secondId:freq==='twice'?v('link'):''};
+}
+function sourceFormPreview(p){
+ var el=document.getElementById('is_preview'),valid=p.amount>0&&p.tax>=0&&p.tax<100;
+ if(p.freq==='irregular'){el.textContent='Без фиксированных дат';return}
+ if(!/^\d{4}-\d\d-\d\d$/.test(p.start))valid=false;
+ if(['monthly','twice','dates'].indexOf(p.freq)>=0&&(!p.dates.length||p.dates.some(function(d){return !Number.isInteger(d)||d<1||d>31})||new Set(p.dates).size!==p.dates.length))valid=false;
+ if(p.freq==='custom'&&(!Number.isInteger(p.interval)||p.interval<1||p.interval>366))valid=false;
+ if(['hour','day','shift'].indexOf(p.basis)>=0&&!(p.quantity>0))valid=false;
+ if(p.freq==='once'&&p.basis==='month')valid=false;
+ if(p.freq==='twice'&&p.basis==='month'){
+  if(p.kind==='tk'&&p.method!=='fixed'){if(!p.days.length||p.method==='hours'&&!(p.hours>0&&p.hours<=24))valid=false}
+  else if(!(p.share>0&&p.share<100))valid=false;
+ }
+ if(!valid){el.textContent='Заполни сумму и график, чтобы увидеть прогноз.';return}
+ var id=sh.id||'preview',rows=[],m=T.slice(0,7),def=[{id:id,name:'',source:p}];
+ if(p.start>T&&p.start.slice(0,7)>m)m=nextYM(p.start.slice(0,7),-1);
+ var max=p.freq==='custom'&&p.unit==='months'?Math.min(368,p.interval+2):p.freq==='custom'?Math.min(86,Math.ceil(p.interval*(p.unit==='weeks'?7:1)/28)+2):3;
+ for(var i=0;i<max&&rows.length<4;i++){var ym=nextYM(m,i);rows=rows.concat(incomeRows(ym,def).filter(function(r){return r.scheduled>=T&&!doneFor('iid',r.id,ym)}))}
+ rows.sort(function(a,b){return a.scheduled.localeCompare(b.scheduled)});
+ el.innerHTML=rows.length?rows.slice(0,4).map(function(r){return '<div class="row"><span class="grow fine">'+esc(dlabel(r.scheduled))+(r.name?' · '+esc(r.name.replace(/^ · /,'')):'')+'</span><strong style="color:var(--in);white-space:nowrap">≈ '+money(r.amt)+'</strong></div>'}).join(''):'<span class="fine">Нет ближайших выплат по этому графику.</span>';
+}
 function sourceFormLive(){
  var get=function(id){return document.getElementById('is_'+id)},v=function(id){return get(id).value},hide=function(id,b){get(id).style.display=b?'none':''};
  if(!get('freq'))return;
- var f=v('freq'),basis=v('basis'),tk=v('kind')==='tk',tw=f==='twice',cal=tk&&tw&&basis==='month',method=v('method');
- hide('taxbox',v('taxmode')!=='gross');hide('qtybox',['hour','day','shift'].indexOf(basis)<0);hide('datesbox',f!=='monthly'&&!tw);hide('secondbox',!tw);hide('manybox',f!=='dates');hide('custombox',f!=='custom');hide('startbox',f==='irregular');hide('methodbox',!cal);hide('workbox',method==='fixed');hide('hoursbox',method!=='hours');hide('sharebox',!tw||basis!=='month'||cal&&method!=='fixed');hide('linkbox',!tw);hide('shiftbox',f==='irregular');
- get('firstlabel').textContent=tw?'Аванс - число месяца':'Число месяца';
- get('info').textContent=f==='irregular'?'Нерегулярные поступления записываются по факту; гарантированных дат нет.':cal&&method!=='fixed'?'Прогноз: аванс за 1–15, окончательный расчёт за вторую половину прошлого месяца. При расчёте по часам укажи оклад полной ставки.':basis==='month'?'Месячная сумма распределяется по выплатам; фактическую сумму можно уточнить.':'Сумма рассчитывается для каждого поступления.';
+ var p=sourceFormConfig(),f=p.freq,basis=p.basis,tk=p.kind==='tk',tw=f==='twice',cal=tk&&tw&&basis==='month',method=p.method,monthly=['monthly','twice','dates'].indexOf(f)>=0,rate=['hour','day','shift'].indexOf(basis)>=0,share=tw&&basis==='month'&&(!cal||method==='fixed');
+ hide('taxbox',p.net);hide('taxhint',p.net);get('taxrow').style.gridTemplateColumns=p.net?'minmax(0,1fr)':'';
+ hide('qtybox',!rate);hide('datesbox',f!=='monthly'&&!tw);get('datesbox').style.gridTemplateColumns=tw?'':'minmax(0,1fr)';hide('secondbox',!tw);hide('manybox',f!=='dates');hide('custombox',f!=='custom');
+ var sb=get('startbox'),mount=get('startmount'),adv=get('advanced');if(monthly&&sb.parentNode!==mount)mount.appendChild(sb);else if(!monthly&&sb.parentNode===mount)get('shiftbox').before(sb);
+ hide('advanced',!monthly);hide('startbox',f==='irregular');get('startlabel').textContent=monthly?'С какого дня действует график':'Дата первой выплаты';
+ hide('calcgroup',!cal&&!share);hide('methodbox',!cal);hide('workbox',method==='fixed');hide('hoursbox',method!=='hours');hide('sharebox',!share);hide('linkbox',!tw||(!sh.id&&get('link').options.length<2)||get('link').options.length<2);hide('shiftbox',f==='irregular');
+ get('firstlabel').textContent=tw?(tk?'Аванс, число':'1-я выплата, число'):'Число месяца';get('secondlabel').textContent=tk?'Окончаловка, число':'2-я выплата, число';
+ get('workhint').textContent=method==='hours'?'В поле «Сумма» укажи месячный оклад полной ставки, а здесь — свои часы.':'Аванс за 1–15 число, остаток за 16–конец прошлого месяца.';
+ get('info').textContent=f==='irregular'?'Записывай фактические поступления.':cal&&method!=='fixed'?'Расчёт по рабочему календарю; фактические суммы могут отличаться.':'Фактическую сумму можно уточнить при получении.';
+ sourceFormPreview(p);
 }
 function saveIncomeSource(){
  var g=function(id){return document.getElementById('is_'+id)},v=function(id){return g(id).value},name=v('name').trim(),freq=v('freq'),basis=v('basis'),amount=num(v('amount')),tax=v('taxmode')==='net'?0:num(v('tax')),start=v('start'),interval=+v('interval'),quantity=num(v('quantity')),share=num(v('share')),hours=num(v('hours')),kind=v('kind'),method=v('method');
@@ -5089,6 +5150,7 @@ document.addEventListener('pointerdown',function(ev){if(ev.target.closest&&ev.ta
 document.addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('#f_catl [data-cv]');if(b){ev.preventDefault();catPick(b.dataset.cv)}});
 document.addEventListener('toggle',function(ev){if(ev.target&&ev.target.id==='f_more'&&sh)sh.more=ev.target.open},true);
 document.addEventListener('input',function(ev){
+  if(/^is_/.test(ev.target.id)){sourceFormLive();return}
   if(ev.target.id==='h_q'){var was=histFiltered();hq=ev.target.value.trim();if(was!==histFiltered()){var pos=ev.target.selectionStart;render();var el=document.getElementById('h_q');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}}else{var hl=document.getElementById('hlist');if(hl)hl.innerHTML=histList()}return}
   if(/^pc_/.test(ev.target.id)){planCalcOut();return}
   if(ev.target.id==='pu_name'&&sh&&sh.d){sh.d.uname=ev.target.value;return}
@@ -5103,7 +5165,7 @@ document.addEventListener('input',function(ev){
   else{d.auto=false;var has=ev.target.value.trim().length>=3;d.unk=has;if(hint){hint.textContent='Не удалось определить по заметке. Выбери категорию, в следующий раз запомню.';hint.hidden=!has}if(has&&!d.manual){sel.value='';d.cat=''}}catShow();
 });
 document.addEventListener('change',function(ev){
-  if(/^is_/.test(ev.target.id)){sourceFormLive();return}
+  if(/^is_/.test(ev.target.id)||ev.target.name==='is_wd'){if(ev.target.id==='is_link'&&ev.target.value){var linked=S.incomes.find(function(r){return r.id===ev.target.value});if(linked)document.getElementById('is_second').value=linked.day}sourceFormLive();return}
   if(ev.target.id==='f_mode'){var mh=document.getElementById('f_modeh');if(mh)mh.textContent=MODEH[ev.target.value]||'';moreUpd();return}
   if(ev.target.id==='f_date'&&sh&&sh.d){var ds=document.getElementById('f_dseg');if(ds)ds.innerHTML=dateSeg(ev.target.value)}
   if(ev.target.id==='f_split'){var bx=document.getElementById('f_splitbox'),sa=document.getElementById('f_splitamt'),fa=document.getElementById('f_amt');if(bx)bx.hidden=!ev.target.checked;if(ev.target.checked&&sa&&!sa.value&&fa&&num(fa.value)>0)sa.value=String(Math.round(num(fa.value)/2*100)/100);moreUpd();return}

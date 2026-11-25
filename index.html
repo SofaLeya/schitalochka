@@ -1301,7 +1301,7 @@ function plannedItems(from,days){
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
 function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()+perNote()}
 function bankCardWrap(h){return h+bankCard()}
-function fcEnd(){if(S.irreg)return null;var nd=nextPayDates(1)[0];if(!nd&&!S.simple&&(S.incomes||[]).length){try{nd=perDay().nextIn}catch(e){}}return nd&&nd>T?nd:null}
+function fcEnd(){var nd=nextPayDates(1,iso(addDays(parse(T),1)))[0];return nd||null}
 function fcPace(){
   var LK=refLinks(),lim=dayLimit(),huge=lim?lim*3:lc(5000),big=lim?lim/4:lc(400),EV={prod:1,cafe:1,trans:1,taxi:1},pl=S.fcPlans||[],nsM={};
   (S.noSpend||[]).forEach(function(x){nsM[x]=1});
@@ -1359,6 +1359,7 @@ function fcIrrBody(){var P=fcPace();
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>';
   if(!f&&S.irreg){openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+'<p class="fine" style="margin-top:14px">Как считается: свободные деньги сейчас ('+money(balance())+') уменьшаются на обычные траты по последним 2 неделям'+(S.simple?'':', платежи по их датам')+' и твои планы, пока не кончатся. Новые доходы не учитываются - их никто не знает заранее.</p><div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>');return}
+  if(!f&&hasIncomeSchedule()){openSheet(h+'<p>Нет ближайших запланированных поступлений. Проверь график доходов или включи режим нерегулярного дохода.</p><div class="btns"><button type="button" class="btn ghost" data-a="editIncomeCalendar">График доходов</button><button type="button" class="btn" data-a="close">Закрыть</button></div><button type="button" class="btn ghost" data-a="irrOn">Доход нерегулярный</button>');return}
   if(!f){openSheet(h+'<p>Чтобы предсказать, сколько останется к зарплате, нужны дни зарплаты.</p><div class="f"><label for="fc_pd">Дни зарплаты</label><input id="fc_pd" inputmode="numeric" placeholder="например: 10, 25"></div><div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="fcPd">Сохранить</button></div><button type="button" class="btn ghost" style="width:100%;margin-top:10px" data-a="irrOn">Доход нерегулярный (смены, почасовая)</button>');return}
   var dt=dlabel(f.nd),body;
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
@@ -2277,10 +2278,44 @@ function isWorkday(d){
 function payDate(ym,day){var d=planned(ym,day),g=0;while(!isWorkday(d)&&g<20){d=iso(addDays(parse(d),-1));g++}return d}
 /* выплата внутри своего месяца: сдвиг на рабочий день раньше, но не в прошлый месяц */
 function payDateIn(ym,day){var d=payDate(ym,day);return d.slice(0,7)===ym?d:planned(ym,day)}
-function isPayDay(d){var ym=d.slice(0,7),nx=nextYM(ym,1);return payDays().some(function(x){return payDate(ym,x)===d||payDate(nx,x)===d})}
-function nextPayDates(n){ // ближайшие даты выплат с учётом выходных
-  var ym=T.slice(0,7),out=[];for(var k=0;k<3;k++){var m=nextYM(ym,k);payDays().forEach(function(x){var d=payDate(m,x);if(d>=T&&out.indexOf(d)<0)out.push(d)})}
-  return out.sort().slice(0,n)}
+function configuredIncomeRoots(){return (S.incomes||[]).filter(function(r){return !r.sourceParent})}
+function hasIncomeSchedule(){return configuredIncomeRoots().length>0}
+function incomeCalendarMonth(ym){
+ var dates=[];
+ if(hasIncomeSchedule()){
+  incomeRows(ym).forEach(function(r){var d=itemDate('i',r,ym);if(d&&d.slice(0,7)===ym&&payrollExpected(r,ym)>0&&!markSkipped('i',r.id,ym))dates.push(d)});
+ }else if(!S.irreg){
+  [ym,nextYM(ym,1)].forEach(function(m){payDays().forEach(function(x){var d=payDate(m,x);if(d.slice(0,7)===ym)dates.push(d)})});
+ }
+ return Array.from(new Set(dates)).sort()
+}
+function isPayDay(d){return incomeCalendarMonth(d.slice(0,7)).indexOf(d)>=0}
+function nextPayDates(n,after){
+ var from=after||T,ym=from.slice(0,7),out=[],roots=configuredIncomeRoots(),months=3;
+ roots.forEach(function(r){var p=r.source;if(!p||p.freq!=='custom')return;var interval=Math.max(1,Math.min(366,+p.interval||1));months=Math.max(months,p.unit==='months'?interval+2:Math.ceil(interval*(p.unit==='weeks'?7:1)/28)+2)});
+ for(var k=0;k<months&&out.length<n;k++){incomeCalendarMonth(nextYM(ym,k)).forEach(function(d){if(d>=from)out.push(d)})}
+ // разовые и длинные интервалы могут начинаться за горизонтом обычного просмотра
+ if(out.length<n&&roots.length){
+  roots.forEach(function(r){var p=r.source;if(!p||!p.start)return;var m=p.start.slice(0,7);if(ymDiff(ym,m)>=months){[nextYM(m,-1),m].forEach(function(mm){incomeCalendarMonth(mm).forEach(function(d){if(d>=from)out.push(d)})})}});
+ }
+ return Array.from(new Set(out)).sort().slice(0,n)
+}
+function incomeScheduleLabel(r){
+ var p=r.source;if(!p)return r.day+' число';
+ if(['monthly','twice','dates'].indexOf(p.freq)>=0)return (p.dates||[]).slice().sort(function(a,b){return a-b}).join(' и ')+' числа';
+ if(p.freq==='custom')return 'Каждые '+p.interval+' '+({days:'дн.',weeks:'нед.',months:'мес.'}[p.unit]||'дн.');
+ if(p.freq==='once')return 'Разово: '+dlabel(p.start);
+ return ({daily:'Каждый день',weekly:'Раз в неделю',biweekly:'Раз в 2 недели',irregular:'Без фиксированных дат'})[p.freq]||'Гибкий график'
+}
+function incomeCalendarSourcesSheet(){
+ sh=null;
+ openSheet('<h3>Источники дохода</h3><p class="fine">График используется для предсказания и аналитики. В простом режиме обязательные платежи не учитываются.</p>'+configuredIncomeRoots().map(function(r){return '<button class="row" type="button" data-a="editPlan" data-k="i" data-id="'+esc(r.id)+'"><div class="grow"><div class="t">'+esc(r.name)+'</div><div class="s">'+esc(incomeScheduleLabel(r))+'</div></div><span>›</span></button>'}).join('')+'<button type="button" class="btn ghost" data-a="newPlan" data-k="i">Добавить доход</button><button type="button" class="btn ghost" data-a="settings">Назад в настройки</button>');
+}
+function incomeCalendarSettings(){
+ var roots=configuredIncomeRoots(),next=nextPayDates(4),preview=next.length?'<p class="fine">Ближайшие выплаты: '+next.map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'<p class="fine">Нет ближайших запланированных выплат.</p>';
+ if(roots.length)return '<div class="f">'+roots.map(function(r){return '<div class="row"><div class="grow t">'+esc(r.name)+'</div><span class="fine" style="text-align:right">'+esc(incomeScheduleLabel(r))+'</span></div>'}).join('')+preview+'<p class="fine">Даты берутся из источников дохода. '+(S.simple?'График работает и в простом режиме, платежи не учитываются.':'Ручной ввод не нужен.')+'</p><button type="button" class="btn ghost" data-a="editIncomeCalendar">'+(S.simple?'Настроить источники дохода':'Изменить источники дохода')+'</button></div>';
+ return '<div class="f"><div class="tiprow"><label for="pd_in">Числа поступлений</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Для регулярных поступлений без настроенных источников. Выходные и праздники переносятся на предыдущий рабочий день по производственному календарю РФ. Можно указать до четырёх чисел через запятую.')+preview+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button><p class="fine">Для выплат с другой периодичностью можно настроить источники дохода или включить нерегулярный доход ниже.</p><button type="button" class="btn ghost sm" data-a="editIncomeCalendar">Настроить гибкий график</button></div>'
+}
 function balanceBefore(d){ // «Свободные деньги» на начало дня d. Считается назад от сегодняшнего остатка по всем записям,
   // включая загруженные из выписки (они уже сидят в остатке) - так прошлые месяцы не зависят от стартовой суммы и старых поправок
   var b=0;activeAccounts().forEach(function(a){if(!isLive(a))return;b+=accBal(a);
@@ -2514,8 +2549,13 @@ function accountsCard(){
 function grpOf(x){if(!x||!x.grp)return [];var g=S.entries.filter(function(e){return e.grp===x.grp&&e.type==='e'});return g.length>1?g:[]}
 function grpTag(x){var g=grpOf(x);if(!g.length)return '';return ' · 🧩 часть чека '+money(g.reduce(function(a,e){return a+e.amt},0))}
 function accTag(x){if(x.type==='t'||x.nobal)return '';var id=accOf(x);if(!id||id===defAcc())return '';var a=accById(id);return a?' · 💳 '+esc(accName(a)):''}
+function transferHistoryNote(x){
+ var note=String(x.note||'').trim();
+ if(/(?:^|·\s*)по плану$/i.test(note))return 'по плану';
+ return note
+}
 function entryRow(x){
-  if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:var(--muted)"></span><div class="grow"><div class="t">Перевод</div><div class="s">'+esc((fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))+(x.note?' · '+esc(x.note):'')+'</div></div><span class="amt">'+entMoney(x)+'</span></button>'}
+  if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to),tn=transferHistoryNote(x);return '<button class="row" data-a="edit" data-id="'+x.id+'"><span class="dot" style="background:var(--muted)"></span><div class="grow"><div class="t">Перевод</div><div class="s">'+esc((fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))+(tn?' · '+esc(tn):'')+'</div></div><span class="amt">'+entMoney(x)+'</span></button>'}
   var c=CMAP[x.cat]||CMAP.other;
   return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+esc(x.note||(x.type==='e'&&x.cls?CLS[x.cls][0]:''))+grpTag(x)+accTag(x)+(x.demo?' · пример':'')+(x.skip?' · не в тратах':'')+(x.nobal?' · не с моих счетов':'')+'</div></div><span class="amt '+(x.skip?'skip':x.type==='i'?'in':'out')+'">'+(x.type==='i'?'+':'−')+entMoney(x)+(x.oc&&x.oa>0&&x.oc!==baseCur()?'<span class="fine" style="display:block;text-align:right">≈ '+money(x.amt)+'</span>':'')+'</span></button>';
 }
@@ -2833,9 +2873,8 @@ function reviewCard(){
     var mg=MONTHS_G[+ym.slice(5,7)-1],cell=function(l,v){return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="fine" style="font-size:12px">'+l+'</span><b style="font-size:16px">'+money(v)+'</b></div>'};
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
       '<div style="display:flex;align-items:center;gap:8px"><b style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">💳 Свободные деньги</b><span style="flex:none;white-space:nowrap;text-align:right;line-height:1.15"><b style="font-size:16px;color:'+(dd>=0?'var(--in)':'inherit')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b><br><span class="fine" style="font-size:11.5px">за месяц</span></span>'+tipBtn('rvbal')+'</div>'+
-      '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+(function(){var pd=payDays();if(!pd.length)(S.incomes||[]).forEach(function(r){var x=Math.round(+r.day);if(x>=1&&x<=31&&pd.indexOf(x)<0)pd.push(x)});
-        var ds=pd.map(function(x){return payDateIn(ym,x)}).filter(function(d,i,a){return d<=T&&a.indexOf(d)===i}).sort();
-        if(!pd.length)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед каждой зарплатой, укажи дни зарплаты в настройках.</span>';
+      '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+(function(){var ds=incomeCalendarMonth(ym).filter(function(d){return d<=T});
+        if(!hasIncomeSchedule()&&!payDays().length&&!S.irreg)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед поступлениями, укажи график поступлений в настройках.</span>';
         if(!ds.length)return '';
         return '<div style="border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px"><span class="fine" style="font-size:12px">Перед зарплатой оставалось</span>'+
           ds.map(function(d){var v=balanceBefore(d);return '<div style="display:flex;justify-content:space-between;gap:8px"><span>'+dlabel(d)+'</span><b style="color:'+(v>=0?'var(--ink)':'var(--out)')+'">'+money(v)+'</b></div>'}).join('')+'</div>'})()+
@@ -4312,7 +4351,7 @@ function saveIncomeSource(){
  var p={kind:kind,freq:freq,basis:basis,amount:amount,net:v('taxmode')==='net',tax:tax,start:start||T,dates:dates,interval:interval||1,unit:v('unit'),quantity:quantity||1,share:share||50,days:days,hours:hours||8,method:method,shift:g('shift').checked,secondId:link};
  if(!r){r={id:id,added:T};S.incomes.push(r)}
  r.name=name;r.source=p;r.day=dates[0]||+start.slice(8)||1;r.amt=sourceNet(p);delete r.payroll;
- save();closeSheet();render();
+ save();if(S.simple){render();incomeCalendarSourcesSheet()}else{closeSheet();render()}
 }
 function planSheet(){
   if(sh.k==='x')return rareSheet();
@@ -4489,7 +4528,7 @@ function settingsSheet(){
    grp('Деньги')+
    '<div class="srow"><div class="grow"><b>🎯 План трат на день</b><span class="ss">'+(pi.v?money(pi.v)+' в день, '+PLANSRC[pi.src]:'пока не задан')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="planOpen">'+(pi.v?'Изменить':'Задать')+'</button></div>'+
    '<div class="srow"><div class="grow"><b>💱 Валюта</b><span class="ss">'+esc(sym()+' · '+CUR[baseCur()][1])+(fxCurs().length?', ещё '+fxCurs().map(function(c){return sym(c)}).join(' '):'')+'</span></div><button type="button" class="btn ghost sm" style="flex:none" data-a="curOpen">Изменить</button></div>'+
-   '<div class="help f" style="gap:8px">'+det('🗓️ Дни зарплаты','<div class="f"><div class="tiprow"><label for="pd_in">Дни зарплаты</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Если число выпадает на выходной или праздник, выплата считается в ближайший рабочий день раньше (по производственному календарю РФ). В день выплаты монстрик похвалит, если до неё остались деньги, и предложит отложить их в накопления. Можно до четырёх дат через запятую.')+(payDays().length?'<p class="fine">Ближайшие выплаты: '+nextPayDates(3).map(function(d){return dlabel(d)+' ('+['вс','пн','вт','ср','чт','пт','сб'][parse(d).getDay()]+')'}).join(', ')+'</p>':'')+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button></div>'+det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0]),payDays().length?payDays().join(' и ')+' числа':'не заданы')+
+   '<div class="help f" style="gap:8px">'+det('🗓️ График поступлений',incomeCalendarSettings()+det('📅 Производственный календарь',calSetHtml(),calNeed().length?'нужно загрузить на '+calNeed().join(', '):'есть на '+Object.keys(calYears()).sort().slice(-1)[0]),hasIncomeSchedule()?configuredIncomeRoots().length+' источника дохода':payDays().length?payDays().join(' и ')+' числа':S.irreg?'без фиксированных дат':'не задан')+
 
     det('💸 Нерегулярный доход',irrSetHtml(),S.irreg?'включён':'смены, почасовая, фриланс')+
     det('🌴 Отпуск и больничный',perSetHtml(),(S.periods||[]).some(function(p){return p.to>=T})?'отмечено':'отметить, чтобы прикинуть суммы')+
@@ -4833,6 +4872,7 @@ document.addEventListener('click',function(ev){
     if(!ptg){sh={ac:true,id:null,d:{name:'',type:'save',start:''}};accSheet();return}
     var pdd=newDraft('t');pdd.from=defAcc();pdd.to=ptg.id;pdd.amt=ppx.left;pdd.payLeft=ppx.left;sh={id:null,d:pdd};entrySheet()}
   else if(a==='payLater'){S.payNote={d:T,st:'skip'};save();render()}
+  else if(a==='editIncomeCalendar'){if(S.simple){incomeCalendarSourcesSheet();return}closeSheet();if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';ptab='p';uiFold('inc',false);render();var ib=document.querySelector('[data-a=fold][data-v=inc]');if(ib)ib.scrollIntoView({block:'start'})}
   else if(a==='payDaysSave'){var pdv=String(document.getElementById('pd_in').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);
     S.payDays=pdv;save();render();settingsSheet();toast(pdv.length?'Дни зарплаты: '+pdv.join(', '):'Дни зарплаты убраны')}
   else if(a==='toggleSimple'){S.simple=!S.simple;if(S.simple&&(tab==='plan'||tab==='game'))tab='home';save();closeSheet();render()}

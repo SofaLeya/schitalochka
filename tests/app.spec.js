@@ -211,6 +211,7 @@ test('один чек раскладывается по категориям, с
   await page.locator('#pa0').pressSequentially('250');
   await expect(page.locator('#f_prest')).toContainText('1 951');
   await page.locator('#fm button[type=submit]').click();
+  await expect(page.locator('#ov .sheet')).toBeHidden();
   const es = await page.evaluate(() => JSON.parse(localStorage.getItem('podkopka-v1')).entries.filter(e => !e.demo && e.type === 'e').map(e => e.cat + ':' + e.amt).sort());
   expect(es).toEqual(['home:650', 'prod:1951']);
 });
@@ -1136,7 +1137,7 @@ test('производственный календарь: загрузка на
   await page.route(/isdayoff\.ru/, r => r.fulfill({ contentType: 'text/plain', body: str, headers: { 'access-control-allow-origin': '*' } }));
   await start(page, errs);
   await page.click('[data-a=settings]');
-  await page.locator('#ov summary', { hasText: 'Дни зарплаты' }).click();
+  await page.locator('#ov summary', { hasText: 'График поступлений' }).click();
   await page.locator('#ov summary', { hasText: 'Производственный календарь' }).click();
   await page.click(`[data-a=calLoad][data-v="${y}"]`);
   await expect.poll(async () => ((await stored(page)).rucal || {})[y]).toBe(str);

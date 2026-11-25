@@ -157,3 +157,53 @@ test('paste JSON fallback validates and applies the same salary update',async ({
  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('podkopka-v1')).incomes);
  expect(data.find(r=>r.id==='a').source.secondId).toBe('b');
 });
+
+test('income calendar takes actual source dates in both modes, not obsolete manual days',async ({page})=>{
+ const res=await probe(page,()=>{
+  T='2026-11-25';S.rucal={};S.entries=[];S.rules=[];S.recur=[];S.payDays=[10,25];S.irreg=false;
+  const p={kind:'other',basis:'payment',amount:1000,net:true,tax:0,start:'2026-11-01',freq:'twice',dates:[25,10],shift:true};
+  S.incomes=[{id:'a',name:'Работа',source:p},{id:'b',name:'Банк',source:{...p,dates:[20,5]}}];
+  S.simple=false;const full=nextPayDates(5),fullEnd=fcEnd();
+  S.simple=true;const simple=nextPayDates(5),simpleEnd=fcEnd(),praise=isPayDay('2026-12-04'),nov=incomeCalendarMonth('2026-11');
+  S.incomes=[{id:'w',name:'Weekly',source:{...p,freq:'weekly',start:'2026-11-29',shift:false}}];
+  const weekly=nextPayDates(3);
+  S.incomes=[{id:'c',name:'Irregular',source:{...p,freq:'irregular'}}];
+  const irregular=nextPayDates(3);
+  S.incomes=[];S.payDays=[5,25];const manual=nextPayDates(3),manualEnd=fcEnd();
+  return {full,simple,fullEnd,simpleEnd,praise,nov,weekly,irregular,manual,manualEnd};
+ });
+ expect(res).toEqual({full:['2026-11-25','2026-12-04','2026-12-10','2026-12-18','2026-12-25'],simple:['2026-11-25','2026-12-04','2026-12-10','2026-12-18','2026-12-25'],fullEnd:'2026-12-04',simpleEnd:'2026-12-04',praise:true,nov:['2026-11-05','2026-11-10','2026-11-20','2026-11-25'],weekly:['2026-11-29','2026-12-06','2026-12-13'],irregular:[],manual:['2026-11-25','2026-12-04','2026-12-25'],manualEnd:'2026-12-04'});
+});
+test('simple mode can configure income sources without enabling payments tab',async ({page})=>{
+ await probe(page,()=>{
+   T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=true;S.incomes=[];S.entries=[];S.recur=[];S.rules=[];S.payDays=[10,25];closeSheet();save();tab='home';render();
+ });
+ await page.locator('#app [data-a="settings"]').click();
+ await page.locator('#ov summary',{hasText:'График поступлений'}).click();
+ await expect(page.locator('#pd_in')).toHaveValue('10, 25');
+ await page.locator('[data-a="editIncomeCalendar"]').click();
+ await page.locator('#ov [data-a="newPlan"][data-k="i"]').click();
+ await page.fill('#is_name','Работа');
+ await page.fill('#is_amount','1000');
+ await page.selectOption('#is_freq','weekly');
+ await page.locator('#fm button[type=submit]').click();
+ await expect(page.locator('#ov h3')).toContainText('Источники дохода');
+ await expect(page.locator('#ov')).toContainText('Работа');
+ const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('podkopka-v1')));
+ expect(data.simple).toBe(true);expect(data.incomes[0].source.freq).toBe('weekly');
+ await page.locator('#ov [data-a="settings"]').click();
+ const schedule=page.locator('#ov summary',{hasText:'График поступлений'});
+ if(await schedule.getAttribute('aria-expanded')!=='true' && !(await page.locator('#ov [data-a="editIncomeCalendar"]').isVisible()))await schedule.click();
+ await expect(page.locator('#ov [data-a="editIncomeCalendar"]')).toBeVisible();
+ await expect(page.locator('#pd_in')).toHaveCount(0);
+ await expect(page.locator('#tabs [data-v="plan"]')).toHaveCount(0);
+});
+test('history removes automatic rule label, not rule or transaction data',async ({page})=>{
+ const res=await probe(page,()=>{
+  S.accounts.push({id:'save-test',name:'ИИ',type:'save',start:0});S.rules=[{id:'rule-test',name:'Claude',acc:'save-test',day:25,amt:1250}];
+  const x={id:'transfer-test',type:'t',from:defAcc(),to:'save-test',amt:1250,note:'Claude · по плану',rule:'rule-test',date:T};
+  S.entries=[x];const before=JSON.stringify([S.entries,S.rules]);const html=entryRow(x);
+  return {html,manual:transferHistoryNote({note:'на отпуск'}),duplicate:transferHistoryNote({note:'Платежи · по плану'}),unchanged:before===JSON.stringify([S.entries,S.rules])};
+ });
+ expect(res.html).toContain('ИИ · по плану');expect(res.html).not.toContain('Claude');expect(res.manual).toBe('на отпуск');expect(res.duplicate).toBe('по плану');expect(res.unchanged).toBe(true);
+});

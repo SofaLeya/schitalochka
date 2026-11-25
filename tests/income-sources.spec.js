@@ -232,9 +232,9 @@ test('monthly completed payments are collapsed, and extra planning prioritizes s
  await page.locator('[data-a=ptab][data-v=p]').click();
  await page.locator('[data-a=planMore]').click();
  const heads=await page.locator('.foldhead .h2like').allTextContents();
- expect(heads.indexOf('Раскладка по копилкам')).toBeGreaterThanOrEqual(0);
- expect(heads.indexOf('Раскладка по копилкам')).toBeLessThan(heads.indexOf('План по категориям'));
- expect(heads.indexOf('План по категориям')).toBeLessThan(heads.indexOf('Редкие траты'));
+ expect(heads.indexOf('Автопополнение копилок')).toBeGreaterThanOrEqual(0);
+ expect(heads.indexOf('Автопополнение копилок')).toBeLessThan(heads.indexOf('План по категориям'));
+ expect(heads.indexOf('План по категориям')).toBeLessThan(heads.indexOf('Редкие и крупные траты'));
  await expect(page.getByText('План на 3 месяца',{exact:true})).toHaveCount(0);
 });
 test('new income form shows basic questions and keeps advanced options available',async ({page})=>{
@@ -249,4 +249,22 @@ test('new income form shows basic questions and keeps advanced options available
  await expect(page.locator('label[for=is_amount]')).toContainText('До налогов');
  await page.selectOption('#is_freq','weekly');
  await expect(page.locator('#is_start')).toBeVisible();
+});
+
+test('compact home details are collapsed, preserve state and fit small screens in both modes',async ({page})=>{
+ await page.setViewportSize({width:320,height:640});
+ await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=true;S.irreg=false;S.incomes=[];S.rules=[];S.recur=[];S.entries=[];S.planCalc=null;S.dayLimit=500;
+  S.accounts=[{id:'a1',name:'Основная карта',type:'main',start:10000},{id:'save-test',name:'Отпуск',type:'save',start:3000}];closeSheet();save();tab='home';render();
+ });
+ const hero=page.locator('.hero').first(),details=hero.locator('#tip_h_can'),link=hero.locator('.home-detail-link');
+ await expect(hero.locator('.stats > .stat')).toHaveCount(3);
+ await expect(details).toBeHidden();
+ const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
+ await link.click();await expect(details).toBeVisible();await expect(details).toContainText('Потрачено сегодня');await expect(details).toContainText('Можно завтра');
+ await link.click();await expect(details).toBeHidden();
+ await hero.locator('[data-a=tip][data-v=h_bal]').click();
+ await expect(hero.locator('#tip_h_bal')).toContainText('Отпуск');await expect(hero.locator('#tip_h_bal')).toContainText('не входит');
+ expect(await page.evaluate(()=>localStorage.getItem('podkopka-v1'))).toBe(before);
+ expect(await hero.locator('.stats').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
 });

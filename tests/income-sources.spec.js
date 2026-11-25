@@ -278,16 +278,31 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
   expect(geometry.every(g=>Math.abs(g.width-g.height)<=1&&g.background===geometry[0].background&&g.shadow===geometry[0].shadow&&g.labelFits&&g.amountFits&&g.font>=15&&g.labelFont>=12&&g.labelTop>=0&&g.labelTop<=10)).toBe(true);
  }
  await page.setViewportSize({width:320,height:640});
- // A seven-digit value must remain visible rather than overflow the square.
- const largeAmount=await hero.locator('.stats > .stat').first().evaluate(tile=>{
-  const amount=tile.querySelector('b'),old=amount.textContent;
-  amount.textContent='1 234 567 ₽';
-  const fits=amount.scrollWidth<=amount.clientWidth+1&&amount.getBoundingClientRect().bottom<=tile.getBoundingClientRect().bottom;
-  amount.textContent=old;
-  return fits;
- });
- expect(largeAmount).toBe(true);
-
+ // Check normal, six-digit and seven-digit values at narrow and ordinary phone widths.
+ for(const width of [320,390,480]){
+  await page.setViewportSize({width,height:640});
+  const fitted=await hero.locator('.stats').evaluate(el=>{
+   const tiles=Array.from(el.querySelectorAll('.stat'));
+   const amounts=tiles.map(tile=>tile.querySelector('b'));
+   const old=amounts.map(a=>a.textContent);
+   const results=[];
+   for(const values of [['2 708 ₽','123 456 ₽','999 999 ₽'],['123 456 ₽','654 321 ₽','999 999 ₽'],['1 234 567 ₽','-999 999 ₽','99 999 ₽']]){
+    amounts.forEach((a,i)=>a.textContent=values[i]);fitWalletAmounts();
+    results.push(amounts.map((a,i)=>{
+     const rect=a.getBoundingClientRect(),tile=tiles[i].getBoundingClientRect(),stars=tiles[i].querySelector('.tile-stars');
+     return {text:a.textContent,fit:a.scrollWidth<=a.clientWidth+1&&rect.left>=tile.left&&rect.right<=tile.right&&rect.bottom<=tile.bottom,
+      oneLine:getComputedStyle(a).whiteSpace==='nowrap',font:parseFloat(getComputedStyle(a).fontSize),
+      decor:stars.getAttribute('aria-hidden')==='true'&&getComputedStyle(stars).pointerEvents==='none'&&stars.getBoundingClientRect().top>=rect.bottom-2};
+    }));
+   }
+   amounts.forEach((a,i)=>a.textContent=old[i]);fitWalletAmounts();
+   return results;
+  });
+  expect(fitted.flat().every(x=>x.fit&&x.oneLine&&x.decor&&x.font>=10)).toBe(true);
+  expect(fitted[0][0].font).toBeGreaterThanOrEqual(fitted[0][1].font);
+  if(width>=390)expect(fitted[1].every(x=>x.font>=15)).toBe(true);
+ }
+ await page.setViewportSize({width:320,height:640});
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
  await expect(link).toHaveText('Подробнее');
  await expect(hero.locator('.hero-head .home-detail-link')).toHaveCount(1);
@@ -391,4 +406,19 @@ test('calculated daily availability remains distinct from the configured plan an
  expect(result.shortage).toContain('Может не хватить');
  expect(result.simple).not.toContain('Доступно в день');
  expect(result.unchanged).toBe(true);
+});
+
+test('star corners use the selected monster theme palette',async ({page})=>{
+ const result=await probe(page,()=>{
+  const root=document.documentElement,old=root.getAttribute('data-pet');
+  const values=Object.keys(PTHEME).map(k=>{
+   root.setAttribute('data-pet',k);
+   return {key:k,actual:getComputedStyle(root).getPropertyValue('--tile-sparkle').trim(),expected:PTHEME[k].spark};
+  });
+  if(old)root.setAttribute('data-pet',old);else root.removeAttribute('data-pet');
+  return values;
+ });
+ expect(result).toHaveLength(12);
+ expect(result.every(x=>x.actual===x.expected&&/^#[0-9a-f]{6}$/i.test(x.actual))).toBe(true);
+ expect(new Set(result.map(x=>x.actual)).size).toBe(12);
 });

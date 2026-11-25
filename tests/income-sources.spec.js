@@ -279,7 +279,14 @@ for(const simpleMode of [true,false]) test('compact home details fit small scree
  await expect(hero.locator('[data-a=fcOpen]')).toBeVisible();
  await expect(hero.locator('.stats > .stat b')).toHaveCount(3);
  const before=await page.evaluate(()=>localStorage.getItem('podkopka-v1'));
- await link.click();await expect(details).toBeVisible();await expect(details).toContainText('Потрачено сегодня');await expect(details).toContainText('Можно завтра');
+ await expect(link).toHaveText('Подробнее');
+ await link.click();await expect(details).toBeVisible();
+ const labels=await details.locator('.row .grow').allTextContents();
+ expect(labels).toEqual(['План','Потрачено сегодня','Осталось','На завтра']);
+ await expect(details.locator('[data-a=planOpen]')).toHaveCount(0);
+ await expect(details).not.toContainText('В среднем');
+ await expect(details.locator('.budget-period')).toHaveCount(simpleMode?0:1);
+ expect(await details.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(180);
  await link.click();await expect(details).toBeHidden();
  await hero.locator('[data-a=tip][data-v=h_bal]').click();
  await expect(hero.locator('#tip_h_bal')).toContainText('Отпуск');await expect(hero.locator('#tip_h_bal')).toContainText('не входит');
@@ -307,4 +314,21 @@ test('compact mode switch and help use the same names on small screens',async ({
  await expect(section.locator('.hb')).toBeVisible();
  await expect(section.locator('.hb')).toContainText('Автопополнение копилок',{ignoreCase:true});
  await expect(help).not.toContainText('Простой и полный режим');
+});
+
+test('compact budget details retain nonzero payments, waiting income and shortage warnings',async ({page})=>{
+ const result=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=false;
+  const before=JSON.stringify(S);
+  const regular=homeBudgetDetails({val:500,days:9,nextIn:'2026-12-04',due:1200,waitingToday:false},257,243);
+  const waiting=homeBudgetDetails({val:500,days:1,nextIn:T,due:0,waitingToday:true},257,243);
+  const shortage=homeBudgetDetails({val:-100,days:3,nextIn:'2026-11-28',due:1200,waitingToday:false},257,0);
+  return {regular,waiting,shortage,unchanged:JSON.stringify(S)===before};
+ });
+ expect(result.regular).toContain('Будущие платежи');
+ expect(result.regular).toContain('До 4 декабря · 9 дней');
+ expect(result.waiting).toContain('Ждём доход');
+ expect(result.waiting).not.toContain('Будущие платежи');
+ expect(result.shortage).toContain('Может не хватить');
+ expect(result.unchanged).toBe(true);
 });

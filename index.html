@@ -1361,8 +1361,46 @@ function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0
   if(spOn()){ii=spMonthly()}
   var c={inc:ii,fixed:0,save:0,irr:0};if(p0.src==='full'){c.fixed=p0.c.fixed;c.save=p0.c.save;c.irr=p0.c.irr}else if(S.planCalc){c.fixed=+S.planCalc.fixed||0;c.save=+S.planCalc.save||0;c.irr=+S.planCalc.irr||0}
   if(!spOn())c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:spOn()?'self':'irreg',c:c}}
+function cycleDayPlan(){
+  // Последняя полученная выплата, которая по расписанию оставляет деньги на жизнь.
+  // Небольшие выплаты, полностью предназначенные для копилок, не начинают новый период.
+  var ins=S.incomes||[],rules=S.rules||[],start=null;
+  S.entries.forEach(function(x){
+    if(x.type!=='i'||!x.iid||x.skip||x.demo||x.date>T||!isLiveId(accOf(x)))return;
+    var p=ins.find(function(r){return r.id===x.iid});if(!p)return;
+    var gross=ins.filter(function(r){return +r.day===+p.day}).reduce(function(a,r){return a+(+r.amt||0)},0);
+    var reserved=rules.filter(function(r){return +r.day===+p.day&&accById(r.acc)&&!isLiveId(r.acc)}).reduce(function(a,r){return a+(+r.amt||0)},0);
+    if(gross>reserved&&(!start||x.date>start))start=x.date;
+  });
+  if(!start)return null;
+  // Общий бюджет периода: текущий остаток + уже потраченные деньги на жизнь.
+  // Переводы в копилки не возвращаем; исполненные платежи и раскладки уже исчезли из предстоящих.
+  var ev=plannedItems(T,62),next=null,dates={};
+  ev.forEach(function(e){
+    var d=dates[e.date]||(dates[e.date]={inc:0,res:0});
+    if(e.kind==='in')d.inc+=+e.amt||0;
+    else if(e.rule)d.res+=+e.amt||0;
+  });
+  Object.keys(dates).sort().some(function(d){if(dates[d].inc>dates[d].res){next=d;return true}return false});
+  if(!next)next=iso(addDays(parse(start),30));
+  if(next<=start)next=iso(addDays(parse(start),1));
+  if(next<T)next=T;
+  var due=0,inc=0;
+  ev.forEach(function(e){if(e.date>=next)return;
+    if(e.kind==='out'&&!offMain(e))due+=+e.amt||0;
+    else if(e.kind==='in')inc+=+e.amt||0;
+  });
+  var spent=0,rare=rareCats()||{};
+  S.entries.forEach(function(x){
+    if(x.date<start||x.date>T||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
+    if(x.type==='e'&&!x.rid&&!rare[x.cat])spent+=+x.amt||0;
+    else if(x.type==='i'&&x.cat==='refund')spent-=+x.amt||0;
+  });
+  var days=Math.max(1,diffDays(start,next)),free=balance()+spent+inc-due;
+  return {v:Math.max(0,free/days),start:start,next:next,days:days,free:free,due:due,inc:inc,spent:spent};
+}
 function planInfo1(){
-  if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {v:planCalcVal(fp),src:'full',c:fp}}
+  if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan(),cp=!S.irreg&&cycleDayPlan();return {v:cp?cp.v:planCalcVal(fp),src:'full',c:fp,cycle:cp||null}}
   if(S.planCalc&&+S.planCalc.inc>0)return {v:planCalcVal(S.planCalc),src:'calc'};
   var v=+S.dayLimit;if(v>0)return {v:v,src:'manual'};
   var a=planByIncome();if(a)return {v:a,src:'income'};
@@ -1390,6 +1428,17 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
   function ro(id,lab,v,hint){return '<div class="row" style="padding:2px 0"><div class="grow"><div class="t" style="font-size:14px">'+lab+'</div><div class="s">'+hint+'</div></div><b>'+money(v)+'</b><input type="hidden" id="'+id+'" value="'+Math.round(v)+'"></div>'}
   if(sh&&!sh.pcOut)sh.pcOut=(Array.isArray(S.planOut)?S.planOut:planOutDefault(S.planCalc||{fixed:df.fixed,irr:df.irr})).slice();
   function fld(id,lab,hint,val){return '<div class="f"><label for="'+id+'">'+lab+'</label><input id="'+id+'" inputmode="decimal" value="'+esc(val===''||val==null?'':Math.round(val))+'" placeholder="0"><span class="fine">'+hint+'</span></div>'}
+  if(full&&pi.cycle){var cp=pi.cycle;
+    openSheet('<h3>План трат на день</h3>'+
+      '<div class="note '+(cp.v>0?'good':'bad')+'"><b>'+money(cp.v)+' в день</b><span class="fine">С '+dlabel(cp.start)+' до '+dlabel(cp.next)+' · '+cp.days+' '+plw(cp.days,'день','дня','дней')+'</span></div>'+
+      '<div class="note info" style="gap:6px"><b>Из свободных денег</b>'+
+      ro('x1','Свободные деньги сейчас',balance(),'остаток на картах на жизнь')+
+      ro('x2','Уже потрачено на жизнь',cp.spent,'за этот период, за вычетом возвратов')+
+      (cp.inc?ro('x3','Предстоящие поступления',cp.inc,'до следующей значимой выплаты'):'')+
+      ro('x4','Предстоящие платежи и раскладка',cp.due,'до следующей значимой выплаты')+
+      ro('x5','Всего на жизнь за период',cp.free,'делим на '+cp.days+' дн.')+'</div>'+
+      '<p class="fine">Обычные покупки не меняют план. Переводы в копилки и обратно меняют его. Запланированная раскладка уже учтена.</p>'+
+      '<div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="goPlanTab">Изменить в «Платежах»</button></div>');return}
   if(full){var lifeM=fp.inc-fp.fixed-fp.save;
     openSheet('<h3>План трат на день</h3>'+
      '<div class="note '+(pi.v>0?'good':'bad')+'"><b>'+(pi.v>0?'Можно тратить '+money(pi.v)+' в день':'Доходов не хватает на платежи и раскладку')+'</b><span class="fine">'+(pi.v>0?'Это '+money(lifeM)+' в месяц на жизнь.':'Не хватает '+money(-lifeM)+' в месяц.')+'</span></div>'+
@@ -4414,7 +4463,7 @@ document.addEventListener('click',function(ev){
     var after=function(am){
       var dv=am-item.amt;
       if(Math.abs(dv)<1){toast('Записано: '+item.name+' '+money(am));return}
-      if(!isR){var lim1=dayLimit();toast('Пришло на '+money(Math.abs(dv))+(dv>0?' больше':' меньше')+' плана.'+(curM&&planInfo().src==='full'&&lim1!==lim0?' План на день в этом месяце: '+money(lim1)+' (было '+money(lim0)+').':''));return}
+      if(!isR){var lim1=dayLimit();toast('Пришло на '+money(Math.abs(dv))+(dv>0?' больше':' меньше')+' плана.'+(curM&&planInfo().src==='full'&&lim1!==lim0?' План на день: '+money(lim1)+' (было '+money(lim0)+').':''));return}
       var pm=nextYM(ym,-(+item.every||1)),prev=S.entries.filter(function(x){return x.rid===id&&x.date.slice(0,7)===pm}).reduce(function(a2,x){return a2+x.amt},0);
       if(prev>0&&Math.abs(prev-item.amt)>=1){
         uiConfirm('«'+item.name+'» второй раз не как в плане: было '+money(prev)+', теперь '+money(am)+', а в плане '+money(item.amt)+'. Поставить в план '+money(am)+'?','Поставить','Оставить').then(function(y){if(y){item.amt=am;save();render();toast('В плане теперь '+money(am))}})}

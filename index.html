@@ -981,29 +981,34 @@ function entMoney(x){ // сумма записи так, как её плати�
 function balance(){var b=0;activeAccounts().forEach(function(a){if(isLive(a))b+=accBal(a)});return b}
 function monthEntries(ym){return S.entries.filter(function(x){return x.date.slice(0,7)===ym})}
 function sum(list,type){return list.filter(function(x){return x.type===type&&!x.skip}).reduce(function(a,x){return a+x.amt},0)}
-function refunds(list){return list.reduce(function(a,x){ // пришедшие возвраты + ещё ожидаемые по «Делю с кем-то»
-  if(x.type==='i'&&x.cat==='refund'&&!x.skip)return a+x.amt;
-  if(x.type==='e'&&!x.skip&&x.split>0&&!x.splitDone)return a+Math.min(x.split,x.amt);
-  return a},0)}
+function refunds(list){ // фактические возвраты + ещё ожидаемый остаток «Делю с кем-то» (без двойного учёта)
+  var LK=refLinks(),seen={},got=0,pend=0;
+  list.forEach(function(x){
+    if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!x.nobal)got+=x.amt;
+    if(x.type==='e'&&!x.skip&&!x.nobal&&x.split>0&&!x.splitDone&&!seen[x.id]){
+      if(x.grp)list.forEach(function(e){if(e.grp===x.grp)seen[e.id]=1});else seen[x.id]=1;
+      pend+=backOf(x,LK).pend;
+    }
+  });
+  return got+pend}
 /* траты по категориям за вычетом возвратов: возврат относится к своей трате (по «Делю с кем-то» или по заметке «Возврат: …»),
-   иначе делится по тратам того же дня, иначе по всем тратам периода */
+   иначе делится по тратам того же дня, иначе по всем тратам периода.
+   Чистая сумма по каждой трате - через netOf (ожидаемый split минус уже полученное). */
 function grpAmt(x,ex){return x.grp?ex.filter(function(e){return e.grp===x.grp}).reduce(function(a,e){return a+e.amt},0):x.amt}
 function netByCat(list){
-  var ex=list.filter(function(x){return x.type==='e'&&!x.skip}),rf=list.filter(function(x){return x.type==='i'&&x.cat==='refund'&&!x.skip}),cat={};
-  ex.forEach(function(x){cat[x.cat]=(cat[x.cat]||0)+x.amt});
+  var LK=refLinks(),ex=list.filter(function(x){return x.type==='e'&&!x.skip&&!x.nobal}),rf=list.filter(function(x){return x.type==='i'&&x.cat==='refund'&&!x.skip&&!x.nobal&&!LK.linked[x.id]}),cat={};
+  ex.forEach(function(x){cat[x.cat]=(cat[x.cat]||0)+netOf(x,LK)});
   function take(c,v){var t=Math.min(v,cat[c]||0);cat[c]=(cat[c]||0)-t;return t}
   function spread(v,src){ // пропорционально остаткам категорий этих трат
-    var w={},tw=0;src.forEach(function(x){w[x.cat]=(w[x.cat]||0)+x.amt});
+    var w={},tw=0;src.forEach(function(x){w[x.cat]=(w[x.cat]||0)+(cat[x.cat]>0?Math.max(0,netOf(x,LK)):0)});
     Object.keys(w).forEach(function(c){w[c]=Math.min(w[c],cat[c]||0);tw+=w[c]});
     if(tw<=0)return v;var left=v;Object.keys(w).forEach(function(c){left-=take(c,Math.min(v*w[c]/tw,w[c]))});return Math.max(0,left)}
-  function grpTake(x,v){var g=x.grp?ex.filter(function(e){return e.grp===x.grp}):[x],t=g.reduce(function(a,e){return a+e.amt},0);if(g.length<2||!(t>0)){take(x.cat,v);return}g.forEach(function(e){take(e.cat,v*e.amt/t)})}
-  ex.forEach(function(x){if(x.split>0&&!x.splitDone)grpTake(x,Math.min(x.split,grpAmt(x,ex)))});
   rf.forEach(function(r){
-    var v=r.amt,lk=ex.filter(function(e){return e.id===r.for})[0]||ex.filter(function(e){return e.splitDone===r.id})[0];
-    if(lk){grpTake(lk,v);return}
+    if(r.for&&r.for!=='none'&&!S.entries.some(function(e){return e.id===r.for}))return; // сирота после удаления траты
+    var v=r.amt;
     var m=String(r.note||'').match(/^Возврат:\s*(.+)$/i);
     if(m&&r.for!=='none'){var nm=norm(m[1]),c=ex.filter(function(e){return e.note&&norm(e.note)===nm&&e.date<=r.date}).sort(function(p,q){return p.date<q.date?1:-1})[0];
-      if(c){if(c.grp){grpTake(c,v);return}v-=take(c.cat,v);if(v<=0.005)return}}
+      if(c){v-=take(c.cat,v);if(v<=0.005)return}}
     var sd=ex.filter(function(e){return e.date===r.date});
     if(sd.length)v=spread(v,sd);
     if(v>0.005)spread(v,ex)});
@@ -1482,7 +1487,7 @@ function perDay(){
 
 /* ---------- игра ---------- */
 function hsh(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h}
-function planByIncome(){var inc=0,out=0;incomeRows(T.slice(0,7)).forEach(function(r){inc+=payrollExpected(r,T.slice(0,7))});(S.recur||[]).forEach(function(r){out+=+r.amt||0});(S.rules||[]).forEach(function(r){if(ruleOn(r))out+=+r.amt||0});if(inc<=0)return 0;var v=Math.floor((inc-out)/30.4/50)*50;return v>0?v:0}
+function planByIncome(){var inc=0,out=0;incomeRows(T.slice(0,7)).forEach(function(r){inc+=payrollExpected(r,T.slice(0,7))});(S.recur||[]).forEach(function(r){out+=+r.amt||0});(S.rules||[]).forEach(function(r){if(ruleOn(r))out+=+r.amt||0});out+=rareMonthly();if(inc<=0)return 0;var v=Math.floor((inc-out)/30.4/50)*50;return v>0?v:0}
 function planByHistory(){var cur=T.slice(0,7),tot=0,days=0,months=0;
   for(var k=1;k<=3;k++){var m=nextYM(cur,-k),l=S.entries.filter(function(x){return !x.demo&&!x.skip&&x.date.slice(0,7)===m&&(x.type==='e'||(x.type==='i'&&x.cat==='refund'))});
     if(l.filter(function(x){return x.type==='e'}).length<5)continue;var a=m.split('-');months++;days+=dim(+a[0],+a[1]-1);l.forEach(function(x){tot+=x.type==='e'?x.amt:-x.amt})}
@@ -1526,14 +1531,35 @@ function irregInc(){var cur=T.slice(0,7),mn=null;for(var k=1;k<=3;k++){var m=nex
 function pctSum(){return (S.pct||[]).reduce(function(a,r){return a+(accById(r.acc)?+r.pct||0:0)},0)}
 function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0;var ii=spOn()?spMonthly():irregInc();if(!(ii>0))return p0;
   if(spOn()){ii=spMonthly()}
-  var c={inc:ii,fixed:0,save:0,irr:0};if(p0.src==='full'){c.fixed=p0.c.fixed;c.save=p0.c.save;c.irr=p0.c.irr}else if(S.planCalc){c.fixed=+S.planCalc.fixed||0;c.save=+S.planCalc.save||0;c.irr=+S.planCalc.irr||0}
+  var c={inc:ii,fixed:0,save:0,irr:rareMonthly()};if(p0.src==='full'){c.fixed=p0.c.fixed;c.save=p0.c.save;c.irr=p0.c.irr}else if(S.planCalc){c.fixed=+S.planCalc.fixed||0;c.save=+S.planCalc.save||0;c.irr=S.planCalc.irr!=null&&S.planCalc.irr!==''?+S.planCalc.irr||0:rareMonthly()}
   if(!spOn())c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:spOn()?'self':'irreg',c:c}}
-// Cash reconstruction deliberately differs from attributed net spending: only actual cash movements.
-function cashPlanSpent(from,to){var spent=0,rare=rareCats()||{};S.entries.forEach(function(x){if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;if(x.type==='e'&&!x.rid&&!isRareExpense(x))spent+=+x.amt||0;else if(x.type==='i'&&x.cat==='refund')spent-=+x.amt||0});return spent}
+// Кассовая реконструкция: только реальные движения по картам на жизнь.
+// Возврат уменьшает spent, только если относится к расходу, который сам входит в spent (не rid/rare).
+function cashLifeExpense(x){return x&&x.type==='e'&&!x.demo&&!x.hist&&!x.nobal&&!x.skip&&!x.rid&&!isRareExpense(x)&&isLiveId(accOf(x))}
+function cashPlanSpent(from,to){
+  var spent=0,LK=refLinks(),byId={};S.entries.forEach(function(x){byId[x.id]=x});
+  S.entries.forEach(function(x){
+    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
+    if(x.type==='e'&&cashLifeExpense(x))spent+=+x.amt||0;
+    else if(x.type==='i'&&x.cat==='refund'){
+      var eid=LK.linked[x.id],e=eid?byId[eid]:null;
+      if(e){if(cashLifeExpense(e)&&e.date>=from&&e.date<=to)spent-=+x.amt||0}
+      else if(!(x.for&&x.for!=='none'&&!byId[x.for]))spent-=+x.amt||0; // непривязанный возврат на карте на жизнь; сироту не вычитаем
+    }
+  });
+  return spent}
+function cycleRarePaid(from,to){
+  var paid=0,LK=refLinks(),byId={};S.entries.forEach(function(x){byId[x.id]=x});
+  S.entries.forEach(function(x){
+    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
+    if(x.type==='e'&&isRareExpense(x))paid+=+x.amt||0;
+    else if(x.type==='i'&&x.cat==='refund'){var e=LK.linked[x.id]?byId[LK.linked[x.id]]:null;if(e&&isRareExpense(e)&&isLiveId(accOf(e)))paid-=+x.amt||0}
+  });
+  return Math.max(0,paid)}
 function cycleDayPlan(){
   // Последняя полученная выплата, которая по расписанию оставляет деньги на жизнь.
   // Небольшие выплаты, полностью предназначенные для копилок, не начинают новый период.
-  var ins=S.incomes||[],rules=S.rules||[],start=null;
+  var rules=S.rules||[],start=null;
   S.entries.forEach(function(x){
     if(x.type!=='i'||!x.iid||x.skip||x.demo||x.date>T||!isLiveId(accOf(x)))return;
     var rows=incomeRows(x.date.slice(0,7)),p=rows.find(function(r){return r.id===x.iid});if(!p)return;
@@ -1544,6 +1570,7 @@ function cycleDayPlan(){
   if(!start)return null;
   // Общий бюджет периода: текущий остаток + уже потраченные деньги на жизнь.
   // Переводы в копилки не возвращаем; исполненные платежи и раскладки уже исчезли из предстоящих.
+  // Редкие расходы резервируем пропорционально длине периода, за вычетом уже оплаченных (без двойного резерва).
   var ev=plannedItems(T,sourceForecastDays()),next=null,dates={};
   ev.forEach(function(e){
     var d=dates[e.date]||(dates[e.date]={inc:0,res:0});
@@ -1560,8 +1587,10 @@ function cycleDayPlan(){
     else if(e.kind==='in')inc+=+e.amt||0;
   });
   var spent=cashPlanSpent(start,T);
-  var days=Math.max(1,diffDays(start,next)),free=balance()+spent+inc-due;
-  return {v:Math.max(0,free/days),start:start,next:next,days:days,free:free,due:due,inc:inc,spent:spent};
+  var days=Math.max(1,diffDays(start,next));
+  var rareReserve=Math.max(0,rareMonthly()*days/30.4-cycleRarePaid(start,T));
+  var free=balance()+spent+inc-due-rareReserve;
+  return {v:Math.max(0,free/days),start:start,next:next,days:days,free:free,due:due,inc:inc,spent:spent,rare:rareReserve};
 }
 function planInfo1(){
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan(),cp=!S.irreg&&cycleDayPlan();return {v:cp?cp.v:planCalcVal(fp),src:'full',c:fp,cycle:cp||null}}
@@ -1575,7 +1604,7 @@ function dayLimit(){return planInfo().v}
 function dayLimitAt(d){var h=S.planDayHistory||{};return d<T&&Object.prototype.hasOwnProperty.call(h,d)?h[d]:dayLimit()}
 function rememberDayLimit(){if(S.demo)return false;var h=S.planDayHistory||(S.planDayHistory={}),v=dayLimit();if(!Number.isFinite(v)||h[T]===v)return false;h[T]=v;return true}
 function planDefaults(){var c=S.planCalc||{},inc=0,fx=0,sv=0;incomeRows(T.slice(0,7)).forEach(function(r){inc+=payrollExpected(r,T.slice(0,7))});(S.recur||[]).forEach(function(r){fx+=+r.amt||0});(S.rules||[]).forEach(function(r){if(ruleOn(r))sv+=+r.amt||0});
-  return {inc:c.inc!=null?c.inc:(inc||''),fixed:c.fixed!=null?c.fixed:(fx||''),save:c.save!=null?c.save:(sv||''),irr:c.irr!=null?c.irr:''}}
+  return {inc:c.inc!=null?c.inc:(inc||''),fixed:c.fixed!=null?c.fixed:(fx||''),save:c.save!=null?c.save:(sv||''),irr:c.irr!=null?c.irr:(rareMonthly()||'')}}
 function planCalcRead(){function g(id){var e=document.getElementById(id);return e?Math.max(0,num(e.value)||0):0}return {inc:g('pc_inc'),fixed:g('pc_fix'),save:g('pc_sav'),irr:g('pc_irr')}}
 function planCalcOut(){var c=planCalcRead(),o=document.getElementById('pc_out');if(!o)return;
   if(!c.inc){o.className='note info';o.innerHTML='<b>Впиши доход в месяц</b><span class="fine">Остальное можно оставить пустым, если таких расходов нет.</span>';return}
@@ -1602,8 +1631,9 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
       ro('x2','Уже потрачено на жизнь',cp.spent,'за этот период, за вычетом возвратов')+
       (cp.inc?ro('x3','Предстоящие поступления',cp.inc,'до следующей значимой выплаты'):'')+
       ro('x4','Предстоящие платежи и раскладка',cp.due,'до следующей значимой выплаты')+
+      (cp.rare>0.5?ro('x4b','Резерв на редкие расходы',cp.rare,'доля на этот период минус уже оплаченное'):'')+
       ro('x5','Всего на жизнь за период',cp.free,'делим на '+cp.days+' дн.')+'</div>'+
-      '<p class="fine">Обычные покупки не меняют план. Переводы в копилки и обратно меняют его. Запланированная раскладка уже учтена.</p>'+
+      '<p class="fine">Обычные покупки не меняют план. Переводы в копилки и обратно меняют его. Запланированная раскладка уже учтена. Редкие расходы резервируются без двойного учёта.</p>'+
       '<div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="goPlanTab">Изменить в «Платежах»</button></div>');return}
   if(full){var lifeM=fp.inc-fp.fixed-fp.save;
     openSheet('<h3>План трат на день</h3>'+
@@ -1646,9 +1676,10 @@ function planOutSet(){var pi=planInfo(),l;
   else return null; // своя сумма или нет плана - всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
-  // полный режим: план учитывает выбранные карты независимо от их баланса
-  if(!S.simple&&(S.incomes||[]).length){return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||isRareExpense(x)))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
-  var m=planOutSet();return list.filter(function(x){if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(x.type==='e'&&(x.rid||(m&&m[x.cat])))})}
+  // полный режим: план учитывает выбранные карты независимо от их баланса.
+  // nobal («не с моих счетов») в историю входит, но личный дневной бюджет не уменьшает.
+  if(!S.simple&&(S.incomes||[]).length){return list.filter(function(x){if(x.nobal)return false;return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||isRareExpense(x)))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
+  var m=planOutSet();return list.filter(function(x){if(x.nobal)return false;if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(x.type==='e'&&(x.rid||(m&&m[x.cat])))})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return sumNet(life(list),LK)}
 function lifeNet(list){return lifeNetL(list,refLinks())}
@@ -2381,12 +2412,14 @@ function incomeCalendarSettings(){
  return '<div class="f"><div class="tiprow"><label for="pd_in">Числа поступлений</label>'+tipBtn('pd')+'</div>'+tipBox('pd','Для регулярных поступлений без настроенных источников. Выходные и праздники переносятся на предыдущий рабочий день по производственному календарю РФ. Можно указать до четырёх чисел через запятую.')+preview+'<input id="pd_in" inputmode="numeric" placeholder="например: 10, 25" value="'+esc(payDays().join(', '))+'"><button type="button" class="btn ghost" data-a="payDaysSave">Сохранить дни</button><p class="fine">Для выплат с другой периодичностью можно настроить источники дохода или включить нерегулярный доход ниже.</p><button type="button" class="btn ghost sm" data-a="editIncomeCalendar">Настроить гибкий график</button></div>'
 }
 function balanceBefore(d){ // «Свободные деньги» на начало дня d. Считается назад от сегодняшнего остатка по всем записям,
-  // включая загруженные из выписки (они уже сидят в остатке) - так прошлые месяцы не зависят от стартовой суммы и старых поправок
+  // включая загруженные из выписки (они уже сидят в остатке) - так прошлые месяцы не зависят от стартовой суммы и старых поправок.
+  // Откат в той же модели, что accBal/accBalN: для валютных счетов - natOf × курс.
   var b=0;activeAccounts().forEach(function(a){if(!isLive(a))return;b+=accBal(a);
-    (a.adj||[]).forEach(function(x){if(x.date>=d&&x.date<=T)b-=+x.amt||0});
+    var fx=isFx(a),rt=fx?rateOf(a.cur):1;
+    (a.adj||[]).forEach(function(x){if(x.date>=d&&x.date<=T)b-=(+x.amt||0)*rt});
     S.entries.forEach(function(x){if(x.date<d||x.date>T||x.nobal||x.demo&&!S.demo)return;
-      if(x.type==='t'){if(x.from===a.id)b+=x.amt;if(x.to===a.id)b-=x.amt}
-      else if(accOf(x)===a.id)b-=x.type==='i'?x.amt:-x.amt})});
+      if(x.type==='t'){if(x.from===a.id)b+=natOf(x,a)*rt;if(x.to===a.id)b-=natOf(x,a)*rt}
+      else if(accOf(x)===a.id){var v=natOf(x,a)*rt;b-=x.type==='i'?v:-v}})});
   return b}
 function payPraise(){
   if(S.demo||!isPayDay(T))return null;
@@ -2680,33 +2713,42 @@ function histMatch(x){
   if(!hq)return true;var q=norm(hq),c=x.type==='t'?'перевод':norm((CMAP[x.cat]||CMAP.other).name);
   if(norm(x.note).indexOf(q)>=0||c.indexOf(q)>=0)return true;var qn=q.replace(/\s/g,'');return /^\d+$/.test(qn)&&String(Math.round(x.amt)).indexOf(qn)>=0;
 }
-/* трата с тем же названием, что у возврата («Возврат: Ужин» или просто «Ужин»): того же дня, иначе ближайшая раньше в этом месяце */
+/* трата с тем же названием, что у возврата («Возврат: Ужин» или просто «Ужин»):
+   сначала тот же месяц, при явной пометке «Возврат:» - и более ранние месяцы (без потери связи). */
 function refMatch(note,date,amt,ex){
-  var m=String(note||'').replace(/^\s*возврат[\s:\-–]*/i,'').trim();if(!m||!date)return null;
+  var raw=String(note||''),explicit=/^\s*возврат[\s:\-–]*/i.test(raw);
+  var m=raw.replace(/^\s*возврат[\s:\-–]*/i,'').trim();if(!m||!date)return null;
   var nm=norm(m),ym=date.slice(0,7);
-  var c=ex.filter(function(z){return z.note&&norm(z.note)===nm&&z.date<=date&&z.date.slice(0,7)===ym});
-  c.sort(function(a,b){if(a.date!==b.date)return a.date<b.date?1:-1;var fa=a.amt>=amt?0:1,fb=b.amt>=amt?0:1;if(fa!==fb)return fa-fb;return a.amt-b.amt});
+  var c=ex.filter(function(z){return z.note&&norm(z.note)===nm&&z.date<=date&&(explicit||z.date.slice(0,7)===ym)});
+  c.sort(function(a,b){var sa=a.date.slice(0,7)===ym?0:1,sb=b.date.slice(0,7)===ym?0:1;if(sa!==sb)return sa-sb;if(a.date!==b.date)return a.date<b.date?1:-1;var fa=a.amt>=amt?0:1,fb=b.amt>=amt?0:1;if(fa!==fb)return fa-fb;return a.amt-b.amt});
   return c[0]||null;
 }
-/* связь возврата с тратой: явная (поле for), по «Делю с кем-то» (splitDone) или по заметке «Возврат: …»; только внутри одного месяца */
+/* связь возврата с тратой: явная (поле for), по «Делю с кем-то» (splitDone) или по заметке «Возврат: …» */
 function refLinks(){
   var byId={},byExp={},linked={},ex=[];
   S.entries.forEach(function(x){if(!vis(x)||x.date>T)return;byId[x.id]=x;if(x.type==='e'&&!x.skip)ex.push(x)});
   S.entries.forEach(function(r){
     if(r.demo||r.date>T||r.type!=='i'||r.cat!=='refund'||r.skip||r.for==='none')return;
-    var e=r.for&&byId[r.for]&&byId[r.for].type==='e'?byId[r.for]:null;
-    if(!e)e=ex.filter(function(z){return z.splitDone===r.id})[0]||null;
-    if(!e)e=refMatch(r.note,r.date,r.amt,ex);
-    if(e&&!e.skip&&(r.for===e.id||e.splitDone===r.id||e.date.slice(0,7)===r.date.slice(0,7))){linked[r.id]=e.id;(byExp[e.id]=byExp[e.id]||[]).push(r)}
+    var e=null,how='';
+    if(r.for&&byId[r.for]&&byId[r.for].type==='e'){e=byId[r.for];how='for'}
+    else{e=ex.filter(function(z){return z.splitDone===r.id})[0]||null;if(e)how='split'}
+    if(!e){e=refMatch(r.note,r.date,r.amt,ex);if(e)how='note'}
+    if(e&&!e.skip&&how){linked[r.id]=e.id;(byExp[e.id]=byExp[e.id]||[]).push(r)}
   });
-  /* разложенный чек: возврат и «Делю с кем-то» на любую его часть делятся по всем частям пропорционально суммам */
+  /* разложенный чек: возврат и «Делю с кем-то» на любую его часть делятся по всем частям пропорционально суммам.
+     gp хранит сырой ожидаемый split; backOf вычитает уже полученное, чтобы не считать дважды. */
   var gb={},gp={},grp={};ex.forEach(function(x){if(x.grp)(grp[x.grp]=grp[x.grp]||[]).push(x)});
   Object.keys(grp).forEach(function(k){var g=grp[k];if(g.length<2)return;var t=g.reduce(function(a,e){return a+e.amt},0);if(!(t>0))return;
     var R=0,P=0;g.forEach(function(e){R+=(byExp[e.id]||[]).reduce(function(a,r){return a+r.amt},0);if(e.split>0&&!e.splitDone)P+=e.split});P=Math.min(P,t);
     g.forEach(function(e){gb[e.id]=R*e.amt/t;gp[e.id]=P*e.amt/t})});
   return {byExp:byExp,linked:linked,gb:gb,gp:gp};
 }
-function backOf(x,LK){if(LK.gb&&LK.gb[x.id]!=null)return {back:LK.gb[x.id],pend:LK.gp[x.id]};return {back:(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0),pend:x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0}}
+function backOf(x,LK){
+  if(LK.gb&&LK.gb[x.id]!=null){var back=LK.gb[x.id]||0;return {back:back,pend:Math.max(0,(LK.gp[x.id]||0)-back)}}
+  var back=(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0);
+  var split=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
+  return {back:back,pend:Math.max(0,split-back)};
+}
 function receivedNetOf(x,LK){return Math.max(0,x.amt-backOf(x,LK).back)}
 function netOf(x,LK){
   var b=backOf(x,LK);return Math.max(0,x.amt-b.back-b.pend);
@@ -2723,9 +2765,16 @@ function histRow(x,LK){
   return main+subs;
 }
 function sumNet(l,LK){
+  var hasE=l.some(function(x){return x.type==='e'&&!x.skip&&!x.nobal});
   return l.reduce(function(s,x){
-    if(x.type==='e'&&!x.skip)return s+netOf(x,LK);
-    if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return s-x.amt;
+    if(x.type==='e'&&!x.skip&&!x.nobal)return s+netOf(x,LK);
+    if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!x.nobal&&!LK.linked[x.id]){
+      // связь на удалённую трату: история возврата есть, дневной бюджет не искажаем
+      if(x.for&&x.for!=='none'&&!S.entries.some(function(e){return e.id===x.for}))return s;
+      // нечего покрывать в этом срезе (например, только rid/rare выпали из life) - не уходим в минус из воздуха
+      if(!hasE)return s;
+      return s-x.amt;
+    }
     return s},0);
 }
 function histList(){
@@ -2912,17 +2961,16 @@ var rvCands=[];
 function reviewCard(){
   var ym=vym,curYM=T.slice(0,7);if(ym>curYM)return '';
   var cur=ym===curYM,a=ym.split('-'),n=dim(+a[0],+a[1]-1),d=cur?parseInt(T.slice(8),10):n,left=n-d;
-  /* как в плане и у монстрика: только траты «на жизнь» (life), минус возвраты */
+  /* как в плане и у монстрика: только траты «на жизнь» (life), минус возвраты - та же формула, что lifeNet */
   function ex0(m,upto){return S.entries.filter(function(x){return !x.skip&&vis(x)&&(x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&x.date.slice(0,7)===m&&(!upto||parseInt(x.date.slice(8),10)<=upto)})}
   function ex(m,upto){return life(ex0(m,upto)).filter(function(x){return x.type==='e'})}
-  function rfn(m,upto){return refunds(life(ex0(m,upto)))}
-  function netM(m,upto){return Math.max(0,tot(ex(m,upto))-rfn(m,upto))}
+  function netM(m,upto){return Math.max(0,lifeNet(ex0(m,upto)))}
   function tot(l){return l.reduce(function(s,x){return s+x.amt},0)}
   function byCat(l){var o={};l.forEach(function(x){o[x.cat]=(o[x.cat]||0)+x.amt});return o}
   function cname(k){return (CMAP[k]||CMAP.other).name}
   function ccol(k){return (CMAP[k]||CMAP.other).color}
   function pct(x){return Math.round(x*100)+'%'}
-  var list=ex(ym),gross=tot(list),ret=rfn(ym),spent=Math.max(0,gross-ret),outSum=ex0(ym).filter(function(x){return x.type==='e'}).reduce(function(a,x){return a+x.amt},0)-gross;
+  var list=ex(ym),gross=tot(list),spent=netM(ym),ret=Math.max(0,gross-spent),outSum=ex0(ym).filter(function(x){return x.type==='e'}).reduce(function(a,x){return a+x.amt},0)-gross;
   var LK=refLinks();function nv(x){return netOf(x,LK)}function totN(l){return l.reduce(function(s,x){return s+nv(x)},0)}
   var prev=[];for(var k=1;k<=6&&prev.length<3;k++){var pm=nextYM(ym,-k);if(ex(pm).length)prev.push(pm)}
   var H='<div class="card"><h2>🔍 Разбор месяца</h2>';

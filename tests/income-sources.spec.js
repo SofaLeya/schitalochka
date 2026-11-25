@@ -217,10 +217,18 @@ test('monthly completed payments are collapsed, and extra planning prioritizes s
  });
  const marked=page.locator('[data-a=fold][data-v=markedMonth]');
  await expect(marked).toHaveAttribute('aria-expanded','false');
- await expect(page.getByText('Работа',{exact:true})).toHaveCount(0);
+ // The same income can also appear in the previous-month reminders.
+ const markedCard=page.locator('.card').filter({has:marked});
+ const completedIncome=markedCard.locator('[data-a=editPlan][data-k=i][data-id=salary]');
+ await expect(completedIncome).toHaveCount(0);
  await marked.click();
  await expect(marked).toHaveAttribute('aria-expanded','true');
- await expect(page.getByText('Работа',{exact:true})).toBeVisible();
+ await expect(completedIncome).toBeVisible();
+ await expect(completedIncome).toContainText('Работа');
+ await expect(completedIncome).toContainText('пришло');
+ await marked.click();
+ await expect(marked).toHaveAttribute('aria-expanded','false');
+ await expect(completedIncome).toHaveCount(0);
  await page.locator('[data-a=ptab][data-v=p]').click();
  await page.locator('[data-a=planMore]').click();
  const heads=await page.locator('.foldhead .h2like').allTextContents();

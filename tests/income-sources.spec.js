@@ -251,12 +251,13 @@ test('new income form shows basic questions and keeps advanced options available
  await expect(page.locator('#is_start')).toBeVisible();
 });
 
-test('compact home details are collapsed, preserve state and fit small screens in both modes',async ({page})=>{
+for(const simpleMode of [true,false]) test('compact home details fit small screens and preserve state, simple='+simpleMode,async ({page})=>{
  await page.setViewportSize({width:320,height:640});
  await probe(page,()=>{
   T='2026-11-25';S.demo=false;S.setup=1;S.onb=1;S.simple=true;S.irreg=false;S.incomes=[];S.rules=[];S.recur=[];S.entries=[];S.planCalc=null;S.dayLimit=500;
   S.accounts=[{id:'a1',name:'Основная карта',type:'main',start:10000},{id:'save-test',name:'Отпуск',type:'save',start:3000}];closeSheet();save();tab='home';render();
  });
+ if(!simpleMode)await page.locator('[data-a=setMode][data-v=full]').click();
  const hero=page.locator('.hero').first(),details=hero.locator('#tip_h_can'),link=hero.locator('.home-detail-link');
  await expect(hero.locator('.stats > .stat')).toHaveCount(3);
  await expect(details).toBeHidden();

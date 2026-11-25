@@ -1462,7 +1462,7 @@ function perDay(){
   });
   var days=Math.max(1,diffDays(T,nextIn));
   // Сегодняшние траты на жизнь возвращаем в сумму - иначе сегодня считается дважды.
-  var tsp=Math.max(0,dayNet(T).v);
+  var tsp=Math.max(0,cashPlanSpent(T,T));
   return {val:(balance()+tsp-due+inc)/days,days:days,nextIn:nextIn,due:due,waitingToday:nextIn===T};
 }
 
@@ -1514,6 +1514,8 @@ function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0
   if(spOn()){ii=spMonthly()}
   var c={inc:ii,fixed:0,save:0,irr:0};if(p0.src==='full'){c.fixed=p0.c.fixed;c.save=p0.c.save;c.irr=p0.c.irr}else if(S.planCalc){c.fixed=+S.planCalc.fixed||0;c.save=+S.planCalc.save||0;c.irr=+S.planCalc.irr||0}
   if(!spOn())c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:spOn()?'self':'irreg',c:c}}
+// Cash reconstruction deliberately differs from attributed net spending: only actual cash movements.
+function cashPlanSpent(from,to){var spent=0,rare=rareCats()||{};S.entries.forEach(function(x){if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;if(x.type==='e'&&!x.rid&&!rare[x.cat])spent+=+x.amt||0;else if(x.type==='i'&&x.cat==='refund')spent-=+x.amt||0});return spent}
 function cycleDayPlan(){
   // Последняя полученная выплата, которая по расписанию оставляет деньги на жизнь.
   // Небольшие выплаты, полностью предназначенные для копилок, не начинают новый период.
@@ -1543,12 +1545,7 @@ function cycleDayPlan(){
     if(e.kind==='out'&&!offMain(e))due+=+e.amt||0;
     else if(e.kind==='in')inc+=+e.amt||0;
   });
-  var spent=0,rare=rareCats()||{};
-  S.entries.forEach(function(x){
-    if(x.date<start||x.date>T||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
-    if(x.type==='e'&&!x.rid&&!rare[x.cat])spent+=+x.amt||0;
-    else if(x.type==='i'&&x.cat==='refund')spent-=+x.amt||0;
-  });
+  var spent=cashPlanSpent(start,T);
   var days=Math.max(1,diffDays(start,next)),free=balance()+spent+inc-due;
   return {v:Math.max(0,free/days),start:start,next:next,days:days,free:free,due:due,inc:inc,spent:spent};
 }
@@ -1628,17 +1625,17 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
 var FIXCATS=['rent','kom','conn','subs','debt','tax'],IRRCATS=['cloth','beauty','health','gift','tech','trip','edu'];
 function planOutDefault(c){var o=[];c=c||{};if(+c.fixed>0)o=o.concat(FIXCATS);if(+c.irr>0)o=o.concat(IRRCATS);return o}
 function planOutSet(){var pi=planInfo(),l;
-  if(pi.src==='calc'||pi.src==='full')l=Array.isArray(S.planOut)?S.planOut:planOutDefault(pi.src==='full'?pi.c:S.planCalc);
-  else if(pi.src==='income')l=FIXCATS; // полный режим: платежи вычтены из плана по списку регулярных
+  if(pi.src==='calc')l=Array.isArray(S.planOut)?S.planOut:[];
+  else if(pi.src==='income')l=[]; // конкретный регулярный платёж исключается по rid, не по категории
   else return null; // своя сумма или нет плана - всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
   // полный режим: план учитывает выбранные карты независимо от их баланса
   if(planInfo().src==='full'){var mn=defAcc(),rc=rareCats()||{};return list.filter(function(x){return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||rc[x.cat]))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
-  var m=planOutSet();return list.filter(function(x){if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(m&&x.type==='e'&&m[x.cat])})}
+  var m=planOutSet();return list.filter(function(x){if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(x.type==='e'&&(x.rid||(m&&m[x.cat])))})}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
-function lifeNetL(list,LK){return life(list).reduce(function(a,x){if(x.type==='e'&&!x.skip)return a+netOf(x,LK);if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id])return a-x.amt;return a},0)}
-function lifeNet(list){var l=life(list);return sum(l,'e')-refunds(l)}
+function lifeNetL(list,LK){return sumNet(life(list),LK)}
+function lifeNet(list){return lifeNetL(list,refLinks())}
 /* средние за прошлые месяцы - подсказки для расчёта плана */
 function planHints(){var cur=T.slice(0,7),ms=[];
   for(var k=1;k<=3;k++){var m=nextYM(cur,-k);if(S.entries.filter(function(x){return !x.demo&&x.date.slice(0,7)===m}).length>=5)ms.push(m)}
@@ -2389,7 +2386,7 @@ function payTarget(){
   var sv=activeAccounts().filter(function(a){return a.type==='save'}),skip=/плат|кварт|аренд|коммун|обязат|налог/i,pref=/подкоп|подуш|накоп|отпуск|мечт|цел/i;
   return sv.filter(function(a){return pref.test(a.name)&&!skip.test(a.name)})[0]||sv.filter(function(a){return !skip.test(a.name)})[0]||sv[0]||null}
 function dayTick(){var t=iso(new Date());if(t!==T){T=t;try{render()}catch(e){}}}setInterval(dayTick,60000);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')dayTick()});
-function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),v=sumNet(l,refLinks());return {n:l0.length,e:e,r:e-v,v:v}}
+function dayNet(d){var l0=S.entries.filter(function(x){return x.date===d&&!x.demo}),l=life(l0),e=l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0),v=lifeNet(l0);return {n:l0.length,e:e,r:e-v,v:v}}
 var SCENE='cloud';
 function stage(mood,hr,lvl,act){
   var z=PSIZES.filter(function(x){return x.id===petSize()})[0],px=z.px,h=Math.round(px*1.2)+(z.id==='s'?4:10),on=petBgOn(),sc=bgScene(mood,hr);SCENE=sc;
@@ -2403,7 +2400,7 @@ function nameAsk(){if(S.demo||S.unameAsked||uName()||!(S.onb||S.setup)||realCoun
   return '<div class="bub"><b>Кстати, а как тебя зовут?</b><div class="fine" style="margin-top:2px">Буду иногда звать по имени.</div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input id="un_in" maxlength="20" placeholder="Имя" aria-label="Твоё имя" style="flex:1;min-width:0"><button class="btn sm" data-a="unameOk" style="flex:none">Готово</button></div><button class="fine" data-a="unameNo" style="text-decoration:underline;margin-top:6px">Не скажу</button></div>'}
 function monsterCard(me,net,dnum){
   if(S.nopet)return '';
-  var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=sumNet(tdl,refLinks()),mood,msg;
+  var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=Math.max(0,lifeNet(td)),mood,msg;
   var avg=net/dnum;
   var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=lim*nd-net,perLeft=left>0?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
@@ -2518,7 +2515,7 @@ function planBar(v){var lim=dayLimit();if(!lim)return '';var r=v/lim,c=r<=0.9?'#
 function viewHome(){
   if(S.simple)return viewHomeSimple();
   var PDm=petDay(),bal=balance(),ym=PDm.slice(0,7),me=monthEntries(ym).filter(function(x){return x.date<=PDm}),exp=sum(me,'e'),dnum=parseInt(PDm.slice(8),10);
-  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),pd.val-spentToday)),irr=S.irreg?irrSummary():null;
+  var pd=perDay(),fc=forecast(),spentToday=Math.max(0,dayNet(T).v),todayLeft=Math.max(0,Math.min(balance(),(dayLimit()>0?dayLimit():pd.val)-spentToday)),irr=S.irreg?irrSummary():null;
   var hero='<div class="card hero">'+homeHeroHead()+homeBalanceHelp()+'<div class="balrow"><span class="big">'+money(bal)+'</span><button type="button" class="penb" data-a="editAcc" data-id="'+defAcc()+'" aria-label="Поправить остаток">✎</button><button type="button" class="pcard" data-a="editAcc" data-id="'+defAcc()+'">＋ карта</button></div>'+heroCards()+''+
    '<div class="stats">'+(irr?statTile('Хватит',irr.value,null,null,'main'):statTile('На сегодня',money(todayLeft),null,null,'main'))+
    statTile('В среднем',money(lifeNet(me)/dnum))+
@@ -2732,7 +2729,7 @@ function histList(){
     out+='<div class="mhead"><b>'+cap(MONTHS[+a[1]-1])+' '+a[0]+'</b><span class="fine">'+(sp>0?'траты '+money(sp):'')+'</span></div>';
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
-      var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimit(),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,sumNet(life(by[d]),LK)):0,
+      var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimit(),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,lifeNetL(by[d],LK)):0,
         hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,
         p1=pl?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
         dsum=p1+(din>0?'<span class="hist-day-income" style="color:var(--in)">+'+money(din)+'</span>':'')+(pl&&Math.abs(dsp-ln)>1?'<span style="display:block;text-align:right;opacity:.7;font-weight:500">'+(dsp>=0?'всего '+money(dsp):'вернули на '+money(-dsp)+' больше')+'</span>':''),
@@ -3498,7 +3495,7 @@ function g2(){
   (S.noSpend||[]).forEach(function(d){if(d<=PD&&(!first||d<first))first=d});
   var g={lim:lim,stars:0,streak:0,best:0,good:0,nospend:0,days:[],saved:0,weeks:0,months:0,savedMonths:0};
   if(!lim||!first)return g2fin(g);
-  function net(l){l=life(l);return l.filter(function(x){return x.type==='e'&&!x.skip}).reduce(function(a,x){return a+x.amt},0)-refunds(l)}
+  var LK=refLinks();function net(l){return lifeNetL(l,LK)}
   var n=diffDays(first,PD),run=0,mNet=0,mDays=0,mKnown=0,curM='',wNet=0,wKnown=0,wDays=0,curW='',ym0=PD.slice(0,7);
   function closeMonth(m){if(!m||m===ym0)return;var a=m.split('-'),dd=dim(+a[0],+a[1]-1);
     if(mKnown>=15&&mNet<=lim*dd){g.stars+=200;g.months++}

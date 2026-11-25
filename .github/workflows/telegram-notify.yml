@@ -1,0 +1,125 @@
+name: Telegram — статус сборки
+
+on:
+  workflow_run:
+    workflows: ["Тесты и выкладка сайта"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "pair — получить ID чата; test — проверить уведомления"
+        type: choice
+        options:
+          - pair
+          - test
+        default: test
+
+permissions:
+  actions: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GH_TOKEN: ${{ github.token }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      APP_NAME: СчиталОчка
+      MANUAL_MODE: ${{ inputs.mode }}
+    steps:
+      - name: Отправить уведомление
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          import urllib.request
+          from urllib.error import HTTPError, URLError
+
+          token = os.environ.get("TELEGRAM_TOKEN", "").strip()
+          chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          app = os.environ["APP_NAME"]
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as f:
+              event = json.load(f)
+          manual = os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch"
+
+          def telegram(method, data):
+              req = urllib.request.Request(
+                  "https://api.telegram.org/bot" + token + "/" + method,
+                  data=json.dumps(data).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as response:
+                      result = json.load(response)
+              except (HTTPError, URLError, TimeoutError):
+                  sys.exit("Telegram API недоступен или отклонил запрос. Проверь секреты и настройки бота.")
+              if not result.get("ok"):
+                  sys.exit("Telegram API вернул ошибку.")
+              return result["result"]
+
+          def send(target, message):
+              telegram("sendMessage", {"chat_id": target, "text": message, "link_preview_options": {"is_disabled": True}})
+
+          if not token:
+              if manual:
+                  sys.exit("Добавь секрет TELEGRAM_BOT_TOKEN.")
+              print("Telegram не настроен: уведомление пропущено.")
+              sys.exit(0)
+
+          if manual and os.environ.get("MANUAL_MODE") == "pair":
+              if chat:
+                  sys.exit("Чат уже настроен. Выбери test.")
+              updates = telegram("getUpdates", {"limit": 100, "timeout": 0, "allowed_updates": ["message"]})
+              chats = {str(m["chat"]["id"]) for u in updates for m in [u.get("message", {})]
+                       if m.get("chat", {}).get("type") == "private" and m.get("text", "").split()[:1] == ["/start"]}
+              if len(chats) != 1:
+                  sys.exit("Нужен ровно один личный чат с командой /start. Напиши своему новому боту /start и повтори pair.")
+              target = chats.pop()
+              send(target, "Твой TELEGRAM_CHAT_ID: " + target + "\nДобавь его в GitHub Secrets.")
+              print("ID отправлен в личный чат Telegram.")
+              sys.exit(0)
+
+          if not chat:
+              if manual:
+                  sys.exit("Добавь секрет TELEGRAM_CHAT_ID.")
+              print("Telegram не настроен: уведомление пропущено.")
+              sys.exit(0)
+
+          if manual:
+              send(chat, "💚 " + app + "\nТестовое уведомление. Связь с GitHub работает!")
+              sys.exit(0)
+
+          run = event["workflow_run"]
+          conclusion = run.get("conclusion")
+          if conclusion not in ("success", "failure", "timed_out", "action_required"):
+              sys.exit(0)
+          branch = run.get("head_branch") or "?"
+          url = run["html_url"]
+          owner_repo = os.environ["GITHUB_REPOSITORY"]
+          endpoint = (os.environ["GITHUB_API_URL"] + "/repos/" + owner_repo +
+                      "/actions/runs/" + str(run["id"]) + "/attempts/" + str(run["run_attempt"]) + "/jobs?per_page=100")
+          req = urllib.request.Request(endpoint, headers={
+              "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28"})
+          with urllib.request.urlopen(req, timeout=20) as response:
+              jobs = json.load(response)["jobs"]
+          def good(name):
+              return any(j.get("name") == name and j.get("conclusion") == "success" for j in jobs)
+          if conclusion != "success":
+              bad = []
+              for j in jobs:
+                  if j.get("conclusion") in ("failure", "timed_out", "action_required"):
+                      steps = [s["name"] for s in j.get("steps", []) if s.get("conclusion") == "failure"]
+                      bad.append(j["name"] + (": " + ", ".join(steps) if steps else ""))
+              message = "🔴 " + app + "\nСборка не прошла.\n" + ("; ".join(bad) or conclusion)
+          elif run.get("event") == "pull_request" and good("test"):
+              message = "🟢 " + app + "\nТесты прошли. Можно вливать и выкатывать."
+          elif branch == os.environ["DEFAULT_BRANCH"] and good("deploy"):
+              message = "💚 " + app + "\nДеплой успешно завершён. Можно обновлять приложение."
+          else:
+              message = "🟢 " + app + "\nПроверки прошли. Публикация не подтверждена."
+          send(chat, message + "\nВетка: " + branch + "\n" + url)
+          PY

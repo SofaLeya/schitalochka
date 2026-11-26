@@ -151,3 +151,42 @@ test('шрифт и иллюстрации прогноза загружаютс
     await context.close();
   }
 });
+
+test('Что грядёт: фон, рамка, кнопка, облака и иконки подстраиваются под тему, золото и иллюстрации неизменны', async ({page}) => {
+  await page.setViewportSize({width:390,height:740});
+  await seedForecast(page,{theme:'fluff',value:20000});
+  const themes=['fluff','puff','slime','rat','mouse','frog','duck','cat','skel','skelf','straw','cher'];
+  const palettes=[];
+  for(const theme of themes){
+    await page.evaluate(theme=>{
+      const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+      d.pet.theme=theme;
+      localStorage.setItem('podkopka-v1',JSON.stringify(d));
+    },theme);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-pet',theme);
+    await page.locator('[data-a=fcOpen]').click();
+    const future=page.locator('.fc-future');
+    await future.locator('summary').click();
+    const colors=await future.evaluate(el=>{
+      const css=getComputedStyle(el),select=s=>el.querySelector(s);
+      return {
+        background:css.backgroundImage,
+        border:css.borderTopColor,
+        button:getComputedStyle(select('.fc-plan-toggle')).backgroundImage,
+        icon:getComputedStyle(select('#fcBasket stop')).stopColor,
+        cloud:getComputedStyle(select('#fcClouds stop')).stopColor,
+        gold:getComputedStyle(select('.fc-future-title')).color,
+        art:[...document.querySelectorAll('.fc-art')].map(x=>x.getAttribute('src'))
+      };
+    });
+    palettes.push(colors);
+    await expect(future.locator('.fc-plan-toggle')).toBeVisible();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+  }
+  for(const key of ['background','border','button','icon','cloud']){
+    expect(new Set(palettes.map(p=>p[key])).size).toBeGreaterThanOrEqual(10);
+  }
+  expect(new Set(palettes.map(p=>p.gold)).size).toBe(1);
+  for(const p of palettes)expect(p.art).toEqual(['assets/prediction/usual.png','assets/prediction/large.png']);
+});

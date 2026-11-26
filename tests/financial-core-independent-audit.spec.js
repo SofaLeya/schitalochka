@@ -367,24 +367,25 @@ test('A51 irreg with no qualifying history keeps base / yields 0 carefully', asy
 
 /* ---------- 7. Payroll calendar shifts ---------- */
 
-test('A60 payday holiday shifts earlier within month; Jan-1 stays in month', async ({page}) => {
+test('A60 payday holiday shifts earlier within month and across year for Jan-1', async ({page}) => {
   const r = await probe(page, () => {
     T = '2026-11-25'; S.demo = false;
     return {
       dec5: payDateIn('2026-12', 5),   // Sat → Fri Dec 4
       dec20: payDateIn('2026-12', 20), // Sun → Fri Dec 18
-      jan1: payDateIn('2027-01', 1),   // New Year holidays — cannot leave January
+      jan1: payDateIn('2027-01', 1),   // New Year holidays → prior workday in Dec
       jan1raw: payDate('2027-01', 1),
       workJan1: isWorkday('2027-01-01'),
+      workPay: isWorkday(payDateIn('2027-01', 1)),
       workDec4: isWorkday('2026-12-04')
     };
   });
   expect(r.dec5).toBe('2026-12-04');
   expect(r.dec20).toBe('2026-12-18');
   expect(r.workDec4).toBe(true);
-  // Independent product rule payDateIn: if shift leaves month, keep planned day even if holiday
-  expect(r.jan1raw.slice(0, 7)).toBe('2026-12'); // unrestricted shift goes to Dec
-  expect(r.jan1).toBe('2027-01-01');
+  expect(r.jan1).toBe(r.jan1raw);
+  expect(r.jan1).toBe('2026-12-30');
+  expect(r.workPay).toBe(true);
   expect(r.workJan1).toBe(false);
 });
 

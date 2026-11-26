@@ -1730,7 +1730,20 @@ function planInfo1(){
 }
 var PLANSRC={self:'по сумме «Сам себе зарплата»',irreg:'по осторожному доходу (самый скромный месяц из трёх)',full:'по вкладке «Платежи»',manual:'твоя сумма',calc:'по твоему расчёту',income:'по доходам и платежам',none:'не задан'};
 function dayLimit(){return planInfo().v}
-function dayLimitAt(d){var h=S.planDayHistory||{};return d<T&&Object.prototype.hasOwnProperty.call(h,d)?h[d]:dayLimit()}
+/* Дневной лимит на дату: снимок истории; для пропусков — последний известный до дня (не текущий план). */
+function dayLimitAt(d){
+  var h=S.planDayHistory||{},cur=dayLimit();
+  if(!(d<T))return cur;
+  if(Object.prototype.hasOwnProperty.call(h,d))return h[d];
+  var prevD=null,prevV=null,nextD=null,nextV=null,k;
+  for(k in h){if(!Object.prototype.hasOwnProperty.call(h,k))continue;
+    if(k<d&&(prevD===null||k>prevD)){prevD=k;prevV=h[k]}
+    else if(k>d&&k<T&&(nextD===null||k<nextD)){nextD=k;nextV=h[k]}
+  }
+  if(prevD!==null)return prevV;
+  if(nextD!==null)return nextV;
+  return cur;
+}
 function rememberDayLimit(){if(S.demo)return false;var h=S.planDayHistory||(S.planDayHistory={}),v=dayLimit();if(!Number.isFinite(v)||h[T]===v)return false;h[T]=v;return true}
 /* Месячный / недельный план на жизнь = сумма дневных лимитов (с историей), не «текущий × дни». */
 function monthEnvelope(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),s=0;for(var d=1;d<=n;d++)s+=dayLimitAt(ym+'-'+p2(d));return s}
@@ -1743,8 +1756,14 @@ function homeTodayLeft(pd,spent){
   var lim=dayLimit();return lim>0?Math.max(0,Math.min(balance(),lim-spent)):null;
 }
 function homeTomorrowBudget(pd){
-  if(pd)return pd.waitingToday?null:Math.max(0,Math.min(balance(),pd.val));
-  var lim=dayLimit();return lim>0?Math.max(0,Math.min(balance(),lim)):null;
+  var lim=dayLimit(),bal=balance();
+  if(!pd)return lim>0?Math.max(0,Math.min(bal,lim)):null;
+  if(pd.waitingToday)return null;
+  // Завтра день выплаты → тот же смысл, что «Ждём доход» сегодня
+  if(pd.nextIn===iso(addDays(parse(T),1)))return null;
+  // Как «На сегодня»: потолок — min(план, доступно в день), но не больше остатка на картах
+  var cap=lim>0?Math.min(lim,pd.val):pd.val;
+  return Math.max(0,Math.min(bal,cap));
 }
 function planDefaults(){var c=S.planCalc||{};
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {inc:c.inc!=null?c.inc:(fp.inc||''),fixed:c.fixed!=null?c.fixed:(fp.fixed||''),save:c.save!=null?c.save:(fp.save||''),irr:c.irr!=null?c.irr:(fp.irr||'')} }
@@ -2651,7 +2670,7 @@ function homeBalanceHelp(){
   return tipBox('h_bal','<b>В свободных деньгах</b> - остатки карт на жизнь. Копилки и долги отдельно.'+rows+'<div class="row"><b class="grow">Итого</b><b>'+money(balance())+'</b></div>');
 }
 function homeBudgetDetails(pd,spent,left,metrics){
-  var lim=dayLimit(),tom=homeTomorrowBudget(pd),tomorrow=pd?(pd.waitingToday?'Ждём доход':(tom==null?'Не задан план':money(tom))):(tom==null?'Не задан план':money(tom));
+  var lim=dayLimit(),tom=homeTomorrowBudget(pd),tomorrow=pd?(tom==null?'Ждём доход':money(tom)):(tom==null?'Не задан план':money(tom));
   function line(label,value){return '<div class="row"><span class="grow">'+label+'</span><b>'+value+'</b></div>'}
   var h=line('План','<button type="button" class="budget-plan" data-a="planOpen" aria-label="Изменить план на день">'+(lim>0?money(lim):'Задать')+'</button>')+line('Потрачено сегодня',money(spent))+line('Осталось',left==null?'Не задан план':money(left));
   h+=line('На завтра',tomorrow);

@@ -55,7 +55,7 @@ test('reviewCard and lifeCard month plan use monthEnvelope',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];
   S.rules=[];S.recur=[];S.rare=[];S.dayLimit=2000;S.planDayHistory={};
-  for(var d=1;d<=20;d++)S.planDayHistory['2026-11-'+p2(d)]=1000;
+  for(var d=1;d<=24;d++)S.planDayHistory['2026-11-'+p2(d)]=1000;
   S.accounts=[{id:'main',type:'main',start:50000}];
   S.entries=[{id:'e',type:'e',cat:'cafe',amt:500,date:'2026-11-10',acc:'main'}];
   vym='2026-11';
@@ -63,10 +63,35 @@ test('reviewCard and lifeCard month plan use monthEnvelope',async({page})=>{
   return {env:env,review:reviewCard(),life:lifeCard(monthEntries('2026-11'),30),lim:dayLimit()};
  });
  expect(r.lim).toBe(2000);
- expect(r.env).toBe(20*1000+10*2000); // 40000
- expect(r.review).toMatch(/40[\s\u00a0\u202f]000/);
- expect(r.life).toMatch(/40[\s\u00a0\u202f]000/);
+ expect(r.env).toBe(24*1000+6*2000); // 36000: history through 24, current from 25
+ expect(r.review).toMatch(/36[\s\u00a0\u202f]000/);
+ expect(r.life).toMatch(/36[\s\u00a0\u202f]000/);
  expect(r.review).not.toMatch(/60[\s\u00a0\u202f]000/);
+});
+
+test('dayLimitAt carries last known limit across skipped days',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];
+  S.dayLimit=3000;S.planDayHistory={'2026-11-01':1000,'2026-11-10':1000,'2026-11-20':1500};
+  // gaps: 2–9 ←1000, 11–19 ←1000, 21–24 ←1500; today/future ←3000
+  return {
+   d5:dayLimitAt('2026-11-05'),d15:dayLimitAt('2026-11-15'),d22:dayLimitAt('2026-11-22'),
+   d20:dayLimitAt('2026-11-20'),d25:dayLimitAt('2026-11-25'),d30:dayLimitAt('2026-11-30'),
+   env:monthEnvelope('2026-11'),
+   // leading gap before first snapshot: use earliest later history
+   lead:dayLimitAt('2026-10-31')
+  };
+ });
+ expect(r.d5).toBe(1000);
+ expect(r.d15).toBe(1000);
+ expect(r.d22).toBe(1500);
+ expect(r.d20).toBe(1500);
+ expect(r.d25).toBe(3000);
+ expect(r.d30).toBe(3000);
+ // 1–10:1000 (10d), 11–19:1000 (9d), 20–24:1500 (5d), 25–30:3000 (6d)
+ expect(r.env).toBe(10*1000+9*1000+5*1500+6*3000);
+ expect(r.env).toBe(10000+9000+7500+18000); // 44500
+ expect(r.lead).toBe(1000); // before first snapshot → earliest history still before T
 });
 
 test('remaining today and tomorrow: simple vs full share helpers',async({page})=>{
@@ -192,4 +217,129 @@ test('weekTip marks days against dayLimitAt history',async({page})=>{
  expect(r.tip).toBeTruthy();
  expect(r.tip).toMatch(/в плане 6/);
  expect(r.tip).toMatch(/Отличная неделя/);
+});
+
+test('На завтра: simple caps by balance and plan; low balance wins',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];S.rules=[];S.recur=[];
+  S.dayLimit=3000;S.accounts=[{id:'main',type:'main',start:1500}];S.entries=[];
+  var tomRich=homeTomorrowBudget(null),leftRich=homeTodayLeft(null,0);
+  S.accounts[0].start=8000;S.entries=[{id:'e',type:'e',cat:'cafe',amt:500,date:T,acc:'main'}];
+  var bal=balance(),spent=dayNet(T).v,tom=homeTomorrowBudget(null),left=homeTodayLeft(null,spent);
+  return {tomRich:tomRich,leftRich:leftRich,bal:bal,spent:spent,tom:tom,left:left};
+ });
+ expect(r.tomRich).toBe(1500); // min(balance 1500, plan 3000)
+ expect(r.leftRich).toBe(1500);
+ expect(r.bal).toBe(7500);
+ expect(r.spent).toBe(500);
+ expect(r.left).toBe(2500); // min(7500, 3000-500)
+ expect(r.tom).toBe(3000); // fresh day: min(7500, 3000)
+});
+
+test('На завтра: full mode — payday tomorrow is waiting; otherwise min(plan, perDay, balance)',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=false;S.irreg=false;S.planCalc=null;S.rare=[];
+  S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',start:0}];
+  S.rules=[];S.recur=[];
+  // Payday tomorrow (26th)
+  S.incomes=[{id:'pay',day:26,amt:50000}];S.entries=[];
+  PI_C=null;PI_ON=0;
+  var pdPay=perDay(),tomPay=homeTomorrowBudget(pdPay),leftPay=homeTodayLeft(pdPay,0);
+  // Payday in 10 days, plan from cycle after marking income today
+  S.incomes=[{id:'salary',day:25,amt:40000},{id:'next',day:5,amt:40000}];
+  S.rules=[{id:'r',day:25,acc:'save',amt:10000}];
+  S.entries=[
+   {id:'inc',type:'i',iid:'salary',date:T,amt:40000,acc:'main',cat:'salary'},
+   {id:'alloc',type:'t',date:T,amt:10000,from:'main',to:'save',rule:'r'}
+  ];
+  PI_C=null;
+  var pd=perDay(),lim=dayLimit(),bal=balance(),tom=homeTomorrowBudget(pd),left=homeTodayLeft(pd,0);
+  // Force plan below perDay to check min(lim, pd.val)
+  S.dayLimit=800;S.planCalc=null;S.simple=true;S.incomes=[]; // manual plan path
+  // Keep full mode numbers via pd object passed explicitly
+  var tomCapped=homeTomorrowBudget({val:2500,days:10,nextIn:'2026-12-05',due:0,inc:0,waitingToday:false});
+  S.accounts[0].start=500;S.entries=[]; // low balance
+  var tomBal=homeTomorrowBudget({val:2500,days:10,nextIn:'2026-12-05',due:0,inc:0,waitingToday:false});
+  return {
+   nextPay:pdPay.nextIn,tomPay:tomPay,leftPay:leftPay,waitingPay:pdPay.waitingToday,
+   lim:lim,bal:bal,pdVal:pd.val,tom:tom,left:left,days:pd.days,nextIn:pd.nextIn,
+   tomCapped:tomCapped,tomBal:tomBal,detailsPay:homeBudgetDetails(pdPay,0,leftPay)
+  };
+ });
+ expect(r.nextPay).toBe('2026-11-26');
+ expect(r.tomPay).toBeNull();
+ expect(r.detailsPay).toMatch(/Ждём доход/);
+ expect(r.tom).toBeCloseTo(Math.min(r.bal,r.lim,r.pdVal),6);
+ expect(r.left).toBeCloseTo(Math.min(r.bal,r.lim>0?Math.min(r.lim,r.pdVal):r.pdVal),6);
+ expect(r.tomCapped).toBe(800); // min(dayLimit 800, pd 2500, bal)
+ expect(r.tomBal).toBe(500); // balance wins
+});
+
+test('refunds: actual vs expected stay consistent in both modes',async({page})=>{
+ const r=await probe(page,()=>{
+  function snap(){
+   const LK=refLinks(),e=S.entries[0];
+   return {
+    net:netOf(e,LK),received:receivedNetOf(e,LK),back:backOf(e,LK).back,pend:backOf(e,LK).pend,
+    day:dayNet(T).v,life:lifeNet(S.entries),cash:cashPlanSpent(T,T),ref:refunds(S.entries),bal:balance()
+   };
+  }
+  T='2026-11-25';S.demo=false;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.rare=[];S.rules=[];S.recur=[];
+  S.accounts=[{id:'main',type:'main',start:10000}];
+  // Expected only (split 700)
+  S.entries=[{id:'a',type:'e',amt:2000,split:700,date:T,acc:'main',cat:'cafe'}];
+  S.simple=true;S.incomes=[];
+  const simpleExpect=snap();
+  S.simple=false;S.incomes=[{id:'i',day:10,amt:50000}];
+  const fullExpect=snap();
+  // Partial actual refund 400 of 700 expected
+  S.entries.push({id:'r',type:'i',cat:'refund',amt:400,date:T,acc:'main',for:'a'});
+  S.simple=true;S.incomes=[];
+  const simplePartial=snap();
+  S.simple=false;S.incomes=[{id:'i',day:10,amt:50000}];
+  const fullPartial=snap();
+  // Future refund must not count as received
+  S.entries.push({id:'rf',type:'i',cat:'refund',amt:200,date:'2026-11-28',acc:'main',for:'a'});
+  const withFuture=snap();
+  return {simpleExpect,fullExpect,simplePartial,fullPartial,withFuture};
+ });
+ // 2000 - 0 back - 700 pend = 1300 net; receivedNet = 2000; cash = 2000; refunds = 700; bal = 8000
+ expect(r.simpleExpect).toEqual({net:1300,received:2000,back:0,pend:700,day:1300,life:1300,cash:2000,ref:700,bal:8000});
+ expect(r.fullExpect).toEqual(r.simpleExpect);
+ // after 400 received: pend=300, net=1300, receivedNet=1600, cash=1600, refunds=700, bal=8400
+ expect(r.simplePartial).toEqual({net:1300,received:1600,back:400,pend:300,day:1300,life:1300,cash:1600,ref:700,bal:8400});
+ expect(r.fullPartial).toEqual(r.simplePartial);
+ // future refund ignored until its date
+ expect(r.withFuture.back).toBe(400);
+ expect(r.withFuture.pend).toBe(300);
+ expect(r.withFuture.day).toBe(1300);
+ expect(r.withFuture.cash).toBe(1600);
+ expect(r.withFuture.bal).toBe(8400);
+});
+
+test('refunds: orphan and unlinked actual do not break day vs cash split',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.planCalc=null;S.dayLimit=2000;S.incomes=[];
+  S.accounts=[{id:'main',type:'main',start:10000}];
+  S.entries=[
+   {id:'a',type:'e',amt:1500,date:T,acc:'main',cat:'cafe'},
+   {id:'orphan',type:'i',cat:'refund',amt:300,date:T,acc:'main',for:'gone'},
+   {id:'free',type:'i',cat:'refund',amt:200,date:T,acc:'main'} // unlinked
+  ];
+  const LK=refLinks();
+  return {
+   day:dayNet(T).v,life:lifeNet(S.entries),cash:cashPlanSpent(T,T),
+   netA:netOf(S.entries[0],LK),ref:refunds(S.entries),bal:balance(),
+   linkedOrphan:!!LK.linked.orphan,linkedFree:!!LK.linked.free
+  };
+ });
+ // orphan ignored in sumNet; unlinked 200 reduces day within expense net
+ expect(r.linkedOrphan).toBe(false);
+ expect(r.linkedFree).toBe(false);
+ expect(r.netA).toBe(1500);
+ expect(r.day).toBe(1300); // 1500 - 200 unlinked
+ expect(r.life).toBe(1300);
+ expect(r.cash).toBe(1300); // 1500 - 200 unlinked (orphan not subtracted)
+ expect(r.ref).toBe(500); // got 300+200, no pend
+ expect(r.bal).toBe(9000); // 10000 - 1500 + 300 + 200
 });

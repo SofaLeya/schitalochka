@@ -46,7 +46,11 @@ async function main(){
   const sheet=page.locator('#ov .sheet');
   async function shot(name){
     await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].filter(x=>x.complete&&x.naturalWidth).map(x=>x.decode().catch(()=>{})));});
+    // Let real transient app notices expire before taking store screenshots.
     await sleep(250);
+    await page.locator('#toast').waitFor({state:'hidden',timeout:12000});
+    await sleep(150);
+    if(await page.locator('#toast').isVisible())throw Error('Transient notification visible: '+name);
     const file=path.join(dir,name+'.jpg');
     await page.screenshot({path:file,type:'jpeg',quality:94,animations:'disabled'});
     const size=fs.statSync(file).size;if(size>3000000)throw Error('Screenshot too large: '+name);

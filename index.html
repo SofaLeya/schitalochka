@@ -1787,59 +1787,69 @@ function dayLimitAt(d){
 }
 function rememberDayLimit(){if(S.demo)return false;var h=S.planDayHistory||(S.planDayHistory={}),v=dayLimit();if(!Number.isFinite(v)||h[T]===v)return false;h[T]=v;return true}
 function dayLimitApprox(d){return !!(S.planDayHistoryApprox&&S.planDayHistoryApprox[d])}
+function dayLimitExact(d){return dayLimitKnown(d)&&!dayLimitApprox(d)}
 /* Месячный / недельный план на жизнь = сумма дневных лимитов (с историей), не «текущий × дни». */
 function monthEnvelope(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),s=0;for(var d=1;d<=n;d++)s+=dayLimitAt(ym+'-'+p2(d));return s}
 function daysEnvelope(from,n){var s=0;for(var i=0;i<n;i++)s+=dayLimitAt(iso(addDays(parse(from),i)));return s}
 function weekEnvelope(monIso){return daysEnvelope(monIso,7)}
-/* План достоверен, только если у всех прошедших дней периода есть снимок (сегодня/будущее — текущий лимит). */
+/* План достоверен только при точных (не ≈) снимках за все прошедшие дни периода. */
 function monthPlanKnown(ym){
   var a=ym.split('-'),n=dim(+a[0],+a[1]-1),cur=T.slice(0,7);
   if(ym>cur)return dayLimit()>0;
   var end=ym===cur?Math.max(0,parseInt(T.slice(8),10)-1):n;
-  for(var d=1;d<=end;d++)if(!dayLimitKnown(ym+'-'+p2(d)))return false;
+  for(var d=1;d<=end;d++)if(!dayLimitExact(ym+'-'+p2(d)))return false;
   return ym===cur?dayLimit()>0||end>0:end>0;
 }
 function weekPlanKnown(monIso){
-  for(var i=0;i<7;i++){var dd=iso(addDays(parse(monIso),i));if(dd<T&&!dayLimitKnown(dd))return false}
+  for(var i=0;i<7;i++){var dd=iso(addDays(parse(monIso),i));if(dd<T&&!dayLimitExact(dd))return false}
   return true;
 }
-/* Восстановление истории дневных лимитов из облачных копий и локальных снимков (без перезаписи). */
+/* Восстановление истории дневных лимитов из облачных копий и локальных снимков. */
 function planHistUnpack(raw){
   if(!raw||typeof raw!=='object')return null;
   if(raw.data&&Array.isArray(raw.data.entries))return raw.data;
   if(Array.isArray(raw.entries))return raw;
   return null;
 }
-/* Приблизительный дневной план по настройкам снимка. Без cycleDayPlan (нужен живой остаток) — иначе неизвестно. */
-function approxDayLimitFromState(s){
-  if(!s||typeof s!=='object')return 0;
-  if(s.planCalc&&+s.planCalc.inc>0){
-    var c={inc:+s.planCalc.inc||0,fixed:+s.planCalc.fixed||0,save:+s.planCalc.save||0,
-      irr:s.planCalc.irr!=null&&s.planCalc.irr!==''?+s.planCalc.irr||0:0};
-    if(s.irreg){
-      var sp=s.selfPay;
-      if(sp&&+sp.amt>0){var ii=sp.every==='w'?+sp.amt*52/12:+sp.amt;c.inc=ii}
-      // без «Сам себе зарплата» берём planCalc.inc как осторожный доход той версии
-    }
-    var v0=planCalcVal(c);return v0>0?v0:0;
-  }
-  if(+s.dayLimit>0)return +s.dayLimit;
-  // полный режим без planCalc/dayLimit: статический планCalcVal по доходам и платежам снимка (не cycleDayPlan)
-  if(!s.simple&&Array.isArray(s.incomes)&&s.incomes.length){
-    var inc=0,fx=0,sv=0,irr=0;
-    s.incomes.forEach(function(r){inc+=+r.amt||0});
-    (s.recur||[]).forEach(function(r){fx+=(+r.amt||0)/(+r.every||1)});
-    (s.rules||[]).forEach(function(r){sv+=+r.amt||0});
-    (s.rare||[]).forEach(function(r){irr+=(+r.amt||0)/12});
-    var v1=planCalcVal({inc:inc,fixed:fx,save:sv,irr:irr});return v1>0?v1:0;
-  }
-  return 0;
+function planHistDayFromName(name){
+  var m=/schitalochka-(\d{4}-\d{2}-\d{2})\.json$/.exec(name||'');
+  return m?m[1]:null;
 }
+/* Дата снимка: savedAt / timestamp; сверка с именем файла. Расхождение >1 дня → неизвестно. */
+function planHistResolveAsOf(pack, fileDay, snapTs){
+  var saved=null;
+  if(pack&&pack.savedAt){var ds=iso(new Date(pack.savedAt));if(/^\d{4}-\d{2}-\d{2}$/.test(ds))saved=ds}
+  else if(snapTs){var dt=iso(new Date(snapTs));if(/^\d{4}-\d{2}-\d{2}$/.test(dt))saved=dt}
+  var file=fileDay&&/^\d{4}-\d{2}-\d{2}$/.test(fileDay)?fileDay:null;
+  if(saved&&!(saved<T))saved=null;
+  if(file&&!(file<T))file=null;
+  if(saved&&file&&Math.abs(diffDays(saved,file))>1)return null;
+  return saved||file||null;
+}
+/* Тот же dayLimit()/planInfo(), что действовал в периоде: временно подставляем снимок и дату. */
+function planHistEvalDayLimit(src, day){
+  if(!src||typeof src!=='object'||!day||!(day<T))return 0;
+  if(!Array.isArray(src.accounts)||!src.accounts.length||!Array.isArray(src.entries))return 0;
+  var oldS=S,oldT=T,oldPI=PI_C,oldOn=PI_ON;
+  try{
+    S=migrate(JSON.parse(JSON.stringify(src)));
+    T=day;PI_ON=0;PI_C=null;
+    var v=dayLimit();
+    return Number.isFinite(v)&&v>0?v:0;
+  }catch(e){return 0}
+  finally{S=oldS;T=oldT;PI_C=oldPI;PI_ON=oldOn}
+}
+/* exact не перезаписывает exact; exact поднимает approx; approx не трогает exact. */
 function planHistPut(h,approx,d,v,isApprox){
   if(!d||!(d<T)||!Number.isFinite(v)||v<0)return false;
-  if(Object.prototype.hasOwnProperty.call(h,d))return false; // не перезаписываем
+  if(isApprox&&!(v>0))return false;
+  if(Object.prototype.hasOwnProperty.call(h,d)){
+    if(isApprox)return false;
+    if(approx[d]){h[d]=v;delete approx[d];return true}
+    return false;
+  }
   h[d]=v;
-  if(isApprox){approx[d]=1}else if(approx[d])delete approx[d];
+  if(isApprox)approx[d]=1;else if(approx[d])delete approx[d];
   return true;
 }
 function planHistCollectFromState(h,approx,state,asOf){
@@ -1847,18 +1857,18 @@ function planHistCollectFromState(h,approx,state,asOf){
   if(!src||typeof src!=='object')return {n:0,a:0};
   var ph=src.planDayHistory||{},pa=src.planDayHistoryApprox||{};
   Object.keys(ph).forEach(function(d){
-    var wasApprox=!!pa[d];
-    if(planHistPut(h,approx,d,+ph[d],wasApprox)){n++;if(wasApprox)a++}
+    if(pa[d])return;
+    if(planHistPut(h,approx,d,+ph[d],false))n++;
+  });
+  Object.keys(ph).forEach(function(d){
+    if(!pa[d])return;
+    if(planHistPut(h,approx,d,+ph[d],true)){n++;a++}
   });
   if(asOf&&asOf<T&&!Object.prototype.hasOwnProperty.call(h,asOf)){
-    var v=approxDayLimitFromState(src);
+    var v=planHistEvalDayLimit(src,asOf);
     if(v>0&&planHistPut(h,approx,asOf,v,true)){n++;a++}
   }
   return {n:n,a:a};
-}
-function planHistDayFromName(name){
-  var m=/schitalochka-(\d{4}-\d{2}-\d{2})\.json$/.exec(name||'');
-  return m?m[1]:null;
 }
 /* Остаток на сегодня / план на завтра — одни формулы для простой и полной главной. */
 function homeTodayLeft(pd,spent){
@@ -2743,7 +2753,7 @@ function monsterCard(me,net,dnum){
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было - внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
-    else if(!yKnown||!yLim){mood='happy';msg=gm+' Вчера - '+money(yd.v)+'.'}
+    else if(!yKnown||!yLim||dayLimitApprox(Y)){mood='happy';msg=gm+' Вчера - '+money(yd.v)+(dayLimitApprox(Y)&&yLim?' (план ≈'+money(yLim)+')':'')+'.'}
     else if(yd.v<=yLim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(yLim)+' - с запасом.'+tday}
     else if(yd.v<=yLim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - в плане.'+tday}
     else if(yd.v<=yLim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - совсем немного сверху, не страшно.'+tday}
@@ -3047,7 +3057,7 @@ function histList(){
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
       var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimitAt(d),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,lifeNetL(by[d],LK)):0,
-        hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=dayLimitKnown(d)&&lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,
+        hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=dayLimitKnown(d)&&lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,apx=dayLimitApprox(d),
         // sumNet не уходит ниже 0; избыток непривязанных возвратов над тратами дня показываем отдельно
         excessRef=(function(){var u=0,en=0;life(by[d]).forEach(function(x){
           if(x.type==='e'&&!x.skip&&!x.nobal)en+=netOf(x,LK);
@@ -3056,7 +3066,7 @@ function histList(){
             u+=x.amt;
           }
         });return Math.max(0,u-en)})(),
-        p1=pl?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+(dayLimitApprox(d)?'≈':'')+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
+        p1=pl?'<span style="color:var('+(apx?'--muted':ln>lim?'--out':'--in')+')">'+money(ln)+' из '+(apx?'≈':'')+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
         dsum=p1+(din>0?'<span class="hist-day-income" style="color:var(--in)">+'+money(din)+'</span>':'')+(pl&&(Math.abs(dsp-ln)>1||excessRef>1)?'<span style="display:block;text-align:right;opacity:.7;font-weight:500">'+(excessRef>1?'вернули на '+money(excessRef)+' больше':dsp>=0?'всего '+money(dsp):'вернули на '+money(-dsp)+' больше')+'</span>':''),
         dn=d===T?'Сегодня, ':d===iso(addDays(parse(T),-1))?'Вчера, ':'';
       out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dn+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(dn?'':', '+WD[dt.getDay()])+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
@@ -3176,8 +3186,8 @@ function yearTip(PD){var m=+PD.slice(5,7),d=+PD.slice(8,10);if(!((m===12&&d>=25)
   var LK=refLinks(),tot=0,byM={},inPlan=0,saved=0,nsp=0,ns={};(S.noSpend||[]).forEach(function(x){ns[x]=1});
   var ye=S.entries.filter(function(x){return !x.demo&&x.date.slice(0,4)===String(y)});if(ye.length<30)return null;
   var byD={};ye.forEach(function(x){(byD[x.date]=byD[x.date]||[]).push(x)});
-  Object.keys(byD).forEach(function(dd){var v=Math.max(0,lifeNetL(life(byD[dd]),LK)),dl=dayLimitAt(dd);tot+=v;byM[dd.slice(5,7)]=(byM[dd.slice(5,7)]||0)+v;if(dl&&v<=dl)inPlan++;if(v===0)nsp++});
-  Object.keys(ns).forEach(function(dd){if(dd.slice(0,4)===String(y)&&!byD[dd]){nsp++;if(dayLimitAt(dd))inPlan++}});
+  Object.keys(byD).forEach(function(dd){var v=Math.max(0,lifeNetL(life(byD[dd]),LK)),dl=dayLimitAt(dd);tot+=v;byM[dd.slice(5,7)]=(byM[dd.slice(5,7)]||0)+v;if(dayLimitExact(dd)&&dl&&v<=dl)inPlan++;if(v===0)nsp++});
+  Object.keys(ns).forEach(function(dd){if(dd.slice(0,4)===String(y)&&!byD[dd]){nsp++;if(dayLimitExact(dd)&&dayLimitAt(dd))inPlan++}});
   ye.forEach(function(x){if(x.type==='t'){var to=accById(x.to);if(to&&to.type==='save')saved+=x.amt;var fr=accById(x.from);if(fr&&fr.type==='save')saved-=x.amt}});
   var ms=Object.keys(byM).filter(function(k){return byM[k]>0}),best=ms.sort(function(a,b){return byM[a]-byM[b]})[0],MN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],MN1=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
   var hadLim=inPlan>0||Object.keys(byD).some(function(dd){return dayLimitAt(dd)>0});
@@ -3187,8 +3197,8 @@ function yearTip(PD){var m=+PD.slice(5,7),d=+PD.slice(8,10);if(!((m===12&&d>=25)
 function weekTip(PD,hr){var d=parse(PD),wd=d.getDay();if(!(wd===0&&hr>=18)&&!(wd===1&&hr<14))return null;
   var sun=wd===0?d:addDays(d,-1),mon=addDays(sun,-6),key=iso(mon);if(S.wkSeen===key)return null;
   var LK=refLinks(),tot=0,inPlan=0,rec=0,byCat={},ns={},hadLim=false;(S.noSpend||[]).forEach(function(x){ns[x]=1});
-  for(var i=0;i<7;i++){var dd=iso(addDays(mon,i)),l=S.entries.filter(function(x){return x.date===dd&&!x.demo}),v=Math.max(0,lifeNetL(life(l),LK)),dl=dayLimitAt(dd);
-    if(dl>0)hadLim=true;if(l.length||ns[dd]){rec++;if(dl&&v<=dl)inPlan++}tot+=v;life(l).forEach(function(x){if(x.type==='e'&&!x.skip&&!x.rid){var n=netOf(x,LK);byCat[x.cat]=(byCat[x.cat]||0)+n}})}
+  for(var i=0;i<7;i++){var dd=iso(addDays(mon,i)),l=S.entries.filter(function(x){return x.date===dd&&!x.demo}),v=Math.max(0,lifeNetL(life(l),LK)),dl=dayLimitAt(dd),ex=dayLimitExact(dd);
+    if(ex&&dl>0)hadLim=true;if(l.length||ns[dd]){rec++;if(ex&&dl&&v<=dl)inPlan++}tot+=v;life(l).forEach(function(x){if(x.type==='e'&&!x.skip&&!x.rid){var n=netOf(x,LK);byCat[x.cat]=(byCat[x.cat]||0)+n}})}
   if(rec<3)return null;
   var top=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a]})[0],good=hadLim&&inPlan>=5;
   var txt='Итог недели: '+money(tot)+(hadLim?', в плане '+inPlan+' '+plw(inPlan,'день','дня','дней')+' из 7':'')+(top&&byCat[top]>0?'. Больше всего - '+(CMAP[top]||CMAP.other).name.toLowerCase()+', '+money(byCat[top]):'')+'.'+(good?' Отличная неделя!':hadLim&&inPlan<=2?' Новая неделя - новый шанс.':'');
@@ -3831,8 +3841,8 @@ function g2(){
     var d=iso(addDays(parse(first),i)),l=by[d]||[],m=d.slice(0,7),dt=parse(d),wk=iso(addDays(dt,-((dt.getDay()+6)%7)));
     if(m!==curM){closeMonth(curM);curM=m;mNet=0;mDays=0;mKnown=0;mBudget=0}
     if(wk!==curW){if(curW)closeWeek();curW=wk;wNet=0;wKnown=0;wDays=0;wBudget=0}
-    var v=net(l),st,known=dayLimitKnown(d),dl=dayLimitAt(d);if(known){mBudget+=dl;wBudget+=dl}
-    if(ns[d]&&v<=0)st='nospend';else if(!l.length)st='unknown';else if(v<=0)st='nospend';else if(!known)st='nolim';else if(v<=dl)st='good';else st='over';
+    var v=net(l),st,exact=dayLimitExact(d),dl=dayLimitAt(d);if(exact){mBudget+=dl;wBudget+=dl}
+    if(ns[d]&&v<=0)st='nospend';else if(!l.length)st='unknown';else if(v<=0)st='nospend';else if(!exact)st='nolim';else if(v<=dl)st='good';else st='over';
     mDays++;wDays++;
     if(st!=='unknown'){mKnown++;wKnown++;mNet+=Math.max(0,v);wNet+=Math.max(0,v)}
     if(st==='over'&&mNet<=mBudget)st='oneoff';
@@ -3841,7 +3851,7 @@ function g2(){
     else if(st==='over')run=0;
     if((st==='good'||st==='nospend')&&run>0&&run%7===0)g.stars+=30;
     if(run>g.best)g.best=run;
-    if(m===ym0){g.saved+=(!known||st==='unknown'||st==='nolim')?0:dl-Math.max(0,v)}
+    if(m===ym0){g.saved+=(!exact||st==='unknown'||st==='nolim')?0:dl-Math.max(0,v)}
     g.days.push({d:d,st:st});
   }
   closeMonth(curM===ym0?'':curM);
@@ -4058,7 +4068,7 @@ function viewAn(){
   for(var di=0;di<n;di++){var dd0=vym+'-'+p2(di+1),l0=me.filter(function(x){return x.date===dd0});per[di]=Math.max(0,lifeNetL(l0,LKa));
     if(di+1>upto)continue;
     /* как в звёздах: без записей - неизвестно, ноль - без трат; без снимка лимита - нейтрально */
-    var st=nsM[dd0]&&per[di]<=0?'nospend':!l0.length?'unknown':per[di]<=0?'nospend':!dayLimitKnown(dd0)?'nolim':!dayLimitAt(dd0)?'nolim':per[di]<=dayLimitAt(dd0)?'good':'over';
+    var st=nsM[dd0]&&per[di]<=0?'nospend':!l0.length?'unknown':per[di]<=0?'nospend':!dayLimitExact(dd0)?'nolim':!dayLimitAt(dd0)?'nolim':per[di]<=dayLimitAt(dd0)?'good':'over';
     if(isCur&&di+1===upto&&st==='unknown'){dst[di]='';continue}
     dst[di]=st;cnt[st]=(cnt[st]||0)+1}
   var mx=Math.max.apply(null,per.concat([1,lim>0?lim*1.25:0])),W=340,H=130,pb=18,pt=14,bw=W/n,svg='',hh=H-pb-pt;
@@ -5844,57 +5854,55 @@ async function ydDownloadPath(path){
   var t=await fetch(j.href,{credentials:'omit',referrerPolicy:'no-referrer'}).then(function(x){return ydOk(x).text()});
   try{return JSON.parse(t)}catch(e){return null}
 }
+function planHistCloudPending(){return ydOn()&&!gdExpired()&&!ydGet().phrCloud}
 function schedulePlanHistRestore(){
-  if(S.demo||S.planHistRestored||!realCount())return;
+  if(S.demo||!realCount())return;
+  // локальный проход одноразовый; облако повторяем после ошибок и при позднем подключении
+  if(S.planHistRestored&&!planHistCloudPending())return;
   clearTimeout(YD.phrT);
   YD.phrT=setTimeout(function(){planHistRestore().catch(function(){})},50);
 }
 async function planHistRestore(){
-  if(S.demo||S.planHistRestored||!realCount()||YD.phrBusy)return;
+  if(S.demo||!realCount()||YD.phrBusy)return;
+  var needLocal=!S.planHistRestored,needCloud=planHistCloudPending();
+  if(!needLocal&&!needCloud)return;
   YD.phrBusy=true;
   var h=S.planDayHistory||(S.planDayHistory={}),approx=S.planDayHistoryApprox||(S.planDayHistoryApprox={});
-  var added=0,approxN=0,cloudTried=false,cloudOk=false;
+  var added=0,approxN=0,cloudOk=false;
   function acc(r){if(!r)return;added+=r.n||0;approxN+=r.a||0}
   try{
-    // локальные снимки IndexedDB/localStorage — без сети
-    try{(snaps()||[]).forEach(function(sx){
-      if(!sx||!sx.raw)return;
-      var st;try{st=JSON.parse(sx.raw)}catch(e){return}
-      acc(planHistCollectFromState(h,approx,st,sx.d));
-    })}catch(e){}
-    // последняя известная база с Диска (уже на устройстве)
-    try{var base=ydBase();if(base)acc(planHistCollectFromState(h,approx,base,null))}catch(e){}
-    // облачные копии — только при подключении, без повторного логина
-    if(ydOn()&&!gdExpired()&&YD.st!=='err'&&YD.st!=='exp'){
-      cloudTried=true;
+    if(needLocal){
+      try{(snaps()||[]).forEach(function(sx){
+        if(!sx||!sx.raw)return;
+        var st;try{st=JSON.parse(sx.raw)}catch(e){return}
+        acc(planHistCollectFromState(h,approx,st,planHistResolveAsOf(null,sx.d,sx.t)));
+      })}catch(e){}
+      try{var base=ydBase();if(base)acc(planHistCollectFromState(h,approx,base,null))}catch(e){}
+      S.planHistRestored=1;
+    }
+    if(needCloud&&ydOn()&&!gdExpired()&&YD.st!=='err'&&YD.st!=='exp'){
       try{
         var main=await ydDownload();
-        if(main){var md=planHistUnpack(main)||main.data;acc(planHistCollectFromState(h,approx,main,null));
-          if(md&&md.planHistRestored){/* уже восстанавливали на другом устройстве */}}
+        if(main)acc(planHistCollectFromState(h,approx,main,planHistResolveAsOf(main,null,null)));
         var list=await ydListDailies();
         for(var i=0;i<(list||[]).length;i++){
           var it=list[i];if(!it||!it.path)continue;
           try{
             var pack=await ydDownloadPath(it.path);
-            if(pack)acc(planHistCollectFromState(h,approx,pack,it.day));
+            if(pack)acc(planHistCollectFromState(h,approx,pack,planHistResolveAsOf(pack,it.day,null)));
           }catch(e1){if(e1&&e1.code===401)throw e1}
         }
-        cloudOk=true;
+        cloudOk=true;ydSet({phrCloud:1});
       }catch(e2){
-        if(e2&&e2.code===401){YD.st=gdOn()?'exp':'err';ydBadge();return} // не ставим флаг — повторим после входа
-        // сеть/прочее: не блокируем UI, повторим при следующей синхронизации
-        return;
+        if(e2&&e2.code===401){YD.st=gdOn()?'exp':'err';ydBadge()}
+        // сеть/auth: phrCloud не ставим — повторим при следующем подключении/синке
       }
     }
-    // одноразовый флаг: после успешного прохода (локально или с облаком)
-    if(!cloudTried||cloudOk){
-      S.planHistRestored=1;
-      if(added>0){
-        save(); // синхронизируем историю на другие устройства
-        try{toast('Восстановлен дневной план за '+added+' '+plw(added,'день','дня','дней')+(approxN?' (≈ приблизительные)':''))}catch(e){}
-        try{render()}catch(e){}
-      }else{try{saveLocal()}catch(e){}}
-    }
+    if(added>0){
+      save();
+      try{toast('Восстановлен дневной план за '+added+' '+plw(added,'день','дня','дней')+(approxN?' (≈ приблизительные)':''))}catch(e){}
+      try{render()}catch(e){}
+    }else if(needLocal||cloudOk){try{saveLocal()}catch(e){}}
   }finally{YD.phrBusy=false}
 }
 /* Склейка трёх версий: b - общая (что было в Диске при прошлой синхронизации), l - это устройство, r - Диск сейчас.

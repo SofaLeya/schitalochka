@@ -1774,25 +1774,34 @@ function planInfo1(){
 }
 var PLANSRC={self:'по сумме «Сам себе зарплата»',irreg:'по осторожному доходу (самый скромный месяц из трёх)',full:'по вкладке «Платежи»',manual:'твоя сумма',calc:'по твоему расчёту',income:'по доходам и платежам',none:'не задан'};
 function dayLimit(){return planInfo().v}
-/* Дневной лимит на дату: снимок истории; для пропусков — последний известный до дня (не текущий план). */
+/* Дневной лимит на дату: только снимок истории или текущий план для сегодня/будущего. Без подстановки задним числом. */
+function dayLimitKnown(d){
+  if(!(d<T))return true;
+  return Object.prototype.hasOwnProperty.call(S.planDayHistory||{},d);
+}
 function dayLimitAt(d){
   var h=S.planDayHistory||{},cur=dayLimit();
   if(!(d<T))return cur;
   if(Object.prototype.hasOwnProperty.call(h,d))return h[d];
-  var prevD=null,prevV=null,nextD=null,nextV=null,k;
-  for(k in h){if(!Object.prototype.hasOwnProperty.call(h,k))continue;
-    if(k<d&&(prevD===null||k>prevD)){prevD=k;prevV=h[k]}
-    else if(k>d&&k<T&&(nextD===null||k<nextD)){nextD=k;nextV=h[k]}
-  }
-  if(prevD!==null)return prevV;
-  if(nextD!==null)return nextV;
-  return cur;
+  return 0;
 }
 function rememberDayLimit(){if(S.demo)return false;var h=S.planDayHistory||(S.planDayHistory={}),v=dayLimit();if(!Number.isFinite(v)||h[T]===v)return false;h[T]=v;return true}
 /* Месячный / недельный план на жизнь = сумма дневных лимитов (с историей), не «текущий × дни». */
 function monthEnvelope(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),s=0;for(var d=1;d<=n;d++)s+=dayLimitAt(ym+'-'+p2(d));return s}
 function daysEnvelope(from,n){var s=0;for(var i=0;i<n;i++)s+=dayLimitAt(iso(addDays(parse(from),i)));return s}
 function weekEnvelope(monIso){return daysEnvelope(monIso,7)}
+/* План достоверен, только если у всех прошедших дней периода есть снимок (сегодня/будущее — текущий лимит). */
+function monthPlanKnown(ym){
+  var a=ym.split('-'),n=dim(+a[0],+a[1]-1),cur=T.slice(0,7);
+  if(ym>cur)return dayLimit()>0;
+  var end=ym===cur?Math.max(0,parseInt(T.slice(8),10)-1):n;
+  for(var d=1;d<=end;d++)if(!dayLimitKnown(ym+'-'+p2(d)))return false;
+  return ym===cur?dayLimit()>0||end>0:end>0;
+}
+function weekPlanKnown(monIso){
+  for(var i=0;i<7;i++){var dd=iso(addDays(parse(monIso),i));if(dd<T&&!dayLimitKnown(dd))return false}
+  return true;
+}
 /* Остаток на сегодня / план на завтра — одни формулы для простой и полной главной. */
 function homeTodayLeft(pd,spent){
   spent=Math.max(0,+spent||0);
@@ -2643,9 +2652,9 @@ function monsterCard(me,net,dnum){
   if(S.nopet)return '';
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=Math.max(0,lifeNet(td)),mood,msg;
   var avg=net/dnum;
-  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,rest=monthEnvelope(PD.slice(0,7))-net,perLeft=left>0?rest/left:0;
+  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,envOk=monthPlanKnown(PD.slice(0,7)),rest=envOk?monthEnvelope(PD.slice(0,7))-net:null,perLeft=left>0&&rest!=null?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
-  function tail(){return left>0?(rest>0&&perLeft>=lim*0.3?' Дальше - до '+money(perLeft)+' в день.':' До конца месяца - только нужное.'):''}
+  function tail(){return left>0&&rest!=null?(rest>0&&perLeft>=lim*0.3?' Дальше - до '+money(perLeft)+' в день.':' До конца месяца - только нужное.'):''}
   var pp=hr<7?null:payPraise();
   if(hr<7){mood='hungry';
     msg=!td.length
@@ -2669,18 +2678,18 @@ function monsterCard(me,net,dnum){
   }
   else if(!ns&&tn>0&&hr<20&&(lim||(dnum>=3&&net>0))&&tn<=(lim||avg)*0.4){mood='joy';msg=hr<15?pk(['К обеду потрачено всего '+money(tn)+' - отлично держишься!','Пока всего '+money(tn)+' за день. Так держать!','День идёт спокойно: трат всего на '+money(tn)+'. Молодец!']):pk(['Вечер близко, а потрачено всего '+money(tn)+' - красота!','Сегодня только '+money(tn)+', и день уже клонится к вечеру. Так держать!','Всего '+money(tn)+' за день. Горжусь, держись дальше!'])}
   else if(!td.length&&!ns&&hr<22&&S.entries.some(function(x){return !x.demo})){
-    var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,today=lim?(r>1&&left>0&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' Сегодня можно до '+money(today)+'.':'';
+    var Y=iso(addDays(parse(PD),-1)),yd=dayNet(Y),yns=(S.noSpend||[]).indexOf(Y)>=0,yLim=dayLimitAt(Y),yKnown=dayLimitKnown(Y),today=lim?(r>1&&left>0&&rest!=null&&rest>0?Math.min(lim,perLeft):lim):0,tday=today>0?' Сегодня можно до '+money(today)+'.':'';
     var gm=pk(hr<5?['Доброй ночи!','Привет!']:hr<12?['Доброе утро!','С добрым утром!','Привет!']:hr>=12&&hr<17?['Добрый день!','Привет!']:['Добрый вечер!','Привет!']);
     if(uName()&&!(hsh(PD+'gm')%2))gm=gm.replace(/!$/,', '+uName()+'!');
     if(!yd.n&&yns){mood='joy';msg=gm+' Вчера - без трат. Отличный старт!'+tday}
     else if(!yd.n){mood='think';msg=gm+' Вчера ничего не записано. Если что-то было - внеси.'+tday}
     else if(yd.v<=0&&yd.e>0){mood='joy';msg=gm+' Вчера '+money(yd.e)+', но возвраты '+(yd.r>yd.e?'всё перекрыли.':'всё покрыли.')+tday}
     else if(yd.v<=0){mood='joy';msg=gm+' Вчера трат не было. Так держать!'+tday}
-    else if(!lim){mood='happy';msg=gm+' Вчера - '+money(yd.v)+'.'}
-    else if(yd.v<=lim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(lim)+' - с запасом.'+tday}
-    else if(yd.v<=lim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - в плане.'+tday}
-    else if(yd.v<=lim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - совсем немного сверху, не страшно.'+tday}
-    else if(yd.v<=lim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', побольше плана.'+tday}
+    else if(!yKnown||!yLim){mood='happy';msg=gm+' Вчера - '+money(yd.v)+'.'}
+    else if(yd.v<=yLim*0.8){mood='happy';msg=gm+' Вчера '+money(yd.v)+' из '+money(yLim)+' - с запасом.'+tday}
+    else if(yd.v<=yLim){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - в плане.'+tday}
+    else if(yd.v<=yLim*1.15){mood='calm';msg=gm+' Вчера '+money(yd.v)+' - совсем немного сверху, не страшно.'+tday}
+    else if(yd.v<=yLim*1.5){mood='think';msg=gm+' Вчера '+money(yd.v)+', побольше плана.'+tday}
     else{mood='worried';msg=gm+' Вчера '+money(yd.v)+' - крупный день.'+tday}
   }
   else if(!td.length&&!ns&&!S.entries.some(function(x){return !x.demo})){mood='joy';msg=pk(['Привет, я '+petName()+'! Жду первую трату: нажми "+" внизу.','Я '+petName()+', будем знакомы! Начнём с первой записи - кнопка "+" внизу.'])}
@@ -2980,7 +2989,7 @@ function histList(){
     var by={};me.forEach(function(x){(by[x.date]=by[x.date]||[]).push(x)});
     Object.keys(by).sort().reverse().forEach(function(d){
       var dsp=sumNet(by[d],LK),din=by[d].filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(s,x){return s+x.amt},0),dt=parse(d),lim=dayLimitAt(d),ln=(hf==='all'||hf==='e')&&!flt?Math.max(0,lifeNetL(by[d],LK)):0,
-        hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,
+        hasE=by[d].some(function(x){return x.type==='e'&&!x.skip}),pl=dayLimitKnown(d)&&lim>0&&hasE&&(hf==='all'||hf==='e')&&!flt,
         // sumNet не уходит ниже 0; избыток непривязанных возвратов над тратами дня показываем отдельно
         excessRef=(function(){var u=0,en=0;life(by[d]).forEach(function(x){
           if(x.type==='e'&&!x.skip&&!x.nobal)en+=netOf(x,LK);
@@ -3179,7 +3188,7 @@ function reviewCard(){
   }
   var curCat=netByCat(life(ex0(ym))),tips=[];
   /* 1. итог или прогноз: одна крупная цифра, полоска против плана, три коротких показателя; пояснения - под «i» */
-  var lim=dayLimit(),planM=monthEnvelope(ym),dayAvg=n?Math.round(planM/n):0,ref0=cur?fc:spent;
+  var lim=dayLimit(),planM=monthPlanKnown(ym)?monthEnvelope(ym):0,dayAvg=n?Math.round(planM/n):0,ref0=cur?fc:spent;
   var cls=planM>0?(ref0>planM*1.1?'warn':ref0<planM*0.95?'good':'info'):(base&&ref0>base*1.1?'warn':base&&ref0<base*0.95?'good':'info');
   var chip='';
   if(planM>0){var dp=ref0-planM;chip=Math.abs(dp)<planM*0.03?'ровно в плане':dp>0?'на '+money(dp)+' больше плана':'на '+money(-dp)+' меньше плана'}
@@ -3757,15 +3766,15 @@ function g2(){
   var LK=refLinks();function net(l){return lifeNetL(l,LK)}
   var n=diffDays(first,PD),run=0,mNet=0,mDays=0,mKnown=0,curM='',wNet=0,wKnown=0,wDays=0,curW='',ym0=PD.slice(0,7),mBudget=0,wBudget=0;
   function closeMonth(m){if(!m||m===ym0)return;var a=m.split('-'),dd=dim(+a[0],+a[1]-1);
-    if(mKnown>=15&&mNet<=mBudget){g.stars+=200;g.months++}
+    if(monthPlanKnown(m)&&mKnown>=15&&mNet<=mBudget){g.stars+=200;g.months++}
     var sp=g2SavePlan();if(sp>0&&g2Saved(m)>=sp){g.stars+=100;g.savedMonths++}}
-  function closeWeek(){if(wKnown>=4&&wDays===7&&wNet<=wBudget){g.stars+=50;g.weeks++}}
+  function closeWeek(){if(weekPlanKnown(curW)&&wKnown>=4&&wDays===7&&wNet<=wBudget){g.stars+=50;g.weeks++}}
   for(var i=0;i<n;i++){ // только завершённые дни, сегодняшний ещё идёт
     var d=iso(addDays(parse(first),i)),l=by[d]||[],m=d.slice(0,7),dt=parse(d),wk=iso(addDays(dt,-((dt.getDay()+6)%7)));
     if(m!==curM){closeMonth(curM);curM=m;mNet=0;mDays=0;mKnown=0;mBudget=0}
     if(wk!==curW){if(curW)closeWeek();curW=wk;wNet=0;wKnown=0;wDays=0;wBudget=0}
-    var v=net(l),st,dl=dayLimitAt(d);mBudget+=dl;wBudget+=dl;
-    if(ns[d]&&v<=0)st='nospend';else if(!l.length)st='unknown';else if(v<=0)st='nospend';else if(v<=dl)st='good';else st='over';
+    var v=net(l),st,known=dayLimitKnown(d),dl=dayLimitAt(d);if(known){mBudget+=dl;wBudget+=dl}
+    if(ns[d]&&v<=0)st='nospend';else if(!l.length)st='unknown';else if(v<=0)st='nospend';else if(!known)st='nolim';else if(v<=dl)st='good';else st='over';
     mDays++;wDays++;
     if(st!=='unknown'){mKnown++;wKnown++;mNet+=Math.max(0,v);wNet+=Math.max(0,v)}
     if(st==='over'&&mNet<=mBudget)st='oneoff';
@@ -3774,7 +3783,7 @@ function g2(){
     else if(st==='over')run=0;
     if((st==='good'||st==='nospend')&&run>0&&run%7===0)g.stars+=30;
     if(run>g.best)g.best=run;
-    if(m===ym0){g.saved+=st==='unknown'?0:dl-Math.max(0,v)}
+    if(m===ym0){g.saved+=(!known||st==='unknown'||st==='nolim')?0:dl-Math.max(0,v)}
     g.days.push({d:d,st:st});
   }
   closeMonth(curM===ym0?'':curM);
@@ -3790,11 +3799,11 @@ function g2fin(g){
 function g2Goals(g){
   var PD=petDay(),ym=PD.slice(0,7),lim=g.lim,out=[];
   var me=S.entries.filter(function(x){return vis(x)&&x.date.slice(0,7)===ym&&x.date<=PD}),spent=lifeNet(me);
-  var monthOf=monthEnvelope(ym);
-  out.push({t:'Месяц в бюджете',v:Math.max(0,spent),of:monthOf,rev:true,hint:spent<=monthOf?'можно потратить ещё '+money(monthOf-spent)+' и уложиться':'уже на '+money(spent-monthOf)+' больше',reward:'+200'});
+  var monthOf=monthPlanKnown(ym)?monthEnvelope(ym):0;
+  if(monthOf>0)out.push({t:'Месяц в бюджете',v:Math.max(0,spent),of:monthOf,rev:true,hint:spent<=monthOf?'можно потратить ещё '+money(monthOf-spent)+' и уложиться':'уже на '+money(spent-monthOf)+' больше',reward:'+200'});
   var dt=parse(PD),ws=addDays(dt,-((dt.getDay()+6)%7)),wsI=iso(ws),wl=S.entries.filter(function(x){return vis(x)&&x.date>=wsI&&x.date<=PD}),ws_=lifeNet(wl);
-  var weekOf=weekEnvelope(wsI);
-  out.push({t:'Неделя в плане',v:Math.max(0,ws_),of:weekOf,rev:true,hint:ws_<=weekOf?'на этой неделе можно ещё '+money(weekOf-ws_):'на этой неделе уже на '+money(ws_-weekOf)+' больше',reward:'+50'});
+  var weekOf=weekPlanKnown(wsI)?weekEnvelope(wsI):0;
+  if(weekOf>0)out.push({t:'Неделя в плане',v:Math.max(0,ws_),of:weekOf,rev:true,hint:ws_<=weekOf?'на этой неделе можно ещё '+money(weekOf-ws_):'на этой неделе уже на '+money(ws_-weekOf)+' больше',reward:'+50'});
   var cl=catLimits(ym),lsp=limSpent(ym);Object.keys(cl).forEach(function(k){if(!CMAP[k])return;var v=Math.round(lsp[k]||0);out.push({t:CMAP[k].name+' - до '+money(cl[k]),v:v,of:cl[k],rev:true,hint:v<=cl[k]?'осталось '+money(cl[k]-v):'сверх '+money(v-cl[k]),reward:''})});
   var sp=g2SavePlan();if(sp>0){var sv=g2Saved(ym);out.push({t:'Отложить '+money(sp),v:sv,of:sp,hint:sv>=sp?'готово!':'осталось отложить '+money(sp-sv),reward:'+100'})}
   return out;
@@ -3966,7 +3975,7 @@ function outCard(me){
       return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(x.note||c.name)+'</div><div class="s">'+dlabel(x.date)+(a?' · из «'+esc(accName(a))+'»':'')+' · '+esc(c.name)+'</div></div><span class="amt out">−'+money(x.amt)+'</span></button>'}).join('')+'</div>')}
 /* полный режим: траты на жизнь против плана на месяц; платежи, траты из копилок и доходы - отдельно */
 function lifeCard(me,n){
-  var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),planM=monthEnvelope(vym),lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
+  var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),planM=monthPlanKnown(vym)?monthEnvelope(vym):0,lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
   var incR=me.filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(a,x){return a+x.amt},0);
   var head,note,bar='';
   if(planM>0){
@@ -3987,28 +3996,28 @@ function viewAn(){
   var me=monthEntries(vym),inc=sum(me,'i'),exp=sum(me,'e'),a=vym.split('-'),n=dim(+a[0],+a[1]-1);
   var curYM=T.slice(0,7),isCur=vym===curYM,upto=vym>curYM?0:isCur?parseInt(T.slice(8),10):n,lim=dayLimit();
   var nsM={};(S.noSpend||[]).forEach(function(d){nsM[d]=1});
-  var LKa=refLinks(),per=[],dst=[],cnt={good:0,over:0,nospend:0,unknown:0};for(var i=0;i<n;i++){per.push(0);dst.push('')}
-  for(var di=0;di<n;di++){var dd0=vym+'-'+p2(di+1),l0=me.filter(function(x){return x.date===dd0}),dl=null;per[di]=Math.max(0,lifeNetL(l0,LKa));
+  var LKa=refLinks(),per=[],dst=[],cnt={good:0,over:0,nospend:0,unknown:0,nolim:0};for(var i=0;i<n;i++){per.push(0);dst.push('')}
+  for(var di=0;di<n;di++){var dd0=vym+'-'+p2(di+1),l0=me.filter(function(x){return x.date===dd0});per[di]=Math.max(0,lifeNetL(l0,LKa));
     if(di+1>upto)continue;
-    /* как в звёздах: без записей - неизвестно, ноль - без трат */
-    var st=nsM[dd0]&&per[di]<=0?'nospend':!l0.length?'unknown':per[di]<=0?'nospend':!lim?'good':per[di]<=dayLimitAt(dd0)?'good':'over';
+    /* как в звёздах: без записей - неизвестно, ноль - без трат; без снимка лимита - нейтрально */
+    var st=nsM[dd0]&&per[di]<=0?'nospend':!l0.length?'unknown':per[di]<=0?'nospend':!dayLimitKnown(dd0)?'nolim':!dayLimitAt(dd0)?'nolim':per[di]<=dayLimitAt(dd0)?'good':'over';
     if(isCur&&di+1===upto&&st==='unknown'){dst[di]='';continue}
-    dst[di]=st;cnt[st]++}
+    dst[di]=st;cnt[st]=(cnt[st]||0)+1}
   var mx=Math.max.apply(null,per.concat([1,lim>0?lim*1.25:0])),W=340,H=130,pb=18,pt=14,bw=W/n,svg='',hh=H-pb-pt;
   svg+='<line x1="0" x2="'+W+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'" stroke="var(--line)"/>';
   var ly=lim>0?H-pb-lim/mx*hh:0;
   if(!(lim>0&&ly-pt<14)){svg+='<line x1="0" x2="'+W+'" y1="'+pt+'" y2="'+pt+'" stroke="var(--line)" stroke-dasharray="3 3"/><text x="0" y="'+(pt-3)+'" font-size="9">'+Math.round(mx).toLocaleString('ru-RU')+' '+sym()+'</text>'}
   per.forEach(function(v,i){
     var h=v/mx*hh,x=i*bw+bw*.15,st=dst[i];
-    var col=!lim?'var(--out)':st==='over'?'var(--out)':'var(--in)';
+    var col=st==='over'?'var(--out)':st==='good'||st==='nospend'?'var(--in)':'var(--muted)';
     svg+='<rect x="'+x.toFixed(1)+'" y="'+(H-pb-h).toFixed(1)+'" width="'+(bw*.7).toFixed(1)+'" height="'+Math.max(h,v>0?1.5:0).toFixed(1)+'" rx="1.5" fill="'+col+'"/>';
     if(st==='nospend')svg+='<text x="'+(i*bw+bw/2).toFixed(1)+'" y="'+(H-pb-2)+'" font-size="8" text-anchor="middle" fill="var(--gold)">★</text>';
     var d=i+1;if(d===1||d%5===0)svg+='<text x="'+(i*bw+bw/2).toFixed(1)+'" y="'+(H-4)+'" font-size="9" text-anchor="middle">'+d+'</text>';
   });
   if(lim>0)svg+='<line x1="0" x2="'+W+'" y1="'+ly.toFixed(1)+'" y2="'+ly.toFixed(1)+'" stroke="var(--warn)" stroke-width="1.2" stroke-dasharray="4 3"/><text x="'+W+'" y="'+(ly-3).toFixed(1)+'" font-size="9" text-anchor="end" fill="var(--warn)">план '+Math.round(lim).toLocaleString('ru-RU')+' '+sym()+'</text>';
   per.forEach(function(v,i){if(i+1>upto)return;svg+='<rect data-a="dayHist" data-v="'+vym+'-'+p2(i+1)+'" x="'+(i*bw).toFixed(1)+'" y="0" width="'+bw.toFixed(1)+'" height="'+H+'" fill="transparent" style="cursor:pointer"/>'});
-  var dsum=upto?(lim>0?'<span style="color:var(--in)">в плане '+cnt.good+'</span> · <span style="color:var(--out)">выше '+cnt.over+'</span> · ':'с тратами '+cnt.good+' · ')+'<span style="color:var(--gold)">★ без трат '+cnt.nospend+'</span>'+(cnt.unknown?' · без записей '+cnt.unknown:''):'';
-  var dayCard='<div class="card"><div class="tiprow"><h2>📆 Траты по дням</h2>'+tipBtn('days')+'</div>'+tipBox('days','Нажми на столбик, чтобы открыть записи за этот день. '+(lim>0?'Зелёный - день в плане, красный - выше плана, пунктир - план на день. ':'')+'★ - день без трат. Дни без записей не считаются ни хорошими, ни плохими.')+
+  var rated=cnt.good+cnt.over,dsum=upto?(rated?'<span style="color:var(--in)">в плане '+cnt.good+'</span> · <span style="color:var(--out)">выше '+cnt.over+'</span> · ':cnt.nolim?'с тратами '+cnt.nolim+' · ':'')+'<span style="color:var(--gold)">★ без трат '+cnt.nospend+'</span>'+(cnt.unknown?' · без записей '+cnt.unknown:'')+(cnt.nolim&&rated?' · без плана '+cnt.nolim:''):'';
+  var dayCard='<div class="card"><div class="tiprow"><h2>📆 Траты по дням</h2>'+tipBtn('days')+'</div>'+tipBox('days','Нажми на столбик, чтобы открыть записи за этот день. '+(lim>0?'Зелёный - день в плане, красный - выше плана, серый - лимит на день неизвестен, пунктир - текущий план на день. ':'Серый - день без известного плана. ')+'★ - день без трат. Дни без записей не считаются ни хорошими, ни плохими.')+
     '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(dsum?'<div class="fine">Дней: '+dsum+'</div>':'')+'</div>';
   var cat=netByCat(life(me)),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});

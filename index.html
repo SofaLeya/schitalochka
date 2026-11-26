@@ -1815,15 +1815,44 @@ function planHistDayFromName(name){
   var m=/schitalochka-(\d{4}-\d{2}-\d{2})\.json$/.exec(name||'');
   return m?m[1]:null;
 }
-/* Версия формул дневного лимита. Без маркера в снимке пересчёт запрещён (эра неизвестна). */
-var DL_FORM=1;
-function planHistFormOf(state){
+/* Версии формул дневного лимита (подтверждённая история релизов):
+   DL_FORM=1 — текущий стек (cycleDayPlan + аудит); в снимках с 2026-11-26 и в новых с dlForm.
+   DL_FORM_PRE=2 — до cycleDayPlan (≤2026-11-24): simple/calc/irreg совпадают с текущим кодом;
+   полный режим тогда был planCalcVal(fullPlan), сейчас cycleDayPlan — без маркера не пересчитываем.
+   2026-11-25 — день смены формул, без dlForm эра неизвестна. */
+var DL_FORM=1,DL_FORM_PRE=2,DL_FORM_CUR_SINCE='2026-11-26',DL_FORM_PRE_UNTIL='2026-11-24';
+function planHistSnapDay(state, asOf){
+  if(asOf&&/^\d{4}-\d{2}-\d{2}$/.test(asOf))return asOf;
+  if(state&&state.savedAt){var ds=iso(new Date(state.savedAt));if(/^\d{4}-\d{2}-\d{2}$/.test(ds))return ds}
+  return null;
+}
+function planHistInferForm(state, asOf){
+  var day=planHistSnapDay(state, asOf);
+  if(!day)return 0;
+  if(!(day<DL_FORM_CUR_SINCE))return DL_FORM;
+  if(!(day>DL_FORM_PRE_UNTIL))return DL_FORM_PRE;
+  return 0;
+}
+function planHistFormOf(state, asOf){
   if(!state||typeof state!=='object')return 0;
   if(state.dlForm!=null)return +state.dlForm||0;
   var src=planHistUnpack(state);
-  return src&&src.dlForm!=null?(+src.dlForm||0):0;
+  if(src&&src.dlForm!=null)return +src.dlForm||0;
+  return planHistInferForm(state, asOf);
 }
-function planHistCanEval(state){return planHistFormOf(state)===DL_FORM}
+/* До cycleDayPlan полный режим считался иначе — пересчёт только для стабильных путей. */
+function planHistEraStable(state){
+  var src=planHistUnpack(state)||state;
+  if(!src||typeof src!=='object')return false;
+  if(!src.simple&&!src.irreg&&(src.incomes||[]).length)return false;
+  return true;
+}
+function planHistCanEval(state, asOf){
+  var f=planHistFormOf(state, asOf);
+  if(f===DL_FORM)return true;
+  if(f===DL_FORM_PRE)return planHistEraStable(state);
+  return false;
+}
 function ensureDlForm(){if(S.demo)return false;if(S.dlForm===DL_FORM)return false;S.dlForm=DL_FORM;return true}
 /* Дата снимка: savedAt / timestamp; сверка с именем файла. Расхождение >1 дня → неизвестно. */
 function planHistResolveAsOf(pack, fileDay, snapTs){
@@ -1836,9 +1865,9 @@ function planHistResolveAsOf(pack, fileDay, snapTs){
   if(saved&&file&&Math.abs(diffDays(saved,file))>1)return null;
   return saved||file||null;
 }
-/* Пересчёт только если в снимке есть DL_FORM текущей версии формул. */
+/* Пересчёт при известной версии формул (маркер или вывод по дате снимка). */
 function planHistEvalDayLimit(src, day, state){
-  if(!planHistCanEval(state!=null?state:src))return 0;
+  if(!planHistCanEval(state!=null?state:src, day))return 0;
   if(!src||typeof src!=='object'||!day||!(day<T))return 0;
   if(!Array.isArray(src.accounts)||!src.accounts.length||!Array.isArray(src.entries))return 0;
   var oldS=S,oldT=T,oldPI=PI_C,oldOn=PI_ON;
@@ -1879,7 +1908,7 @@ function planHistCollectFromState(h,approx,state,asOf){
     if(!pa[d])return;
     if(planHistPut(h,approx,d,+ph[d],true)){n++;a++}
   });
-  if(asOf&&asOf<T&&!Object.prototype.hasOwnProperty.call(h,asOf)&&planHistCanEval(state)){
+  if(asOf&&asOf<T&&!Object.prototype.hasOwnProperty.call(h,asOf)&&planHistCanEval(state,asOf)){
     var v=planHistEvalDayLimit(src,asOf,state);
     if(v>0&&planHistPut(h,approx,asOf,v,true)){n++;a++}
   }

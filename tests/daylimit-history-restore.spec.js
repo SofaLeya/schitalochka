@@ -175,39 +175,99 @@ test('unreliable eval leaves day unknown',async({page})=>{
 
 test('unknown or foreign dlForm skips eval restore; matching form allows it',async({page})=>{
  const r=await probe(page,()=>{
-  T='2026-11-25';
-  var h1={},a1={},h2={},a2={},h3={},a3={};
-  var bare={entries:[],accounts:[{id:'main',type:'main',start:10000}],simple:true,dayLimit:2500,planCalc:null};
+  T='2026-11-28';
+  var h2={},a2={},h3={},a3={};
+  // без даты и без маркера — эра неизвестна (не выводим по asOf внутри bareEval без day→form: day передаётся)
+  var nodate={entries:[],accounts:[{id:'main',type:'main',start:10000}],simple:true,dayLimit:2500,planCalc:null};
   var old={dlForm:99,entries:[],accounts:[{id:'main',type:'main',start:10000}],simple:true,dayLimit:2500,planCalc:null};
   var ok={dlForm:DL_FORM,entries:[],accounts:[{id:'main',type:'main',start:10000}],simple:true,dayLimit:2500,planCalc:null};
-  var packBare={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-24T12:00:00Z'),data:bare};
+  var packNodate={v:1,app:'schitalochka',data:nodate}; // нет savedAt → без asOf неизвестно
   var packOld={v:1,app:'schitalochka',dlForm:99,savedAt:Date.parse('2026-11-24T12:00:00Z'),data:old};
   var packOk={v:1,app:'schitalochka',dlForm:DL_FORM,savedAt:Date.parse('2026-11-24T12:00:00Z'),data:ok};
-  planHistCollectFromState(h1,a1,packBare,planHistResolveAsOf(packBare,'2026-11-24',null));
   planHistCollectFromState(h2,a2,packOld,planHistResolveAsOf(packOld,'2026-11-24',null));
   planHistCollectFromState(h3,a3,packOk,planHistResolveAsOf(packOk,'2026-11-24',null));
+  var h0={},a0={};
+  planHistCollectFromState(h0,a0,packNodate,null);
   return {
-   bareEval:planHistEvalDayLimit(bare,'2026-11-24'),
+   nodateEval:planHistEvalDayLimit(nodate,'2026-11-24'), // day alone → PRE stable → ok
+   noAsOfCan:planHistCanEval(packNodate),
    oldEval:planHistEvalDayLimit(old,'2026-11-24'),
    okEval:planHistEvalDayLimit(ok,'2026-11-24'),
-   canBare:planHistCanEval(packBare),
    canOld:planHistCanEval(packOld),
    canOk:planHistCanEval(packOk),
-   h1:h1,h2:h2,h3:h3,a3:a3,
+   h0:h0,h2:h2,h3:h3,a3:a3,
    packHasForm:JSON.parse(ydPack(ok)).dlForm
   };
  });
- expect(r.bareEval).toBe(0);
+ // day=2026-11-24 без маркера → PRE + simple → можно
+ expect(r.nodateEval).toBe(2500);
+ expect(r.noAsOfCan).toBe(false); // pack без savedAt и без asOf
  expect(r.oldEval).toBe(0);
  expect(r.okEval).toBe(2500);
- expect(r.canBare).toBe(false);
  expect(r.canOld).toBe(false);
  expect(r.canOk).toBe(true);
- expect(r.h1['2026-11-24']).toBeUndefined();
+ expect(r.h0['2026-11-24']).toBeUndefined();
  expect(r.h2['2026-11-24']).toBeUndefined();
  expect(r.h3['2026-11-24']).toBe(2500);
  expect(r.a3['2026-11-24']).toBe(1);
  expect(r.packHasForm).toBe(1);
+});
+
+test('pre-dlForm backups: infer form from release timeline and snapshot date',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-28';
+  // Реальные формы копий: ydPack без dlForm; локальный snap.raw = JSON.stringify(S); файл = plain S.
+  var simplePre={v:1,entries:[],accounts:[{id:'a1',name:'Основная карта',type:'main',start:50000}],
+   rules:[],recur:[],incomes:[],simple:true,irreg:false,dayLimit:1800,planCalc:null};
+  var calcPre={v:1,entries:[{id:'e1',type:'e',cat:'cafe',amt:100,date:'2026-11-20',acc:'a1'}],
+   accounts:[{id:'a1',name:'Основная карта',type:'main',start:40000}],
+   rules:[],simple:true,irreg:false,dayLimit:0,planCalc:{inc:60000,fixed:10000,save:5000,irr:0}};
+  var fullPre={v:1,entries:[],accounts:[{id:'a1',type:'main',start:50000},{id:'save',type:'save',start:0}],
+   simple:false,irreg:false,dayLimit:0,planCalc:null,
+   incomes:[{id:'i',amt:90000,day:10}],recur:[{id:'r',amt:15000,day:1,name:'Rent'}],
+   rules:[{id:'u',amt:10000,day:10,acc:'save',name:'Save'}]};
+  var packSimple={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-20T15:00:00Z'),dev:'x',data:simplePre};
+  var packCalc={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-22T10:00:00Z'),data:calcPre};
+  var packFull={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-23T18:00:00Z'),data:fullPre};
+  var packChurn={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-25T12:00:00Z'),data:Object.assign({},simplePre)};
+  var packCur={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-26T08:00:00Z'),data:Object.assign({},fullPre)}; // после churn = текущие формулы
+  var snapLocal={d:'2026-11-21',t:Date.parse('2026-11-21T09:30:00Z'),why:'day',n:1,raw:JSON.stringify(simplePre)};
+  var hS={},aS={},hC={},aC={},hF={},aF={},hCh={},aCh={},hCur={},aCur={},hSnap={},aSnap={};
+  planHistCollectFromState(hS,aS,packSimple,planHistResolveAsOf(packSimple,'2026-11-20',null));
+  planHistCollectFromState(hC,aC,packCalc,planHistResolveAsOf(packCalc,'2026-11-22',null));
+  planHistCollectFromState(hF,aF,packFull,planHistResolveAsOf(packFull,'2026-11-23',null));
+  planHistCollectFromState(hCh,aCh,packChurn,planHistResolveAsOf(packChurn,'2026-11-25',null));
+  planHistCollectFromState(hCur,aCur,packCur,planHistResolveAsOf(packCur,'2026-11-26',null));
+  var st;try{st=JSON.parse(snapLocal.raw)}catch(e){st=null}
+  planHistCollectFromState(hSnap,aSnap,st,planHistResolveAsOf(null,snapLocal.d,snapLocal.t));
+  return {
+   formPre:planHistFormOf(packSimple,'2026-11-20'),
+   formChurn:planHistFormOf(packChurn,'2026-11-25'),
+   formCur:planHistFormOf(packCur,'2026-11-26'),
+   canSimple:planHistCanEval(packSimple,'2026-11-20'),
+   canFullPre:planHistCanEval(packFull,'2026-11-23'),
+   canChurn:planHistCanEval(packChurn,'2026-11-25'),
+   canCurFull:planHistCanEval(packCur,'2026-11-26'),
+   hS:hS,aS:aS,hC:hC,hF:hF,hCh:hCh,hCur:hCur,aCur:aCur,hSnap:hSnap,
+   calcExpect:planCalcVal({inc:60000,fixed:10000,save:5000,irr:0}),
+   curFull:hCur['2026-11-26']
+  };
+ });
+ expect(r.formPre).toBe(2); // DL_FORM_PRE
+ expect(r.formChurn).toBe(0);
+ expect(r.formCur).toBe(1);
+ expect(r.canSimple).toBe(true);
+ expect(r.canFullPre).toBe(false); // полный до cycle — не пересчитываем
+ expect(r.canChurn).toBe(false);
+ expect(r.canCurFull).toBe(true); // с 26.11 полный = текущий cycle
+ expect(r.hS['2026-11-20']).toBe(1800);
+ expect(r.aS['2026-11-20']).toBe(1);
+ expect(r.hC['2026-11-22']).toBe(r.calcExpect);
+ expect(r.hF['2026-11-23']).toBeUndefined();
+ expect(r.hCh['2026-11-25']).toBeUndefined();
+ expect(r.curFull).toBeGreaterThan(0);
+ expect(r.aCur['2026-11-26']).toBe(1);
+ expect(r.hSnap['2026-11-21']).toBe(1800);
 });
 
 test('failed daily download does not mark phrCloud complete',async({page})=>{

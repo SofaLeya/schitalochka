@@ -300,6 +300,25 @@ html.bigtext{zoom:1.14}
   --muted:#dfccec;--ink:var(--fc-text);--line:#ffffff24;--surface:#271839;--accent:var(--fc-accent);
 }
 .sheet.fc-magic details.fold>summary{font-size:clamp(14px,4.3vw,18px);font-weight:500;padding:10px 0}
+.sheet.fc-magic .fc-future{background:radial-gradient(ellipse at 10% 0%,#d6a5ff19,transparent 48%),radial-gradient(ellipse at 90% 100%,#a67be52b,transparent 55%),color-mix(in srgb,var(--fc-accent) 12%,var(--fc-night));border-color:color-mix(in srgb,var(--fc-accent) 48%,var(--fc-night));padding:0 13px}
+.sheet.fc-magic .fc-future>summary{align-items:center;padding:12px 0;flex-wrap:nowrap;gap:9px;color:var(--fc-gold);font:700 clamp(23px,7vw,32px)/1.05 Forecast Serif,Georgia,serif}
+.fc-future-title{display:flex;align-items:center;gap:9px;min-width:0}
+.fc-future-icon{width:29px;height:34px;flex:none;color:var(--fc-gold);filter:drop-shadow(0 0 5px #e6b46c66)}
+.fc-future-count{font:500 13px/1.1 system-ui,sans-serif;color:var(--muted);margin-left:3px}
+.fc-future-rule{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--fc-gold);margin:0 0 4px;font-size:15px}
+.fc-future-rule:before,.fc-future-rule:after{content:'';height:1px;width:26%;background:linear-gradient(90deg,transparent,var(--fc-gold))}
+.fc-future-rule:after{transform:rotate(180deg)}
+.fc-future-summary{display:flex;flex-direction:column;gap:0}
+.fc-future-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);font-size:clamp(13px,3.7vw,16px)}
+.fc-future-row>span:nth-child(2){flex:1;min-width:0}
+.fc-future-row>b{white-space:nowrap;flex-shrink:0;font-size:clamp(12px,3.5vw,16px);font-variant-numeric:tabular-nums}
+.fc-future-symbol{display:grid;place-items:center;flex:none;width:26px;height:29px;font-size:22px;color:var(--fc-gold);text-shadow:0 0 8px #d1a4ff99}
+.fc-future .fc-plan-subtitle{font:600 19px/1.1 Forecast Serif,Georgia,serif;color:var(--fc-gold);margin:5px 0 0}
+.fc-future .list .row{flex-wrap:nowrap}
+.fc-future .list .grow{min-width:0;overflow-wrap:anywhere}
+.fc-future .fcplan-amount{white-space:nowrap}
+.fc-future-symbol svg{width:26px;height:29px;filter:drop-shadow(0 0 4px #d1a4ff88)}
+
 .sheet.fc-magic .fc-close{margin-top:8px}
 .sheet.fc-magic .fc-close .btn{width:100%;font-size:clamp(15px,4.7vw,20px);background:var(--fc-accent);color:#190f26;border-radius:12px}
 @media(prefers-reduced-motion:no-preference){
@@ -1765,7 +1784,7 @@ function fcCalc(){
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
   var pending=fcPendingRefunds(),avail=balance()-due+inc+pending,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pending:pending,pace:pace,paceB:paceB,usualPace:P.usualPace,withLargePace:P.withLargePace,usualLeft:avail-P.usualPace*dl-pc,withLargeLeft:avail-P.withLargePace*dl-pc,largeMin:P.largeMin,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
-function fcPlansHtml(prow,irr){
+function fcPlansHtml(prow,irr,forecast){
   var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||form));
   var editing=!irr&&form?prow.find(function(o){return o.q.id===sh.fcEdit}):null;
   var q=editing?editing.q:{cat:'prod',amt:'',wd:1,half:false};
@@ -1781,7 +1800,23 @@ function fcPlansHtml(prow,irr){
     '<div class="btns"><button type="button" class="btn ghost sm" data-a="fcFormHide">Отмена</button><button type="button" class="btn sm" data-a="fcAdd">Сохранить план</button></div></div>'
    :'<button type="button" class="btn ghost sm" data-a="fcFormShow">+ Добавить план</button>';
   var body=tipBtn('fc_pl')+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+rows+formHtml;
-  return irr?fcFold('Мои планы',n+' '+plw(n,'план','плана','планов'),body,open):fcFold('Мои планы · '+n,null,body,open);
+  if(irr)return fcFold('Мои планы',n+' '+plw(n,'план','плана','планов'),body,open);
+  var icon='<svg class="fc-future-icon" aria-hidden="true" viewBox="0 0 32 38" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="6" width="20" height="28" rx="3" transform="rotate(-13 13 20)"/><rect x="9" y="3" width="20" height="30" rx="3" fill="#35214b"/><path d="M19 10q1 7 7 8-6 1-7 8-1-7-7-8 6-1 7-8Z" fill="currentColor" stroke="none"/></svg>';
+  var rule='<div class="fc-future-rule" aria-hidden="true">✦</div>';
+  var symbols={
+    basket:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 14h22l-3 13H8L5 14Zm5 0 6-10 6 10M12 17l1 8m7-8-1 8M4 18h24"/><path d="m27 3 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="currentColor" stroke="none"/></svg>',
+    purse:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4h12l-4 7c7 4 11 12 6 16-4 4-12 4-16 0-5-4-1-12 6-16L10 4Zm3 7h6"/><path d="M19 16a6 6 0 1 0 3 9 6 6 0 0 1-3-9Z" fill="currentColor" stroke="none"/></svg>',
+    crystal:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m16 2 6 10-2 16-4 2-4-2-2-16 6-10Zm0 0v28M10 12l6 4 6-4M10 15 3 12l1 12 8 4M22 15l7-3-1 12-8 4"/></svg>'
+  };
+  var summary='';
+  if(forecast&&forecast.kn>=5){
+    var row=function(symbol,label,value){return '<div class="fc-future-row"><span class="fc-future-symbol" aria-hidden="true">'+symbols[symbol]+'</span><span>'+label+'</span><b>−'+money(Math.max(0,value))+'</b></div>'};
+    summary='<div class="fc-future-summary" aria-label="Возможные траты до выплаты">'+
+      row('basket','Покупки по плану',forecast.pc)+
+      row('purse','Повседневные траты',forecast.usualPace*forecast.dl)+
+      row('crystal','Крупные покупки (если будут)',(forecast.withLargePace-forecast.usualPace)*forecast.dl)+'</div>';
+  }
+  return '<details class="fold fc-future"'+(open?' open':'')+'><summary><span class="fc-future-title">'+icon+'Что грядёт <span class="fc-future-count">· '+n+'</span></span></summary><div class="fcfold">'+rule+summary+'<div class="fc-plan-subtitle">Мои покупки по плану</div>'+body+'</div></details>';
 }
 function fcHowHtml(lines,forecast){
   return fcFold('Как считается',null,'<div'+(forecast?' class="fcforecast-how"':'')+'>'+lines.map(function(x){var cls=x[2]?'fcsum sub':'fcsum';return '<div class="'+cls+'"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
@@ -1853,28 +1888,12 @@ function fcSheet(){
   else{
     body='<div class="fc-cards">'+fcCard('usual','Вдали от',f.usualLeft)+fcCard('large','Во власти',f.withLargeLeft)+'</div>';
   }
-  var how=[['Деньги сейчас',money(balance())]];
-  if(f.inc>0)how.push(['Ещё поступит','+'+money(f.inc)]);
-  if(f.due>0)how.push(['Платежи и копилки','−'+money(f.due)]);
-  if(f.incs&&f.incs.length)f.incs.forEach(function(r){
-    how.push(['',dlabel(r.date)+' · '+esc(r.name)+' · '+(r.allSave?money(r.amt)+' → 0 ₽ на жизнь':money(r.life)),1]);
-  });
-  if(f.pending>0)how.push(['Ожидаемые возвраты','+'+money(f.pending)]);
-  if(f.kn>=5){
-    if(f.pc>0)how.push(['Покупки по плану','−'+money(f.pc)]);
-    how.push(['Повседневные траты','−'+money(f.usualPace*f.dl)]);
-    how.push(['','Около '+money(f.usualPace)+' в день × '+f.dl+' '+plw(f.dl,'день','дня','дней'),1]);
-    how.push(['Крупные покупки (если будут)','−'+money(Math.max(0,(f.withLargePace-f.usualPace)*f.dl))]);
-    how.push(['','По тратам за 2 недели. Крупные — от '+money(f.largeMin)+' вне продуктов, кафе и транспорта, или от '+money(f.huge)+' в любой категории.'+(f.pending>0?' Возвраты могут задержаться.':''),1]);
-  }
-  var howWasOpen=!!document.querySelector('#ov .fc-magic details.fold[open] .fcforecast-how');
   h='<h3 class="fc-heading" id="fc-title"><span class="fc-celestial" aria-hidden="true"><span>☾</span>✦<span>☽</span></span>Предсказание</h3>'+
     '<p class="fc-date">Сколько останется к '+dt+'?</p><div class="fc-sparks" aria-hidden="true"><i>✦</i><i>·</i><i>✧</i></div>';
-  openSheet(h+body+fcPlansHtml(f.prow)+fcHowHtml(how,true)+foot.replace('class="btns"','class="btns fc-close"'));
+  openSheet(h+body+fcPlansHtml(f.prow,false,f)+foot.replace('class="btns"','class="btns fc-close"'));
   var sheet=document.querySelector('#ov .sheet');
   sheet.classList.add('fc-magic');
   sheet.setAttribute('aria-labelledby','fc-title');
-  if(howWasOpen)sheet.querySelector('.fcforecast-how').closest('details').open=true;
 }
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&!isLive(a))}
 // Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.

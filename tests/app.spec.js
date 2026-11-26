@@ -719,10 +719,10 @@ test('предсказание: сколько останется к зарпл�
   const usual = sheet.getByRole('button', { name: /^Вдали от крупных трат/ });
   const large = sheet.getByRole('button', { name: /^Во власти крупных трат/ });
   const how = sheet.locator('details.fold', {hasText: 'Как считается'});
-  const planFold = sheet.locator('details.fold', {hasText: 'Мои планы'});
+  const planFold = sheet.locator('details.fc-future');
   await expect(usual).toHaveAttribute('aria-pressed', 'false');
   await expect(large).toHaveAttribute('aria-pressed', 'false');
-  await expect(how).toHaveJSProperty('open', false);
+  await expect(how).toHaveCount(0);
   await expect(planFold).toHaveJSProperty('open', false);
   await usual.press('Enter');
   await expect(usual).toHaveAccessibleName('Вдали от крупных трат · ~10 000 ₽');
@@ -734,14 +734,18 @@ test('предсказание: сколько останется к зарпл�
   await expect(usual).toHaveAttribute('aria-pressed', 'false');
   await expect(large).toHaveAttribute('aria-pressed', 'true');
   await usual.click();
-  await how.locator('summary').click();
-  await expect(how).toHaveJSProperty('open', true);
+  await planFold.locator('summary').click();
+  await expect(planFold).toHaveJSProperty('open', true);
+  await expect(planFold.locator('.fc-future-row')).toHaveCount(3);
+  await expect(planFold).toContainText('Покупки по плану');
+  await expect(planFold).toContainText('Повседневные траты');
+  await expect(planFold).toContainText('Крупные покупки (если будут)');
   await expect(usual).toHaveAttribute('aria-pressed', 'true');
   await expect(large).toHaveAttribute('aria-pressed', 'true');
-  await how.locator('summary').click();
+  await planFold.locator('summary').click();
   // доп. блоки свёрнуты; форма добавления — после «+ Добавить план»
   await expect(sheet.locator('#fc_amt')).toHaveCount(0);
-  await sheet.locator('details.fold', {hasText: 'Мои планы'}).locator('summary').click();
+  await planFold.locator('summary').click();
   await sheet.getByRole('button', {name: '+ Добавить план'}).click();
   await expect(sheet.locator('#fc_amt')).toBeVisible();
   // свой план: по средам 2 000, половину вернут
@@ -757,7 +761,7 @@ test('предсказание: сколько останется к зарпл�
   expect(f.left).toBeDefined();
   await expect(usual).toHaveAttribute('aria-pressed', 'true');
   await expect(large).toHaveAttribute('aria-pressed', 'true');
-  await expect(planFold.locator('summary')).toContainText('Мои планы · 1');
+  await expect(planFold.locator('summary')).toContainText('Что грядёт · 1');
   await sheet.getByRole('button', {name: 'Изменить план'}).click();
   await expect(sheet.locator('#fc_amt')).toHaveValue('2000');
   await expect(sheet.locator('#fc_half')).toBeChecked();
@@ -766,14 +770,14 @@ test('предсказание: сколько останется к зарпл�
   expect((await stored(page)).fcPlans.map(p => p.amt)).toEqual([3500]);
   await page.click('[data-a=fcDel]');
   expect((await stored(page)).fcPlans.length).toBe(0);
-  await expect(planFold.locator('summary')).toContainText('Мои планы · 0');
+  await expect(planFold.locator('summary')).toContainText('Что грядёт · 0');
   await expect(large).toHaveAttribute('aria-pressed', 'true');
   await sheet.getByRole('button', {name: 'Понятно'}).click();
   await page.click('[data-a=fcOpen]');
   await expect(usual).toHaveAttribute('aria-pressed', 'false');
   await expect(large).toHaveAttribute('aria-pressed', 'false');
   await expect(planFold).toHaveJSProperty('open', false);
-  await expect(how).toHaveJSProperty('open', false);
+  await expect(how).toHaveCount(0);
   expect(errs).toEqual([]);
 });
 

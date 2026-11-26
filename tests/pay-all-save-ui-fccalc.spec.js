@@ -264,7 +264,7 @@ test('B8: life mode leftover shown; toggling all clears life leftover in lifePay
  expect(r.back).toBe(749);
 });
 
-test('B9: fc how lists receipt dates/names; allSave shows 0 ₽ на жизнь',async({page})=>{
+test('B9: allSave keeps receipt dates/names and zero life money; forecast hides detailed breakdown',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-26';S.demo=false;S.simple=false;S.irreg=false;S.rare=[];S.planFrom='2026-11-26';S.fcPlans=[];
   S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',start:0}];
@@ -285,29 +285,27 @@ test('B9: fc how lists receipt dates/names; allSave shows 0 ₽ на жизнь'
   const f=fcCalc();
   sh={id:'fc',fc:1};fcSheet();
   const html=document.getElementById('ov').innerHTML;
-  const howOpen=document.querySelector('#ov details.fold');
-  // open «Как считается»
-  var how=null;
-  document.querySelectorAll('#ov details.fold').forEach(function(d){if(/Как считается/.test(d.textContent))how=d});
-  if(how)how.open=true;
-  const howHtml=how?how.innerHTML:'';
   return {
    nd:f&&f.nd,inc:f&&f.inc,incs:f&&f.incs,due:f&&f.due,
    sheetHasWhatIf:/id="fc_wif"/.test(html),
    sheetHasDue:/Платежи и копилки/.test(html),
-   howHasDate:/5\s*дек|декабр/i.test(howHtml)||/05\.12|5\./.test(howHtml),
-   howHasName:/Мелочь/.test(howHtml),
-   howHasZero:/0\s*₽\s*на жизнь/.test(howHtml)||/0&nbsp;₽ на жизнь/.test(howHtml)||/0\s*₽/.test(howHtml)&&/на жизнь/.test(howHtml),
-   howHtml:howHtml.slice(0,800)
+   sheetHasHow:!!document.querySelector('#ov .fcforecast-how'),
+   sheetHasFuture:!!document.querySelector('#ov .fc-future'),
+   hasReceiptName:f.incs.some(x=>x.name==='Мелочь'),
+   hasReceiptDate:f.incs.some(x=>x.name==='Мелочь'&&x.date==='2026-12-05')
   };
  });
  expect(r.incs.length).toBeGreaterThan(0);
  expect(r.incs.some(x=>x.allSave)).toBe(true);
  expect(r.incs.filter(x=>x.allSave).every(x=>x.life===0)).toBe(true);
  expect(r.sheetHasWhatIf).toBe(false);
- expect(r.sheetHasDue).toBe(true);
- expect(r.howHasName).toBe(true);
- expect(r.howHasZero).toBe(true);
+ expect(r.sheetHasDue).toBe(false);
+ expect(r.sheetHasHow).toBe(false);
+ expect(r.sheetHasFuture).toBe(true);
+ expect(r.hasReceiptName).toBe(true);
+ expect(r.hasReceiptDate).toBe(true);
+ expect(r.inc).toBe(2736);
+ expect(r.due).toBe(2736);
 });
 
 test('B10: fcIncList matches fcCalc — no boundary payout on nd',async({page})=>{

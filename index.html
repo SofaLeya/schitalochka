@@ -214,6 +214,16 @@ html.bigtext{zoom:1.14}
 .balrow{display:flex;align-items:center;gap:10px}.hcards{display:flex;flex-wrap:nowrap;gap:6px;margin:8px -4px 2px;padding:0 4px 2px;overflow-x:auto;scrollbar-width:none}.hcards::-webkit-scrollbar{display:none}.hcard{flex:none;white-space:nowrap;border:0;border-radius:999px;padding:6px 11px;background:rgba(255,255,255,.16);color:inherit;font:inherit;font-size:13px;font-weight:700;cursor:pointer;line-height:1.2;text-align:left}.hcard i{font-style:normal;opacity:.75;font-weight:600}.hcard.add{background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.35)}
 .fcb{display:block;width:100%;margin-top:12px;height:40px;border-radius:14px;border:0;background:rgba(255,255,255,.18);color:inherit;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 .fcbig{font-size:15px;line-height:1.4}.fcbig b{display:block;font-size:30px;margin:4px 0}
+.sheet details.fold{background:var(--surface);border-radius:14px;padding:0 14px;margin-top:10px}
+.sheet details.fold>summary{cursor:pointer;font-weight:700;padding:12px 0;list-style:none;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sheet details.fold>summary::-webkit-details-marker{display:none}
+.sheet details.fold>summary::after{content:'';flex:none;width:8px;height:8px;margin:6px 4px 0 auto;border-right:2.5px solid var(--accent);border-bottom:2.5px solid var(--accent);transform:rotate(45deg);transition:transform .15s}
+.sheet details.fold[open]>summary::after{transform:rotate(-135deg);margin-top:10px}
+.sheet details.fold .fcfold{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
+.fcsum{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.fcsum:last-child{border-bottom:0;font-weight:700;padding-top:8px}
+.fcsum .lbl{color:var(--muted);min-width:0}
+.fcmeta .row{padding:4px 0}
 .pcard{flex:none;height:34px;border-radius:999px;border:0;background:rgba(255,255,255,.25);color:inherit;font:inherit;font-size:14px;font-weight:700;padding:0 12px;cursor:pointer;white-space:nowrap}
 .penb{transform:scaleX(-1);flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:inherit;font-size:17px;line-height:1;padding:0;cursor:pointer}
 .hero .ibtn{width:18px;height:18px;font-size:11px;border-color:currentColor;color:inherit;opacity:.85;vertical-align:middle}
@@ -1482,12 +1492,16 @@ function nextLifePayoutDate(ev,after){
 
 /* «Предсказание»: сколько останется к ближайшей зарплате.
    Темп - по последним 2 неделям (дни с записями или отмеченные «без трат»), траты на жизнь за вычетом возвратов.
-   Редкие огромные покупки (больше 3 дневных планов) в темп не входят. Вторая цифра - без крупных покупок:
+   Редкие огромные покупки (больше 3 дневных планов) в темп не входят. Вторая цифра - если сократить необязательные траты:
    всё, кроме продуктов, кафе, транспорта и такси, от четверти дневного плана. Свои планы (например, продукты по понедельникам)
    добавляются отдельно, а прошлые траты этой категории в этот день недели из темпа убираются, чтобы не посчитать дважды. */
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
 function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()+perNote()}
 function bankCardWrap(h){return h+bankCard()}
+function fcRound(v){return money(Math.round(v/lc(100))*lc(100))}
+function fcFold(title,count,body,open){
+  return '<details class="fold"'+(open?' open':'')+'><summary><span>'+title+'</span>'+(count!=null?'<span class="fine" style="font-weight:500">'+count+'</span>':'')+'</summary><div class="fcfold">'+body+'</div></details>';
+}
 function fcEnd(){
   // Прогноз до следующей выплаты с деньгами на жизнь (allSave-выплаты пропускаем).
   try{var ev=plannedItems(T,sourceForecastDays()),nd=nextLifePayoutDate(ev,T);if(nd)return nd}catch(e){}
@@ -1542,32 +1556,62 @@ function fcCalc(){
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
   var avail=balance()-due+inc,pace=P.pace,paceB=P.paceB;
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
-function fcPlansHtml(prow,irr){var f={prow:prow};
-  var rows=f.prow.length?'<div class="list">'+f.prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'';
-  return '<h4 style="margin:18px 0 6px">Мои планы'+(irr?'':' до зарплаты')+' '+tipBtn('fc_pl')+'</h4>'+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+rows+
-   '<div class="f" style="gap:10px;margin-top:8px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,'prod')+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000"></div></div>'+
-   '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'">по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"> вернут половину</label></div>'+
-   '<button type="button" class="btn ghost" data-a="fcAdd">Добавить план</button></div>'}
+function fcPlansHtml(prow,irr){
+  var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||sh.fcForm));
+  var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
+  var formHtml=form
+   ?'<div class="f" style="gap:10px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,'prod')+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000"></div></div>'+
+    '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'">по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"> вернут половину</label></div>'+
+    '<div class="btns"><button type="button" class="btn ghost sm" data-a="fcFormHide">Отмена</button><button type="button" class="btn sm" data-a="fcAdd">Сохранить план</button></div></div>'
+   :'<button type="button" class="btn ghost sm" data-a="fcFormShow">+ Добавить план</button>';
+  var body=tipBtn('fc_pl')+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+rows+formHtml;
+  return fcFold('Мои планы'+(irr?'':' до зарплаты'),n+' '+plw(n,'план','плана','планов'),body,open);
+}
+function fcHowHtml(lines){
+  return fcFold('Как считается',null,'<div>'+lines.map(function(x){return '<div class="fcsum"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
+}
 function fcIrrBody(){var P=fcPace();
   if(P.kn<5)return '<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
-  var r=fcRun(P.pace),rb=fcRun(P.paceB),dd=function(x){return x.date?x.days+' '+plw(x.days,'день','дня','дней')+' - до '+dlabel(x.date):'больше 3 месяцев'};
-  return '<div class="fcbig">При твоём темпе денег хватит на<b>'+(r.date?r.days+' '+plw(r.days,'день','дня','дней'):'3+ месяца')+'</b>'+(r.date?'примерно до '+dlabel(r.date):'')+'</div><p class="fine">Обычный день - около '+money(P.pace)+'.</p>'+
-   (rb.days>r.days?'<div class="note info" style="margin-top:10px"><span>Если обойдёшься без крупных покупок - хватит на '+dd(rb)+'</span></div>':'')+
-   (owedSum()>0?'<div class="note info" style="margin-top:10px"><span>А если заплатят, что должны ('+money(owedSum())+'), - хватит на '+dd(fcRun(P.pace,owedSum()))+'</span></div>':'')+(spOn()?'<p class="fine">Сам себе зарплата из «'+esc(accName(accById(S.selfPay.acc)))+'» уже учтена, пока в буфере есть деньги.</p>':'')}
+  var r=fcRun(P.pace),rb=fcRun(P.paceB),dd=function(x){return x.date?x.days+' '+plw(x.days,'день','дня','дней')+' — до '+dlabel(x.date):'больше 3 месяцев'};
+  var title=r.date?('Хватит примерно до '+dlabel(r.date)):('Хватит на 3+ месяца');
+  var amt=r.date?(r.days+' '+plw(r.days,'день','дня','дней')):'3+ месяца';
+  return '<div class="note '+(r.date&&r.days<14?'warn':'good')+'"><span class="fine">'+title+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+amt+'</b></div>'+
+   '<div class="fcmeta" style="margin-top:8px"><div class="row"><div class="grow fine">Обычные траты в день</div><b>'+money(P.pace)+'</b></div>'+
+   '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+((S.fcPlans||[]).length?((S.fcPlans||[]).length+' '+plw((S.fcPlans||[]).length,'план','плана','планов')):'нет')+'</b></div></div>'+
+   (rb.days>r.days?'<div class="note info" style="margin-top:10px"><span>Если сократить необязательные траты — хватит на '+dd(rb)+'</span></div>':'')+
+   (owedSum()>0?'<div class="note info" style="margin-top:10px"><span>Если заплатят, что должны ('+money(owedSum())+') — хватит на '+dd(fcRun(P.pace,owedSum()))+'</span></div>':'')+
+   (spOn()?'<p class="fine" style="margin:8px 0 0">Сам себе зарплата из «'+esc(accName(accById(S.selfPay.acc)))+'» уже учтена, пока в буфере есть деньги.</p>':'');
+}
 function fcSheet(){
-  var f=fcCalc(),h='<h3>🔮 Предсказание</h3>';
-  if(!f&&S.irreg){openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+'<p class="fine" style="margin-top:14px">Как считается: свободные деньги сейчас ('+money(balance())+') уменьшаются на обычные траты по последним 2 неделям'+(S.simple?'':', платежи по их датам')+' и твои планы, пока не кончатся. Новые доходы не учитываются - их никто не знает заранее.</p><div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>');return}
+  var f=fcCalc(),h='<h3>🔮 Предсказание</h3>',foot='<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>';
+  if(!f&&S.irreg){
+    var howIrr=[['Свободные деньги сейчас',money(balance())],['− Обычные траты','по темпу последних 2 недель']];
+    if(!S.simple)howIrr.push(['− Платежи','по их датам']);
+    howIrr.push(['− Мои планы','по выбранным дням недели'],['Новые доходы','не учитываются заранее']);
+    openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+fcHowHtml(howIrr)+foot);return}
   if(!f&&hasIncomeSchedule()){openSheet(h+'<p>Нет ближайших запланированных поступлений. Проверь график доходов или включи режим нерегулярного дохода.</p><div class="btns"><button type="button" class="btn ghost" data-a="editIncomeCalendar">График доходов</button><button type="button" class="btn" data-a="close">Закрыть</button></div><button type="button" class="btn ghost" data-a="irrOn">Доход нерегулярный</button>');return}
   if(!f){openSheet(h+'<p>Чтобы предсказать, сколько останется к зарплате, нужны дни зарплаты.</p><div class="f"><label for="fc_pd">Дни зарплаты</label><input id="fc_pd" inputmode="numeric" placeholder="например: 10, 25"></div><div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="fcPd">Сохранить</button></div><button type="button" class="btn ghost" style="width:100%;margin-top:10px" data-a="irrOn">Доход нерегулярный (смены, почасовая)</button>');return}
   var dt=dlabel(f.nd),body;
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
-  else{var r=function(v){return money(Math.round(v/lc(100))*lc(100))};
-    body='<div class="fcbig">'+(f.left>=0?'К '+dt+' останется примерно<b>'+r(f.left)+'</b>':'К '+dt+' не хватит примерно<b>'+r(-f.left)+'</b>')+'</div>'+
-    '<p class="fine">Если тратить как обычно: около '+money(f.pace)+' в день, ещё '+f.dl+' '+plw(f.dl,'день','дня','дней')+(f.pc>0?', плюс свои планы '+money(f.pc):'')+'.'+(f.left<0&&f.dl?(f.avail-f.pc>0?' Чтобы дотянуть - до '+money((f.avail-f.pc)/f.dl)+' в день.':' Свободных денег уже не хватает на платежи до зарплаты - стоит взять из копилки или отложить что-то из трат.'):'')+'</p>'+
-    (f.leftB-f.left>=lc(100)?'<div class="note info" style="margin-top:10px"><span>Если обойдёшься без крупных покупок - '+(f.leftB>=0?'останется ~'+r(f.leftB):'не хватит ~'+r(-f.leftB))+'</span></div>':'')}
-  openSheet(h+body+fcPlansHtml(f.prow)+
-   '<p class="fine" style="margin-top:14px">Как считается: свободные деньги сейчас ('+money(balance())+')'+(f.due>0?' минус платежи и раскладка до зарплаты ('+money(f.due)+')':'')+(f.inc>0?' плюс ожидаемые поступления до неё ('+money(f.inc)+')':'')+', минус обычные траты по последним 2 неделям. Планы по дням недели вычитаются отдельно и не входят в «обычный день». Сегодняшние траты уже учтены. Очень крупные покупки (от '+money(f.huge)+') в «обычный день» не входят.</p>'+
-   '<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>')}
+  else{
+    var ok=f.left>=0,heroCls=ok?'good':(f.left>-lc(5000)?'warn':'bad');
+    body='<div class="note '+heroCls+'"><span class="fine">К '+dt+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+(ok?'останется ~'+fcRound(f.left):'не хватит ~'+fcRound(-f.left))+'</b></div>'+
+    '<div class="fcmeta" style="margin-top:8px"><div class="row"><div class="grow fine">Обычные траты в день</div><b>'+money(f.pace)+'</b></div>'+
+    '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+(f.pc>0?money(f.pc)+' · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'):'нет · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'))+'</b></div></div>'+
+    (f.left<0&&f.dl?(f.avail-f.pc>0?'<p class="fine" style="margin:8px 0 0">Чтобы дотянуть — до '+money((f.avail-f.pc)/f.dl)+' в день.</p>':'<p class="fine" style="margin:8px 0 0">Свободных денег уже не хватает на платежи до зарплаты.</p>'):'')+
+    (f.leftB-f.left>=lc(100)?'<div class="note info" style="margin-top:10px"><span>Если сократить необязательные траты — '+(f.leftB>=0?'останется ~'+fcRound(f.leftB):'не хватит ~'+fcRound(-f.leftB))+'</span></div>':'');
+  }
+  var how=[['Свободные деньги сейчас',money(balance())]];
+  if(f.due>0)how.push(['− Платежи и раскладка',money(f.due)]);
+  if(f.inc>0)how.push(['+ Ожидаемые поступления',money(f.inc)]);
+  if(f.kn>=5){
+    how.push(['− Обычные траты ('+money(f.pace)+' × '+f.dl+')',money(f.pace*f.dl)]);
+    if(f.pc>0)how.push(['− Мои планы',money(f.pc)]);
+    how.push(['Прогноз к '+dt,fcRound(f.left)]);
+    how.push(['Крупные покупки от '+money(f.huge),'не в «обычный день»']);
+  }
+  openSheet(h+body+fcPlansHtml(f.prow)+fcHowHtml(how)+foot);
+}
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&!isLive(a))}
 // Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.
 // Проверяем исходный день выплаты, а не перенесённую на сегодня дату просроченного правила.
@@ -5006,9 +5050,11 @@ document.addEventListener('click',function(ev){
   else if(a==='pctDo'){var px=S.entries.filter(function(e){return e.id===id})[0];if(px){var pids=[];pctParts(px).forEach(function(o){var t={id:uid(),type:'t',amt:o.v,cat:'',date:px.date,note:o.r.pct+'% с дохода',cls:'',from:px.acc||defAcc(),to:o.r.acc,pctOf:px.id};S.entries.push(t);pids.push(t.id)});save();closeSheet();render();toast('Разложено',false,function(){S.entries=S.entries.filter(function(e){return pids.indexOf(e.id)<0});save();render();toast('Отменено')})}}
   else if(a==='curShow'){readEntry();sh.d.curShow=1;entrySheet()}
   else if(a==='fcOpen'){sh={id:'fc',fc:1};fcSheet()}
+  else if(a==='fcFormShow'){if(!sh)sh={id:'fc',fc:1};sh.fcForm=1;sh.fcPlansOpen=1;fcSheet()}
+  else if(a==='fcFormHide'){if(sh){sh.fcForm=0;sh.fcPlansOpen=1}fcSheet()}
   else if(a==='fcAdd'){var fa=+String(document.getElementById('fc_amt').value||'').replace(',','.').replace(/\s/g,'');if(!(fa>0)){toast('Впиши сумму');return}
-    S.fcPlans=(S.fcPlans||[]).concat([{id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked}]);save();fcSheet()}
-  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();fcSheet()}
+    S.fcPlans=(S.fcPlans||[]).concat([{id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked}]);save();if(!sh)sh={id:'fc',fc:1};sh.fcForm=0;sh.fcPlansOpen=1;fcSheet()}
+  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();if(!sh)sh={id:'fc',fc:1};sh.fcPlansOpen=1;fcSheet()}
   else if(a==='fcPd'){var fpd=String(document.getElementById('fc_pd').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);if(!fpd.length){toast('Впиши числа, например 10, 25');return}S.payDays=fpd;save();render();fcSheet()}
   else if(a==='askDel'){sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
   else if(a==='noDel'){sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}

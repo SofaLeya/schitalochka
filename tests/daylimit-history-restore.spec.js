@@ -414,7 +414,7 @@ test('migration reopens completed restore and repairs bad transition-day limit i
  expect(r.v).toBeCloseTo(r.candidate,5);
  expect(r.after).toBeCloseTo(r.candidate,5);
  expect(r.approx).toBe(true);
- expect(r.rev).toBe(4);
+ expect(r.rev).toBe(5);
  expect(r.old).toBe(1200);
  expect(r.afterSync).toBeCloseTo(r.candidate,5);
  expect(r.approxSync).toBe(true);
@@ -453,6 +453,8 @@ test('fillGaps restores missing days between backups across full operation histo
   var filled=planHistFillGaps(h,a,sources);
   planHistMergeIntoS(h,a);
   var legEarly=g2LegacyFromState(early,'2026-11-20'),legLate=g2LegacyFromState(late,'2026-11-23');
+  // legacy только через restore, не FromState/seal
+  g2LegacyRestore(sources);
   g2ProgressSeal();
   var g=g2();
   return {
@@ -542,7 +544,7 @@ test('regression: backup g2L=6 restores level after update dropped it to 3',asyn
  expect(r.stars).toBeGreaterThanOrEqual(r.min6);
  expect(r.gL).toBe(6);
  expect(r.gStars).toBeGreaterThanOrEqual(r.min6);
- expect(r.rev).toBe(4);
+ expect(r.rev).toBe(5);
  expect(r.at20).toBeGreaterThan(0);
  expect(r.approx20).toBe(true);
 });
@@ -623,7 +625,17 @@ test('real archive fixtures: fill Oct–Nov including 2026-11-24 as approx',asyn
   var filled=planHistFillGaps(h,a,sources);
   planHistMergeIntoS(h,a);
   if(planHistCycleRepair(S,T))planHistApplyCycleRepair(planHistCycleRepair(S,T));
+  // FromState больше не поднимает legacy — только одноразовый restore
+  var beforeLegacy=+S.g2Stars||0;
+  g2LegacyRestore(sources);
   g2ProgressSeal();
+  // повторный sync-путь FromState не должен раздувать пол через legacy
+  var afterRestore=+S.g2Stars||0;
+  packs.forEach(function(pack,i){
+   g2ProgressLift(g2ProgressFromState(pack,fileDays[i]));
+  });
+  g2ProgressSeal();
+  var afterSync=+S.g2Stars||0;
   var missing=[],oct=[],nov=[];
   for(var d=2;d<=31;d++){
    var day='2026-10-'+p2(d);
@@ -641,19 +653,25 @@ test('real archive fixtures: fill Oct–Nov including 2026-11-24 as approx',asyn
    missing:missing.slice(0,20),missingN:missing.length,
    octN:oct.length,novN:nov.length,filled:filled.n,
    g2L:S.g2L,g2Stars:S.g2Stars,g2From:S.g2From,min6:g2MinStars(6),legMax:legMax,
+   beforeLegacy:beforeLegacy,afterRestore:afterRestore,afterSync:afterSync,
    gStars:g.stars,until7:g.nx-g.stars,
    mps:mps,review:reviewCard(),
    legacySample:planHistEvalDayLimit(packs[3].data||packs[3],'2026-11-23',packs[3]),
-   asOfs:sources.map(function(s){return s.asOf})
+   asOfs:sources.map(function(s){return s.asOf}),
+   legNov25:g2LegacyFromState(packs[5],'2026-11-25')
   };
  },data);
  expect(r.asOfs).toEqual(['2026-11-20','2026-11-21','2026-11-22','2026-11-23','2026-11-24','2026-11-25']);
  expect(r.g2L).toBe(6);
- // контрольный сценарий: внутри уровня, не только порог 1000; без хардкода 1340
- expect(r.legMax).toBeGreaterThan(r.min6);
- expect(r.g2Stars).toBe(Math.max(r.min6,r.legMax));
+ // контроль на сыром архиве: Nov25 legacy = 1310 (уровень 6, до 7 — 130), не только порог 1000
+ expect(r.legNov25).toBe(1310);
+ expect(r.legMax).toBe(1310);
+ expect(r.g2Stars).toBe(1310);
+ expect(r.afterRestore).toBe(1310);
+ expect(r.afterSync).toBe(1310); // sync/FromState не пересчитывает legacy повторно
+ expect(r.beforeLegacy).toBe(r.min6); // до legacy — только порог из g2L
  expect(r.gStars).toBeGreaterThanOrEqual(r.g2Stars);
- expect(r.until7).toBeLessThan(440); // ещё внутри уровня 6→7
+ expect(r.until7).toBe(130);
  expect(r.at24).toBeGreaterThan(0);
  expect(r.approx24).toBe(true);
  expect(r.at20).toBeGreaterThan(0);
@@ -711,7 +729,7 @@ test('month plan: approx-complete shows ≈; awards still require exact',async({
  expect(r.st12).toBe('nolim');
 });
 
-test('already-migrated rev3 re-runs for legacy star floor (rev4)',async({page})=>{
+test('already-migrated rev3 re-runs for legacy star floor (rev5)',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-26';S.demo=false;S.simple=true;S.dayLimit=2000;S.dlForm=DL_FORM;
   S.planHistRestored=1;S.planHistRestoreRev=3; // прошли #39 — только порог уровня
@@ -735,11 +753,12 @@ test('already-migrated rev3 re-runs for legacy star floor (rev4)',async({page})=
   var before={stars:S.g2Stars,rev:S.planHistRestoreRev};
   var leg=g2LegacyFromState(pack,'2026-11-20');
   return planHistRestore().then(function(){
-   return {before:before,after:{stars:S.g2Stars,L:S.g2L,from:S.g2From,rev:S.planHistRestoreRev},leg:leg,min6:g2MinStars(6)};
+   return {before:before,after:{stars:S.g2Stars,L:S.g2L,from:S.g2From,rev:S.planHistRestoreRev},leg:leg,min6:g2MinStars(6),revConst:PLAN_HIST_RESTORE_REV};
   });
  });
  expect(r.before.rev).toBe(3);
- expect(r.after.rev).toBe(4);
+ expect(r.revConst).toBe(5);
+ expect(r.after.rev).toBe(5);
  expect(r.leg).toBeGreaterThan(r.min6);
  expect(r.after.stars).toBe(Math.max(r.min6,r.leg,r.before.stars));
  expect(r.after.L).toBe(6);

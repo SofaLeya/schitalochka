@@ -309,3 +309,42 @@ test('B9: fc how lists receipt dates/names; allSave shows 0 ₽ на жизнь'
  expect(r.howHasName).toBe(true);
  expect(r.howHasZero).toBe(true);
 });
+
+test('B10: fcIncList matches fcCalc — no boundary payout on nd',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-26';S.demo=false;S.simple=false;S.irreg=false;S.rare=[];S.planFrom='2026-11-26';S.fcPlans=[];
+  S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',start:0}];
+  S.incomes=[
+   {id:'salary',day:25,amt:55000,name:'Зарплата'},
+   {id:'small',day:5,amt:2736,name:'Мелочь'},
+   {id:'next',day:10,amt:57000,name:'Аванс'}
+  ];
+  S.rules=[{id:'r25',day:25,acc:'save',amt:30000},{id:'r5',day:5,acc:'save',amt:1987}];
+  S.recur=[];
+  S.entries=[
+   {id:'income',type:'i',iid:'salary',date:'2026-11-25',amt:55000,acc:'main',cat:'salary'},
+   {id:'tr25',type:'t',rule:'r25',date:'2026-11-25',amt:30000,from:'main',to:'save'}
+  ];
+  S.payAllSave={5:'rules'};
+  for(var i=1;i<=10;i++)S.entries.push({id:'k'+i,type:'e',cat:'cafe',amt:500,date:iso(addDays(parse(T),-i)),acc:'main'});
+  var f=fcCalc(),list=fcIncList(f.nd);
+  var onBoundary=list.filter(function(x){return x.date===f.nd});
+  var sumAmt=list.reduce(function(a,x){return a+(+x.amt||0)},0);
+  // cashUntil path for same window
+  var ev=plannedItems(T,sourceForecastDays()),nextPay={},nextYm={};
+  ev.forEach(function(e){if(e.kind==='in'&&e.date===f.nd){if(e.payDay!=null)nextPay[+e.payDay]=1;if(e.ym)nextYm[e.ym]=1}});
+  var cf=cashUntil(ev,f.nd,nextPay,nextYm,{});
+  return {
+   nd:f.nd,fInc:f.inc,cfInc:cf.inc,list:list,onBoundary:onBoundary.length,
+   sumAmt:sumAmt,names:list.map(function(x){return x.name}),
+   hasAdvance:list.some(function(x){return /Аванс/.test(x.name)}),
+   hasSmall:list.some(function(x){return /Мелочь/.test(x.name)})
+  };
+ });
+ expect(r.nd).toBeTruthy();
+ expect(r.onBoundary).toBe(0); // выплата на границе nd не в списке
+ expect(r.hasAdvance).toBe(false); // Аванс = nd
+ expect(r.hasSmall).toBe(true); // Мелочь до границы
+ expect(r.fInc).toBe(r.cfInc);
+ expect(r.sumAmt).toBe(r.fInc); // суммы списка = учтённый inc (allSave life=0, amt полный)
+});

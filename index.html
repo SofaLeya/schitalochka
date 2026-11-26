@@ -1526,13 +1526,14 @@ function fcPace(){
         all+=v;if(EV[x.cat]||v<big)base+=v}
       else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]&&isLiveId(accOf(x))){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,hugeS:hugeS,huge:huge,pl:pl}}
-/* Список ожидаемых поступлений до границы прогноза (даты, названия, суммы; allSave → 0 ₽ на жизнь). */
+/* Список ожидаемых поступлений, учтённых в fcCalc/cashUntil (даты, названия, суммы; allSave → 0 ₽ на жизнь).
+   Граница nd не входит: cashUntil пропускает e.date>=nd. */
 function fcIncList(nd){
   if(S.simple||!nd)return [];
   try{
     var ev=plannedItems(T,sourceForecastDays()),rows=[];
     ev.forEach(function(e){
-      if(e.kind!=='in'||e.date<=T||e.date>nd)return;
+      if(e.kind!=='in'||e.date<=T||e.date>=nd)return;
       var lifeAmt=e.allSave?0:(+e.amt||0);
       rows.push({date:e.date,name:e.name||'Поступление',amt:+e.amt||0,life:lifeAmt,allSave:!!e.allSave});
     });
@@ -1978,7 +1979,7 @@ function planHistEvalDayLimit(src, day, state){
 /* 25.11 — переходная дата релизов с ошибочным расчётом цикла. Восстанавливаем
    только если снимок после исправления доказывает тот же цикл и неизменный бюджет.
    Это реконструкция, не точный исторический снимок. Не зависит от сумм/счетов пользователя. */
-var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=4;
+var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=5;
 function planHistCycleRepair(state,asOf){
   var src=planHistUnpack(state)||state,d=PLAN_HIST_REPAIR_DAY;
   if(!src||src.simple||src.irreg||!asOf||asOf<'2026-11-26'||asOf>T||!Array.isArray(src.accounts)||!Array.isArray(src.entries)||!(src.incomes||[]).length)return 0;
@@ -4108,9 +4109,8 @@ function g2ProgressFromState(state,asOf){
   // уровень мог вырасти из live поверх пола (иначе 6→7 удваивает live).
   if(L>0&&!(+src.g2Stars>0))stars=g2MinStars(L);
   else if(L>0&&!src.g2From)stars=Math.max(stars,g2MinStars(L));
-  // Пересчёт по дорефакторинговой логике на снимке — восстанавливает ★ внутри уровня, не только порог.
-  var legacy=g2LegacyFromState(state,asOf||planHistResolveAsOf(state,null,null));
-  if(legacy>stars)stars=legacy;
+  // g2LegacyStars — только в planHistRestore (одноразовый подъём пола), не здесь:
+  // иначе sync/ydAdopt/миграции пересчитывают legacy повторно.
   if(!L&&stars>0)L=g2LevelOf(stars);
   else if(stars>0)L=Math.max(L,g2LevelOf(stars));
   if(!L&&!stars)return null;
@@ -4130,24 +4130,35 @@ function g2ProgressLift(p){
   if(p.from&&/^\d{4}-\d{2}-\d{2}$/.test(p.from)&&(!S.g2From||p.from>S.g2From)){S.g2From=p.from;ch=true}
   return ch;
 }
-/* Если пол из бэкапов выше текущего пересчёта — отсекаем live с сегодня, чтобы не потерять уровень и не дублировать старое. */
+/* Если пол из бэкапов выше текущего пересчёта — отсекаем live с сегодня, чтобы не потерять уровень и не дублировать старое.
+   Legacy-пересчёт сюда не входит: только одноразово в planHistRestore через g2LegacyRestore. */
 function g2ProgressSeal(){
   if(S.demo)return false;
   var prev=S.g2From;S.g2From=null;
-  var live=0,legacy=0;
+  var live=0;
   try{live=+(g2().live||0)}catch(e){live=0}
-  try{legacy=g2LegacyStars()||0}catch(e){legacy=0}
   finally{S.g2From=prev}
   var banked=+S.g2Stars||0,ch=false;
   if(!S.g2From)banked=Math.max(banked,g2MinStars(+S.g2L||0));
   else if(!banked)banked=g2MinStars(+S.g2L||0);
-  if(legacy>banked){banked=legacy;ch=true}
   if(live>banked){S.g2Stars=live;ch=true;banked=live}
   if(banked>(+S.g2Stars||0)){S.g2Stars=banked;ch=true}
   if(banked>live&&!S.g2From){S.g2From=T;ch=true}
   var L=Math.max(+S.g2L||0,g2LevelOf(Math.max(banked,+S.g2Stars||0)));
   if(L>(+S.g2L||0)){S.g2L=L;ch=true}
   return ch;
+}
+/* Одноразовый подъём пола ★ по дорефакторинговому g2 на снимках (только planHistRestore). */
+function g2LegacyRestore(sources){
+  if(S.demo||!sources||!sources.length)return false;
+  var max=0;
+  sources.forEach(function(s){
+    if(!s||!s.state)return;
+    var leg=g2LegacyFromState(s.state,s.asOf||planHistResolveAsOf(s.state,null,null))||0;
+    if(leg>max)max=leg;
+  });
+  if(!(max>0))return false;
+  return g2ProgressLift({L:g2LevelOf(max),stars:max,from:null});
 }
 function g2(){
   var lim=dayLimit(),PD=petDay(),ns={};(S.noSpend||[]).forEach(function(d){ns[d]=1});
@@ -6260,6 +6271,8 @@ async function planHistRestore(){
     if(needLocal||needCloud)acc(planHistFillGaps(h,approx,sources));
     planHistMergeIntoS(h,approx);
     if(repair&&planHistApplyCycleRepair(repair)){added++;approxN++}
+    // Legacy ★ только здесь (один проход ревизии), не в sync/seal/FromState
+    if((needLocal||needCloud)&&sources.length){if(g2LegacyRestore(sources))progLift=true}
     if(progLift||needLocal){if(g2ProgressSeal())progLift=true}
     if(restoredFlag){S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV}
     if(added>0||progLift){

@@ -1841,16 +1841,17 @@ function planHistFormOf(state, asOf){
   return planHistInferForm(state, asOf);
 }
 /* До cycleDayPlan полный режим считался иначе — пересчёт только для стабильных путей. */
-function planHistEraStable(state){
+function planHistEraStable(state,day){
   var src=planHistUnpack(state)||state;
   if(!src||typeof src!=='object')return false;
-  if(!src.simple&&!src.irreg&&(src.incomes||[]).length)return false;
+  // Проверенная версия до перехода на расчёт по выплатам (19–24 ноября).
+  if(!src.simple&&(src.incomes||[]).length)return day>='2026-11-19'&&day<='2026-11-24'&&!(src.incomes||[]).some(function(r){return r.source||r.sourceParent||r.payroll})&&!src.payAllSave;
   return true;
 }
 function planHistCanEval(state, asOf){
   var f=planHistFormOf(state, asOf);
   if(f===DL_FORM)return true;
-  if(f===DL_FORM_PRE)return planHistEraStable(state);
+  if(f===DL_FORM_PRE)return planHistEraStable(state,planHistSnapDay(state,asOf));
   return false;
 }
 function ensureDlForm(){if(S.demo)return false;if(S.dlForm===DL_FORM)return false;S.dlForm=DL_FORM;return true}
@@ -1865,6 +1866,19 @@ function planHistResolveAsOf(pack, fileDay, snapTs){
   if(saved&&file&&Math.abs(diffDays(saved,file))>1)return null;
   return saved||file||null;
 }
+/* Формула полного режима из релизов 19–24.11, до cycleDayPlan (commit 642c4d6a).
+   Доход по фактическим отметкам, платежи из копилок не вычитаются дважды, условные правила учитываются. */
+function planHistLegacyLimit(){
+  var inc=0,fx=0,sv=0,from={},to={},ym=T.slice(0,7);
+  (S.incomes||[]).forEach(function(r){var v=incomeActual(r,ym);inc+=v===null?(+r.amt||0):v});
+  (S.recur||[]).forEach(function(r){var a=r.acc&&accById(r.acc),v=perMonth(r);if(a&&!isLive(a))from[a.id]=(from[a.id]||0)+v;else fx+=v});
+  (S.rules||[]).forEach(function(r){var a=accById(r.acc),p=r.after&&accById(r.after);if(!a||(p&&p.id!==a.id&&!accReach(p,accBal(p)))||(ruleStops(r,a)&&accReach(a,accBal(a))))return;to[a.id]=(to[a.id]||0)+(+r.amt||0)});
+  var ids={};Object.keys(from).concat(Object.keys(to)).forEach(function(k){ids[k]=1});
+  Object.keys(ids).forEach(function(k){sv+=Math.max(from[k]||0,to[k]||0)});
+  var cfg={inc:inc,fixed:fx,save:sv,irr:rareMonthly()};
+  if(S.irreg){var ii=spOn()?spMonthly():irregInc();if(ii>0){cfg.inc=ii;if(!spOn())cfg.save+=ii*pctSum()/100}}
+  return planCalcVal(cfg);
+}
 /* Пересчёт при известной версии формул (маркер или вывод по дате снимка). */
 function planHistEvalDayLimit(src, day, state){
   if(!planHistCanEval(state!=null?state:src, day))return 0;
@@ -1874,11 +1888,39 @@ function planHistEvalDayLimit(src, day, state){
   try{
     S=migrate(JSON.parse(JSON.stringify(src)));
     T=day;PI_ON=0;PI_C=null;
-    var v=dayLimit();
+    var era=planHistFormOf(state!=null?state:src,day);
+    var v=era===DL_FORM_PRE&&!S.simple&&(S.incomes||[]).length?planHistLegacyLimit():dayLimit();
     return Number.isFinite(v)&&v>0?v:0;
   }catch(e){return 0}
   finally{S=oldS;T=oldT;PI_C=oldPI;PI_ON=oldOn}
 }
+/* 25.11 — переходная дата релизов с ошибочным расчётом цикла. Восстанавливаем
+   только если снимок после исправления доказывает тот же цикл и неизменный бюджет.
+   Это реконструкция, не точный исторический снимок. Не зависит от сумм/счетов пользователя. */
+var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=2;
+function planHistCycleRepair(state,asOf){
+  var src=planHistUnpack(state)||state,d=PLAN_HIST_REPAIR_DAY;
+  if(!src||src.simple||src.irreg||!asOf||asOf<'2026-11-26'||asOf>T||!Array.isArray(src.accounts)||!Array.isArray(src.entries)||!(src.incomes||[]).length)return 0;
+  if(asOf!==T&&planHistFormOf(state,asOf)!==DL_FORM)return 0;
+  var oldS=S,oldT=T,oldPI=PI_C,oldOn=PI_ON;
+  try{
+    S=migrate(JSON.parse(JSON.stringify(src)));T=asOf;PI_ON=0;PI_C=null;
+    var now=cycleDayPlan();if(!now||now.start>d||now.next<=asOf||!(now.v>0))return 0;
+    T=d;S.entries=S.entries.filter(function(e){return e.date<=d});PI_C=null;
+    var then=cycleDayPlan();
+    if(!then||then.start!==now.start||then.next!==now.next||!(then.v>0)||Math.abs(then.v-now.v)>1)return 0;
+    return then.v;
+  }catch(e){return 0}
+  finally{S=oldS;T=oldT;PI_C=oldPI;PI_ON=oldOn}
+}
+function planHistApplyCycleRepair(v){
+  var d=PLAN_HIST_REPAIR_DAY;if(!(d<T)||!Number.isFinite(v)||!(v>0))return false;
+  var h=S.planDayHistory||(S.planDayHistory={}),a=S.planDayHistoryApprox||(S.planDayHistoryApprox={}),r=S.planDayHistoryRepair||(S.planDayHistoryRepair={});
+  if(r[d]===v&&h[d]===v&&a[d])return false;
+  if(!r[d]&&h[d]!=null&&!a[d]&&Math.abs(h[d]-v)<=1)return false;
+  r[d]=v;h[d]=v;a[d]=1;return true;
+}
+function planHistReapplyRepair(){var r=S.planDayHistoryRepair||{};return planHistApplyCycleRepair(+r[PLAN_HIST_REPAIR_DAY])}
 /* exact не перезаписывает exact; exact поднимает approx; approx не трогает exact. */
 function planHistPut(h,approx,d,v,isApprox){
   if(!d||!(d<T)||!Number.isFinite(v)||v<0)return false;
@@ -1895,6 +1937,7 @@ function planHistPut(h,approx,d,v,isApprox){
 function planHistMergeIntoS(hist,approxMap){
   var h=S.planDayHistory||(S.planDayHistory={}),a=S.planDayHistoryApprox||(S.planDayHistoryApprox={});
   Object.keys(hist||{}).forEach(function(d){planHistPut(h,a,d,+hist[d],!!(approxMap&&approxMap[d]))});
+  planHistReapplyRepair();
 }
 function planHistCollectFromState(h,approx,state,asOf){
   var n=0,a=0,src=planHistUnpack(state)||state;
@@ -5898,11 +5941,11 @@ async function ydDownloadPath(path){
   var t=await fetch(j.href,{credentials:'omit',referrerPolicy:'no-referrer'}).then(function(x){return ydOk(x).text()});
   try{return JSON.parse(t)}catch(e){return null}
 }
-function planHistCloudPending(){return ydOn()&&!gdExpired()&&!ydGet().phrCloud}
+function planHistCloudPending(){return ydOn()&&!gdExpired()&&(!ydGet().phrCloud||ydGet().phrCloudRev!==PLAN_HIST_RESTORE_REV)}
 function schedulePlanHistRestore(){
   if(S.demo||!realCount())return;
   // локальный проход одноразовый; облако повторяем после ошибок и при позднем подключении
-  if(S.planHistRestored&&!planHistCloudPending())return;
+  if(S.planHistRestored&&S.planHistRestoreRev===PLAN_HIST_RESTORE_REV&&!planHistCloudPending())return;
   clearTimeout(YD.phrT);
   YD.phrT=setTimeout(function(){planHistRestore().catch(function(){})},50);
 }
@@ -5910,21 +5953,21 @@ async function planHistRestore(){
   if(S.demo||!realCount()||YD.phrBusy)return;
   // не пересекаемся с синком: иначе ydAdopt/merge может стереть восстановленное
   if(YD.busy){clearTimeout(YD.phrT);YD.phrT=setTimeout(function(){planHistRestore().catch(function(){})},400);return}
-  var needLocal=!S.planHistRestored,needCloud=planHistCloudPending();
+  var needLocal=!S.planHistRestored||S.planHistRestoreRev!==PLAN_HIST_RESTORE_REV,needCloud=planHistCloudPending();
   if(!needLocal&&!needCloud)return;
   YD.phrBusy=true;
   // свои карты: если sync всё же сменит S, puts не уйдут в отсоединённый объект
   var h={},approx={};
   Object.keys(S.planDayHistory||{}).forEach(function(d){h[d]=S.planDayHistory[d]});
   Object.keys(S.planDayHistoryApprox||{}).forEach(function(d){approx[d]=S.planDayHistoryApprox[d]});
-  var added=0,approxN=0,cloudOk=false,restoredFlag=!!S.planHistRestored;
+  var added=0,approxN=0,cloudOk=false,restoredFlag=!!S.planHistRestored,repair=+(S.planDayHistoryRepair||{})[PLAN_HIST_REPAIR_DAY]||planHistCycleRepair(S,T);
   function acc(r){if(!r)return;added+=r.n||0;approxN+=r.a||0}
   try{
     if(needLocal){
       try{(snaps()||[]).forEach(function(sx){
         if(!sx||!sx.raw)return;
         var st;try{st=JSON.parse(sx.raw)}catch(e){return}
-        acc(planHistCollectFromState(h,approx,st,planHistResolveAsOf(null,sx.d,sx.t)));
+        var asOf=planHistResolveAsOf(null,sx.d,sx.t);acc(planHistCollectFromState(h,approx,st,asOf));if(!repair)repair=planHistCycleRepair(st,asOf);
       })}catch(e){}
       try{var base=ydBase();if(base)acc(planHistCollectFromState(h,approx,base,null))}catch(e){}
       restoredFlag=1;
@@ -5933,26 +5976,27 @@ async function planHistRestore(){
       try{
         var cloudFail=false;
         var main=await ydDownload();
-        if(main)acc(planHistCollectFromState(h,approx,main,planHistResolveAsOf(main,null,null)));
+        if(main){var md=planHistResolveAsOf(main,null,null);acc(planHistCollectFromState(h,approx,main,md));if(!repair)repair=planHistCycleRepair(main,md)}
         var list=await ydListDailies();
         for(var i=0;i<(list||[]).length;i++){
           var it=list[i];if(!it||!it.path)continue;
           try{
             var pack=await ydDownloadPath(it.path);
-            if(pack)acc(planHistCollectFromState(h,approx,pack,planHistResolveAsOf(pack,it.day,null)));
+            if(pack){var pd=planHistResolveAsOf(pack,it.day,null);acc(planHistCollectFromState(h,approx,pack,pd));if(!repair)repair=planHistCycleRepair(pack,pd)}else cloudFail=true;
           }catch(e1){
             if(e1&&e1.code===401)throw e1;
             cloudFail=true; // одна копия не скачалась — phrCloud не ставим
           }
         }
-        if(!cloudFail){cloudOk=true;ydSet({phrCloud:1})}
+        if(!cloudFail){cloudOk=true;ydSet({phrCloud:1,phrCloudRev:PLAN_HIST_RESTORE_REV})}
       }catch(e2){
         if(e2&&e2.code===401){YD.st=gdOn()?'exp':'err';ydBadge()}
         // сеть/auth: phrCloud не ставим — повторим при следующем подключении/синке
       }
     }
     planHistMergeIntoS(h,approx);
-    if(restoredFlag)S.planHistRestored=1;
+    if(repair&&planHistApplyCycleRepair(repair)){added++;approxN++}
+    if(restoredFlag){S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV}
     if(added>0){
       // saveLocal, не save(): иначе ydChanged→ydSync во время phrBusy
       try{saveLocal()}catch(e){}
@@ -5962,7 +6006,8 @@ async function planHistRestore(){
     }else if(needLocal||cloudOk){try{saveLocal()}catch(e){}}
   }finally{
     planHistMergeIntoS(h,approx);
-    if(restoredFlag)S.planHistRestored=1;
+    if(repair)planHistApplyCycleRepair(repair);
+    if(restoredFlag){S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV}
     YD.phrBusy=false;
     if(YD.phrNeedSync){YD.phrNeedSync=false;ydChanged()}
   }
@@ -6004,10 +6049,12 @@ function ydPack(d){
 }
 function ydEmpty(){return S.demo||!realCount()}
 function ydAdopt(r,mod){
-  var keepH=S.planDayHistory,keepA=S.planDayHistoryApprox,keepR=S.planHistRestored,keepF=S.dlForm;
+  var keepH=S.planDayHistory,keepA=S.planDayHistoryApprox,keepR=S.planHistRestored,keepRev=S.planHistRestoreRev,keepF=S.dlForm,keepRepair=S.planDayHistoryRepair;
   snapTake('pre',true);S=migrate(r.data);S.demo=false;
   if(keepH)planHistMergeIntoS(keepH,keepA);
+  if(keepRepair)planHistApplyCycleRepair(+keepRepair[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
   if(keepR)S.planHistRestored=1;
+  if(keepRev!=null)S.planHistRestoreRev=keepRev;
   if(keepF!=null&&S.dlForm==null)S.dlForm=keepF;
   ensureDlForm();
   saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});ydBaseSet(r.data);
@@ -6033,10 +6080,12 @@ async function ydSync(){
         if(m3eq(merged,r.data))ydAdopt(r,meta.modified);
         else{
           if(!m3eq(merged,mine)){
-            var keepH2=S.planDayHistory,keepA2=S.planDayHistoryApprox,keepR2=S.planHistRestored;
+            var keepH2=S.planDayHistory,keepA2=S.planDayHistoryApprox,keepR2=S.planHistRestored,keepRev2=S.planHistRestoreRev,keepRepair2=S.planDayHistoryRepair;
             snapTake('pre',true);S=migrate(merged);S.demo=false;
             if(keepH2)planHistMergeIntoS(keepH2,keepA2);
+            if(keepRepair2)planHistApplyCycleRepair(+keepRepair2[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
             if(keepR2)S.planHistRestored=1;
+            if(keepRev2!=null)S.planHistRestoreRev=keepRev2;
             ensureDlForm();saveLocal();syncCats();
             if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
           ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data);

@@ -5220,11 +5220,26 @@ function bankOnNow(){try{return bankHas()&&!!AndroidApp.bankOn()}catch(e){return
 var BANK_PKG_EXACT={'ru.sberbankmobile':1,'ru.sberbank_sbbol':1,'com.idamob.tinkoff.android':1,'ru.alfabank.mobile.android':1,'ru.vtb24.mobilebanking.android':1,'ru.otpbank.mobile':1,'ru.gazprombank.android.mobilebank.app':1,'ru.raiffeisennews':1,'com.openbank':1,'ru.letobank.Prometheus':1,'ru.sovcomcard.halva.v1':1,'ru.mkb.mobile':1,'ru.bankuralsib.mb.android':1,'ru.bspb':1,'ru.akbars.mobile':1,'ru.mts.money':1,'ru.unicredit.android':1,'com.yandex.bank':1,'ru.yoo.money':1,'ru.rshb.dbo':1,'ru.bcs.bcsbank':1,'ru.finambank.app':1,'ru.psbank':1,'ru.rosbank.android':1,'ru.ozon.fintech.finance':1,'ru.tochka.bank':1,'ru.modulbank.mobile':1};
 var BANK_PKG_PREFIX=['ru.sberbank','ru.alfabank.','ru.tinkoff.','com.idamob.tinkoff','ru.vtb','ru.gazprombank.','ru.otpbank.','ru.raiffeisen','ru.psbank','ru.rosbank.','ru.rshb.','ru.sovcombank','ru.sovcomcard.','ru.yoo.money','ru.yoomoney','com.yandex.bank','ru.ozon.fintech','ru.wb.','ru.tochka.','ru.modulbank','ru.ftc.faktura.','com.isimplelab.ibank.','com.bifit.mobile.citizen.'];
 function bankPkgOk(pkg){pkg=String(pkg||'');if(!pkg)return false;if(BANK_PKG_EXACT[pkg])return true;for(var i=0;i<BANK_PKG_PREFIX.length;i++)if(pkg.indexOf(BANK_PKG_PREFIX[i])===0)return true;return false}
-function bankParse(t){t=String(t||'').replace(/ /g,' ');
-  var m=/(\d[\d ]*(?:[.,]\d{1,2})?) ?(₽|руб|RUB|р\.)/i.exec(t);if(!m)return null;var amt=parseFloat(m[1].replace(/ /g,'').replace(',','.'));if(!(amt>0))return null;
-  var inc=/(зачисл|поступ|пополн|перевод от|возврат|вернули|кэшбэк|cashback)/i.test(t),out=/(покупк|оплат|списан|снятие|платёж|платеж|перевод)/i.test(t);if(!inc&&!out)return null;
+function bankParse(t){t=String(t||'').replace(/[\u00a0\u202f]/g,' ');
+  var op=t.replace(/\s+/g,' ');
+  if(/(?:^|[^а-яёa-z0-9_])(?:код (?:для|подтверждения)|код из смс|отклон[её]н[ао]?|не (?:выполнен[ао]?|прош[её]л|прошла|удалось)|недостаточно средств|лимит на перевод)(?![а-яёa-z0-9_])/i.test(op))return null;
+  var balance=/(^|[^а-яёa-z0-9_])(?:баланс|доступно|остаток|balans|dostupno|ostatok)(?![а-яёa-z0-9_])/i.exec(op);
+  if(balance)op=op.slice(0,balance.index+balance[1].length);
+  var m=/([+−-]?)(\d[\d ]*(?:[.,]\d{1,2})?) *(?:₽|(?:руб(?:лей|ля|ль)?|RU[BR])(?![а-яёa-z0-9_])|р\.)/i.exec(op);
+  if(!m)return null;var amt=parseFloat(m[2].replace(/ /g,'').replace(',','.'));if(!(amt>0))return null;
+  var kind=/(?:^|[^а-яёa-z0-9_])(?:(зачисл|поступ|пополн|возврат|вернули|кэшбэк|(?:zachislenie|postuplenie|popolnenie|vozvrat|cashback)(?![а-яёa-z0-9_])|(?:входящий|vhodyashchiy|vkhodyashchiy) (?:перевод|perevod)(?![а-яёa-z0-9_]))|покупк|оплат|списан|снятие|плат[её]ж|(?:pokupka|oplata|spisanie|snyatie|platezh)(?![а-яёa-z0-9_])|(?:исходящий|ishodyashchiy|iskhodyashchiy) (?:перевод|perevod)(?![а-яёa-z0-9_]))/i.exec(op);
+  var transfer=/(?:^|[^а-яёa-z0-9_])(?:перевод|perevod)(?![а-яёa-z0-9_])/i.exec(op);
+  if(!kind&&!transfer)return null;
+  var refund=/(?:^|[^а-яёa-z0-9_])(?:возврат|вернули|vozvrat(?![а-яёa-z0-9_]))/i.test(op);
+  var inc=refund||!!(kind&&kind[1]);
+  if(!kind&&transfer){
+    // «Перевод от …» и «Перевод 570 RUR от …» указывают на отправителя.
+    var from=/^ *(?:от|ot)(?![а-яёa-z0-9_])/i;
+    inc=m[1]==='+'||(!m[1]&&(from.test(op.slice(transfer.index+transfer[0].length))||
+      (transfer.index<m.index&&from.test(op.slice(m.index+m[0].length)))));
+  }
   var nm=/(?:покупка|оплата)[^,.\n]*?(?:в|у)\s+([^,.\n;]{2,40})/i.exec(t)||/₽[,.]?\s+([A-ZА-ЯЁ0-9][^,.\n;]{2,40})/.exec(t);
-  return {amt:Math.round(amt*100)/100,type:inc?'i':'e',refund:/(возврат|вернули)/i.test(t),note:nm?nm[1].replace(/\s*(баланс|доступно|остаток).*$/i,'').trim():''}}
+  return {amt:Math.round(amt*100)/100,type:inc?'i':'e',refund:refund,note:nm?nm[1].replace(/\s*(баланс|доступно|остаток).*$/i,'').trim():''}}
 /* Очередь Android → карточка: только известные банки + разбор текста. */
 function bankIngest(l){S.bankQ=S.bankQ||[];var add=0;(l||[]).forEach(function(o){
   if(!bankPkgOk(o&&o.pkg))return;

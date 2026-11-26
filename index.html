@@ -226,19 +226,97 @@ html.bigtext{zoom:1.14}
 .fcsum.sub{font-size:13px;padding:3px 0 3px 10px;border-bottom:0;font-weight:400}
 .fcsum.sub .lbl{font-weight:400}
 .fcmeta .row{padding:4px 0}
-.fcspell{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--accent);background:radial-gradient(ellipse at 92% 5%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 66%),var(--surface2);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:inset 0 0 22px color-mix(in srgb,var(--accent) 13%,transparent)}
-.fcspell .fcstars{position:absolute;right:14px;top:10px;color:var(--accent);font-size:25px;letter-spacing:5px;opacity:.85;text-shadow:0 0 10px var(--accent);pointer-events:none}
-.fcspell .fcstars small{font-size:12px;vertical-align:12px}
-.fcspell .fcspell-result{font-size:clamp(19px,6vw,27px);font-weight:800;line-height:1.15;overflow-wrap:anywhere}
-.fcspell .fcspell-alt{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
-.fcspell .fcspell-alt b{font-size:18px;overflow-wrap:anywhere}
-.fcspell .fcspell-date{padding-right:65px}
-.fcquick{display:flex;flex-direction:column;gap:7px;margin-top:4px}
-.fcquick .row{gap:10px;padding:3px 0;align-items:baseline}
-.fcquick .row b{white-space:nowrap;flex-shrink:0;font-size:14px}
-.fcquick .row .fine{min-width:0}
-.fcforecast-how .fcsum:not(.sub)>span:last-child{white-space:nowrap;flex-shrink:0}
-.fcforecast-how .fcsum.sub>span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
+@font-face{
+  font-family:Forecast Serif;src:url('assets/prediction/CormorantGaramond.woff') format('woff');
+  font-weight:300 700;font-display:swap;
+}
+.sheet.fc-magic{
+  --fc-gold:#f4d4a0;
+  --fc-text:#f2e5fa;
+  --fc-accent:color-mix(in srgb,var(--accent) 76%,#b272ff);
+  --fc-night:color-mix(in srgb,#190f26 92%,var(--accent));
+  color:var(--fc-text);color-scheme:dark;position:relative;isolation:isolate;
+  width:calc(100% - 16px);border:1px solid color-mix(in srgb,var(--fc-accent) 52%,#2a1737);
+  border-radius:22px;margin-bottom:max(6px,env(safe-area-inset-bottom,0px));
+  padding:19px clamp(9px,3vw,16px) 18px;gap:10px;
+  background:
+    radial-gradient(circle at 18px 23px,#d7affd88 0 1px,transparent 1.4px) 3px 0/89px 107px,
+    radial-gradient(circle at 33px 57px,#ffe1ac99 0 .8px,transparent 1.3px) 0 0/131px 157px,
+    radial-gradient(ellipse at 50% 15%,color-mix(in srgb,var(--fc-accent) 22%,var(--fc-night)),transparent 72%),
+    linear-gradient(var(--fc-night),#160e21);
+}
+.sheet.fc-magic>*{flex-shrink:0;min-width:0}
+.sheet.fc-magic .fc-heading{
+  color:var(--fc-gold);font:700 clamp(30px,10vw,48px)/.95 Forecast Serif,Georgia,serif;
+  text-align:center;margin-bottom:0;
+}
+.fc-celestial{display:flex;justify-content:center;align-items:center;gap:16px;font:400 21px/1 Georgia,serif;margin:4px 0 10px}
+.fc-celestial span:first-child,.fc-celestial span:last-child{color:#d6ad91}
+.fc-date{margin:0 0 2px;text-align:center;font-size:clamp(13px,4.1vw,19px);line-height:1.25}
+.fc-sparks{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.fc-sparks i{position:absolute;color:var(--fc-gold);font:10px/1 Georgia,serif}
+.fc-sparks i:nth-child(1){top:6%;left:22%}
+.fc-sparks i:nth-child(2){top:18%;right:6%;animation-delay:-3s}
+.fc-sparks i:nth-child(3){bottom:12%;left:8%;animation-delay:-5s}
+.fc-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.fc-card{
+  position:relative;display:block;min-width:0;aspect-ratio:326/616;padding:0;
+  border:0;border-radius:14px;background:none;color:var(--fc-gold);
+  perspective:900px;container-type:inline-size;
+  font-family:Forecast Serif,Georgia,serif;
+}
+.fc-card-turn{position:absolute;inset:0;transform-style:preserve-3d}
+.fc-card[aria-pressed=true] .fc-card-turn{transform:rotateY(180deg)}
+.fc-face{
+  position:absolute;inset:0;display:grid;min-width:0;
+  border:2px solid #dcb282;border-radius:inherit;
+  box-shadow:0 0 0 1px #b189e2,inset 0 0 0 2px #76518e,0 0 10px #bd85f34a;
+  background:#271634;backface-visibility:hidden;
+}
+.fc-card-turn{border-radius:inherit}
+.fc-front{transform:rotateY(180deg);grid-template-rows:66% 34%;overflow:hidden}
+.fc-art{display:block;width:100%;height:100%;min-height:0;padding:3px 3% 0;object-fit:contain}
+.fc-card-copy{display:grid;grid-template-rows:44% 6% 50%;padding:0 5%;min-width:0}
+.fc-value{display:flex;min-width:0;align-items:center;justify-content:center;flex-direction:column}
+.fc-card-amount{white-space:nowrap;font-size:min(21cqi,calc(165cqi / var(--fc-length)));line-height:.95;font-weight:500}
+.fc-shortfall{font:600 8cqi/1.1 Forecast Serif,Georgia,serif;color:#ffd0bb}
+.fc-rule{display:flex;align-items:center;justify-content:center;width:77%;margin:auto;font:8cqi/1 Georgia,serif}
+.fc-rule::before,.fc-rule::after{content:'';flex:1;height:1px;background:#d0a4c1}
+.fc-card-caption{
+  align-self:center;text-align:center;font-size:12.5cqi;line-height:.88;font-variant:small-caps;
+  font-weight:600;padding-bottom:3%;white-space:nowrap;
+}
+.fc-card-caption em{font-style:italic;font-size:1.38em;font-weight:500}
+.fc-card-caption .fc-caption-stars{display:block;position:relative}
+.fc-front .fc-caption-stars::before,.fc-front .fc-caption-stars::after{
+  content:'✦';position:absolute;top:50%;font:5cqi/1 Georgia,serif;transform:translateY(-50%);
+}
+.fc-front .fc-caption-stars::before{left:6%}
+.fc-front .fc-caption-stars::after{right:6%}
+.fc-caption-curls{display:block;width:79%;height:6cqi;margin:-1cqi auto -3cqi}
+.fc-back .fc-caption-curls{display:none}
+.fc-back{grid-template-rows:80% 20%;overflow:hidden;background:radial-gradient(ellipse,#583075,#261537 62%,#1f112c)}
+.fc-back svg{width:92%;height:94%;margin:auto;display:block;color:var(--fc-gold)}
+.sheet.fc-magic details.fold{
+  margin-top:0;background:color-mix(in srgb,var(--fc-accent) 16%,var(--fc-night));
+  border:1px solid color-mix(in srgb,var(--fc-accent) 34%,var(--fc-night));
+  border-radius:12px;padding:0 11px;
+  --muted:#dfccec;--ink:var(--fc-text);--line:#ffffff24;--surface:#271839;--accent:var(--fc-accent);
+}
+.sheet.fc-magic details.fold>summary{font-size:clamp(14px,4.3vw,18px);font-weight:500;padding:10px 0}
+.sheet.fc-magic .fc-close{margin-top:8px}
+.sheet.fc-magic .fc-close .btn{width:100%;font-size:clamp(15px,4.7vw,20px);background:var(--fc-accent);color:#190f26;border-radius:12px}
+@media(prefers-reduced-motion:no-preference){
+  .fc-card-turn{transition:transform .5s ease-in-out}
+  .fc-sparks i{animation:fc-twinkle 8s ease-in-out infinite}
+}
+@keyframes fc-twinkle{0%,100%{opacity:.35}50%{opacity:.85}}
+.fc-magic .fcplan-amount{white-space:nowrap}
+.fcforecast-how .fcsum{gap:8px}
+.fcforecast-how .fcsum>span:last-child{flex-shrink:0;white-space:nowrap}
+.fcforecast-how .fcsum.sub{display:block;padding-left:0;font-size:12px;line-height:1.35}
+.fcforecast-how .fcsum.sub>span:last-child{white-space:normal;overflow-wrap:anywhere}
+.fc-magic .fcfold .fcsum:last-child{font-weight:400}
 .fcwhat{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);display:flex;flex-direction:column;gap:6px}
 .fcwhat input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
 .fcwhat .fcwrow{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:14px}
@@ -1692,15 +1770,22 @@ function fcCalc(){
   var pending=fcPendingRefunds(),avail=balance()-due+inc+pending,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pending:pending,pace:pace,paceB:paceB,usualPace:P.usualPace,withLargePace:P.withLargePace,usualLeft:avail-P.usualPace*dl-pc,withLargeLeft:avail-P.withLargePace*dl-pc,largeMin:P.largeMin,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
 function fcPlansHtml(prow,irr){
-  var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||sh.fcForm));
-  var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
+  var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||form));
+  var editing=!irr&&form?prow.find(function(o){return o.q.id===sh.fcEdit}):null;
+  var q=editing?editing.q:{cat:'prod',amt:'',wd:1,half:false};
+  var rows=n?'<div class="list">'+prow.map(function(o){
+    var c=CMAP[o.q.cat]||CMAP.other;
+    return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':'<br>'+o.n+' × <span class="fcplan-amount">'+money(o.q.amt*(o.q.half?0.5:1))+'</span> = <span class="fcplan-amount">'+money(o.c)+'</span>')+'</div></div>'+
+      (irr?'':'<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcFormShow" data-id="'+o.q.id+'" aria-label="Изменить план">✎</button>')+
+      '<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>';
+  }).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
   var formHtml=form
-   ?'<div class="f" style="gap:10px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,'prod')+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000"></div></div>'+
-    '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'">по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"> вернут половину</label></div>'+
+   ?'<div class="f" style="gap:10px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,q.cat)+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000" value="'+esc(String(q.amt))+'"></div></div>'+
+    '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'"'+(w===+q.wd?' selected':'')+'>по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"'+(q.half?' checked':'')+'> вернут половину</label></div>'+
     '<div class="btns"><button type="button" class="btn ghost sm" data-a="fcFormHide">Отмена</button><button type="button" class="btn sm" data-a="fcAdd">Сохранить план</button></div></div>'
    :'<button type="button" class="btn ghost sm" data-a="fcFormShow">+ Добавить план</button>';
   var body=tipBtn('fc_pl')+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+rows+formHtml;
-  return fcFold('Мои планы'+(irr?'':' до зарплаты'),n+' '+plw(n,'план','плана','планов'),body,open);
+  return irr?fcFold('Мои планы',n+' '+plw(n,'план','плана','планов'),body,open):fcFold('Мои планы · '+n,null,body,open);
 }
 function fcHowHtml(lines,forecast){
   return fcFold('Как считается',null,'<div'+(forecast?' class="fcforecast-how"':'')+'>'+lines.map(function(x){var cls=x[2]?'fcsum sub':'fcsum';return '<div class="'+cls+'"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
@@ -1735,6 +1820,27 @@ function fcIrrBody(){var P=fcPace();
    (owedSum()>0?'<div class="note info" style="margin-top:10px"><span>Если заплатят, что должны ('+money(owedSum())+') — хватит на '+dd(fcRun(P.pace,owedSum()))+'</span></div>':'')+
    (spOn()?'<p class="fine" style="margin:8px 0 0">Сам себе зарплата из «'+esc(accName(accById(S.selfPay.acc)))+'» уже учтена, пока в буфере есть деньги.</p>':'');
 }
+var FC_CARD_ORNAMENT='<svg viewBox="0 0 140 202" aria-hidden="true" fill="none" stroke="currentColor">'+
+  '<rect x="6" y="5" width="128" height="192" rx="13" opacity=".55"/><rect x="10" y="9" width="120" height="184" rx="10" opacity=".35"/>'+
+  '<path d="M70 30 123 100 70 174 17 100Z M70 40 112 100 70 163 28 100Z" opacity=".45"/>'+
+  '<circle cx="70" cy="100" r="37" opacity=".5"/><circle cx="70" cy="100" r="32" stroke-dasharray="1 4"/>'+
+  '<path d="M70 72 Q73 95 96 100 Q73 105 70 128 Q67 105 44 100 Q67 95 70 72Z" fill="currentColor"/>'+
+  '<path d="M66 17a10 10 0 1 0 12 12 9 9 0 0 1-12-12ZM74 185a10 10 0 1 0-12-12 9 9 0 0 1 12 12Z" fill="currentColor"/>'+
+  '<path d="M22 25v10m-5-5h10m91-5v10m-5-5h10M22 166v10m-5-5h10m91-5v10m-5-5h10" stroke-linecap="round"/></svg>';
+function fcCard(key,label,value){
+  var zero=fcResultText(value)==='примерно в ноль',shortfall=value<0&&!zero;
+  var amount=(shortfall?'−':'~')+(zero?money(0):fcRound(Math.abs(value)));
+  var caption='<span class="fc-card-caption"><span class="fc-caption-stars"><em>'+label.charAt(0)+'</em>'+label.slice(1)+'</span>крупных трат'+
+    '<svg class="fc-caption-curls" viewBox="0 0 100 9" fill="none" stroke="currentColor" aria-hidden="true"><path d="M0 0C7 9 15 10 17 5M100 0C100 10 83-1 78 5C76 8 80 10 80 7"/></svg></span>';
+  var title=label+' крупных трат',result=(shortfall?'Не хватит ':'')+amount;
+  var flipped=!!(sh.fcCards&&sh.fcCards[key]);
+  return '<button type="button" class="fc-card" data-a="fcFlip" data-v="'+key+'" data-label="'+title+'" data-result="'+esc(result)+'" aria-pressed="'+flipped+'" aria-label="'+esc(title+(flipped?' · '+result:''))+'">'+
+    '<span class="fc-card-turn" aria-hidden="true"><span class="fc-face fc-back">'+FC_CARD_ORNAMENT+caption+'</span>'+
+    '<span class="fc-face fc-front"><img class="fc-art" src="assets/prediction/'+key+'.png" alt=""><span class="fc-card-copy"><span class="fc-value">'+
+    (shortfall?'<span class="fc-shortfall">Не хватит</span>':'')+
+    '<span class="fc-card-amount" style="--fc-length:'+amount.length+'">'+esc(amount)+'</span></span>'+
+    '<span class="fc-rule">✦</span>'+caption+'</span></span></span></button>';
+}
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>',foot='<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>';
   if(!sh)sh={id:'fc',fc:1};sh.fc=1;
@@ -1750,41 +1856,30 @@ function fcSheet(){
   var dt=dlabel(f.nd),body;
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   else{
-    if(sh.fcWhatIf==null)sh.fcWhatIf=f.usualPace;
-    var same=Math.abs(f.usualLeft-f.withLargeLeft)<0.005;
-    var flow=function(label,v){return '<div class="row"><div class="grow fine">'+label+'</div><b>'+v+'</b></div>'};
-    body='<div class="fcspell"><span class="fcstars" aria-hidden="true">✦<small>✧</small></span><span class="fine fcspell-date">К '+dt+'</span>'+
-      '<div class="fine">Без крупных покупок</div><b class="fcspell-result">'+fcResultText(f.usualLeft)+'</b>'+
-      '<div class="fcspell-alt"><span class="fine">Если продолжишь делать крупные покупки</span><b>'+fcResultText(f.withLargeLeft)+'</b>'+
-      (same?'<span class="fine">За последние 2 недели крупные покупки не изменили прогноз.</span>':'')+'</div></div>'+
-      '<div class="fcquick">'+flow('Деньги сейчас',money(balance()))+
-      (f.inc>0?flow('Ещё поступит','+'+money(f.inc)):'')+
-      (f.pending>0?flow('Ожидаемые возвраты','+'+money(f.pending)):'')+
-      (f.due>0?flow('Обязательные платежи','−'+money(f.due)):'')+
-      flow('Покупки по плану','−'+money(f.pc))+
-      flow('Повседневные траты ('+f.dl+' '+plw(f.dl,'день','дня','дней')+')','−'+money(f.usualPace*f.dl))+
-      '</div><p class="fine" style="margin:6px 0 0">Прогноз по тратам последних 2 недель.'+(f.pending>0?' Если возвраты задержатся, денег будет меньше.':'')+'</p>'+
-      fcWhatIfBlock(f.usualPace,false);
+    body='<div class="fc-cards">'+fcCard('usual','Вдали от',f.usualLeft)+fcCard('large','Во власти',f.withLargeLeft)+'</div>';
   }
   var how=[['Деньги сейчас',money(balance())]];
-  if(f.due>0)how.push(['− Платежи и копилки',money(f.due)]);
-  if(f.incs&&f.incs.length){
-    how.push(['+ Ещё поступит',money(f.inc)]);
-    f.incs.forEach(function(r){
-      var lifeTxt=r.allSave?'0 ₽ на жизнь':money(r.life);
-      how.push([dlabel(r.date)+' · '+esc(r.name),(r.allSave?money(r.amt)+' → ':'')+lifeTxt,1]);
-    });
-  }else if(f.inc>0)how.push(['+ Ещё поступит',money(f.inc)]);
-  if(f.pending>0)how.push(['+ Ожидаемые возвраты до зарплаты',money(f.pending)]);
+  if(f.inc>0)how.push(['Ещё поступит','+'+money(f.inc)]);
+  if(f.due>0)how.push(['Платежи и копилки','−'+money(f.due)]);
+  if(f.incs&&f.incs.length)f.incs.forEach(function(r){
+    how.push(['',dlabel(r.date)+' · '+esc(r.name)+' · '+(r.allSave?money(r.amt)+' → 0 ₽ на жизнь':money(r.life)),1]);
+  });
+  if(f.pending>0)how.push(['Ожидаемые возвраты','+'+money(f.pending)]);
   if(f.kn>=5){
-    if(f.pc>0)how.push(['− Покупки по плану',money(f.pc)]);
-    how.push(['− Повседневные траты ('+money(f.usualPace)+' × '+f.dl+')',money(f.usualPace*f.dl)]);
-    how.push(['Без крупных покупок',fcRound(f.usualLeft)]);
-    how.push(['− Возможные крупные покупки',money(Math.max(0,(f.withLargePace-f.usualPace)*f.dl))]);
-    how.push(['С крупными покупками',fcRound(f.withLargeLeft)]);
-    how.push(['Что считаем крупным','Покупки от '+money(f.largeMin)+', кроме обычных продуктов, кафе и транспорта; очень крупные от '+money(f.huge)+' — в любой категории.',1]);
+    if(f.pc>0)how.push(['Покупки по плану','−'+money(f.pc)]);
+    how.push(['Повседневные траты','−'+money(f.usualPace*f.dl)]);
+    how.push(['','Около '+money(f.usualPace)+' в день × '+f.dl+' '+plw(f.dl,'день','дня','дней'),1]);
+    how.push(['Крупные покупки (если будут)','−'+money(Math.max(0,(f.withLargePace-f.usualPace)*f.dl))]);
+    how.push(['','По тратам за 2 недели. Крупные — от '+money(f.largeMin)+' вне продуктов, кафе и транспорта, или от '+money(f.huge)+' в любой категории.'+(f.pending>0?' Возвраты могут задержаться.':''),1]);
   }
-  openSheet(h+body+fcPlansHtml(f.prow)+fcHowHtml(how,true)+foot);
+  var howWasOpen=!!document.querySelector('#ov .fc-magic details.fold[open] .fcforecast-how');
+  h='<h3 class="fc-heading" id="fc-title"><span class="fc-celestial" aria-hidden="true"><span>☾</span>✦<span>☽</span></span>Предсказание</h3>'+
+    '<p class="fc-date">Сколько останется к '+dt+'?</p><div class="fc-sparks" aria-hidden="true"><i>✦</i><i>·</i><i>✧</i></div>';
+  openSheet(h+body+fcPlansHtml(f.prow)+fcHowHtml(how,true)+foot.replace('class="btns"','class="btns fc-close"'));
+  var sheet=document.querySelector('#ov .sheet');
+  sheet.classList.add('fc-magic');
+  sheet.setAttribute('aria-labelledby','fc-title');
+  if(howWasOpen)sheet.querySelector('.fcforecast-how').closest('details').open=true;
 }
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&!isLive(a))}
 // Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.
@@ -5656,11 +5751,22 @@ document.addEventListener('click',function(ev){
   else if(a==='pctDo'){var px=S.entries.filter(function(e){return e.id===id})[0];if(px){var pids=[];pctParts(px).forEach(function(o){var t={id:uid(),type:'t',amt:o.v,cat:'',date:px.date,note:o.r.pct+'% с дохода',cls:'',from:px.acc||defAcc(),to:o.r.acc,pctOf:px.id};S.entries.push(t);pids.push(t.id)});save();closeSheet();render();toast('Разложено',false,function(){S.entries=S.entries.filter(function(e){return pids.indexOf(e.id)<0});save();render();toast('Отменено')})}}
   else if(a==='curShow'){readEntry();sh.d.curShow=1;entrySheet()}
   else if(a==='fcOpen'){sh={id:'fc',fc:1};fcSheet()}
-  else if(a==='fcFormShow'){if(!sh)sh={id:'fc',fc:1};sh.fcForm=1;sh.fcPlansOpen=1;fcSheet()}
-  else if(a==='fcFormHide'){if(sh){sh.fcForm=0;sh.fcPlansOpen=1}fcSheet()}
+  else if(a==='fcFlip'){
+    var flipped=b.getAttribute('aria-pressed')!=='true';
+    if(!sh.fcCards)sh.fcCards={};
+    sh.fcCards[v]=flipped;
+    b.setAttribute('aria-pressed',flipped);
+    b.setAttribute('aria-label',b.dataset.label+(flipped?' · '+b.dataset.result:''));
+  }
+  else if(a==='fcFormShow'){if(!sh)sh={id:'fc',fc:1};sh.fcForm=1;sh.fcEdit=id||null;sh.fcPlansOpen=1;fcSheet()}
+  else if(a==='fcFormHide'){if(sh){sh.fcForm=0;sh.fcEdit=null;sh.fcPlansOpen=1}fcSheet()}
   else if(a==='fcAdd'){var fa=+String(document.getElementById('fc_amt').value||'').replace(',','.').replace(/\s/g,'');if(!(fa>0)){toast('Впиши сумму');return}
-    S.fcPlans=(S.fcPlans||[]).concat([{id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked}]);save();if(!sh)sh={id:'fc',fc:1};sh.fcForm=0;sh.fcPlansOpen=1;fcSheet()}
-  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();if(!sh)sh={id:'fc',fc:1};sh.fcPlansOpen=1;fcSheet()}
+    var plans=S.fcPlans||[],editingPlan=sh&&!sh.fcIrr&&plans.find(function(q){return q.id===sh.fcEdit});
+    var newPlan={id:editingPlan?editingPlan.id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked};
+    S.fcPlans=editingPlan?plans.map(function(q){return q===editingPlan?newPlan:q}):plans.concat([newPlan]);
+    save();if(!sh)sh={id:'fc',fc:1};sh.fcForm=0;sh.fcEdit=null;sh.fcPlansOpen=1;fcSheet()}
+  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();if(!sh)sh={id:'fc',fc:1};
+    if(sh.fcEdit===id){sh.fcEdit=null;sh.fcForm=0}sh.fcPlansOpen=1;fcSheet()}
   else if(a==='fcPd'){var fpd=String(document.getElementById('fc_pd').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);if(!fpd.length){toast('Впиши числа, например 10, 25');return}S.payDays=fpd;save();render();fcSheet()}
   else if(a==='askDel'){sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
   else if(a==='noDel'){sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}

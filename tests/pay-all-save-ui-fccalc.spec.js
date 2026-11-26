@@ -293,8 +293,8 @@ test('B9: fc how lists receipt dates/names; allSave shows 0 ₽ на жизнь'
   const howHtml=how?how.innerHTML:'';
   return {
    nd:f&&f.nd,inc:f&&f.inc,incs:f&&f.incs,due:f&&f.due,
-   sheetHasWhatIf:/А если тратить меньше/.test(html),
-   sheetHasDue:/Обязательные платежи/.test(html),
+   sheetHasWhatIf:/id="fc_wif"/.test(html),
+   sheetHasDue:/Платежи и копилки/.test(html),
    howHasDate:/5\s*дек|декабр/i.test(howHtml)||/05\.12|5\./.test(howHtml),
    howHasName:/Мелочь/.test(howHtml),
    howHasZero:/0\s*₽\s*на жизнь/.test(howHtml)||/0&nbsp;₽ на жизнь/.test(howHtml)||/0\s*₽/.test(howHtml)&&/на жизнь/.test(howHtml),
@@ -304,7 +304,7 @@ test('B9: fc how lists receipt dates/names; allSave shows 0 ₽ на жизнь'
  expect(r.incs.length).toBeGreaterThan(0);
  expect(r.incs.some(x=>x.allSave)).toBe(true);
  expect(r.incs.filter(x=>x.allSave).every(x=>x.life===0)).toBe(true);
- expect(r.sheetHasWhatIf).toBe(true);
+ expect(r.sheetHasWhatIf).toBe(false);
  expect(r.sheetHasDue).toBe(true);
  expect(r.howHasName).toBe(true);
  expect(r.howHasZero).toBe(true);

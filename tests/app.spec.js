@@ -1423,11 +1423,19 @@ test('анализ: заголовок свободных денег не обр
     await expect(title).toHaveText('💳 Свободные деньги');
     expect(await title.evaluate(e => getComputedStyle(e).textOverflow)).not.toBe('ellipsis');
     expect(await header.evaluate(e => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(1);
+    const gap = await header.evaluate(e => {
+      const title = e.querySelector('b').getBoundingClientRect();
+      const button = e.querySelector('button').getBoundingClientRect();
+      return button.left - title.right;
+    });
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(8);
     await expect(tip).toBeHidden();
     await button.click();
     await expect(tip).toBeVisible();
     await expect(button).toHaveAttribute('aria-expanded', 'true');
     expect(await tip.evaluate(e => e.previousElementSibling.id)).toBe('rvbal_header');
+    expect(await tip.evaluate(e => getComputedStyle(e).backgroundColor !== getComputedStyle(e.parentElement).backgroundColor)).toBe(true);
     expect((await tip.innerText()).length).toBeLessThan(180);
     await button.click();
     await expect(tip).toBeHidden();

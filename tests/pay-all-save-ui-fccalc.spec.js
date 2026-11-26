@@ -292,7 +292,8 @@ test('B9: allSave keeps receipt dates/names and zero life money; forecast hides 
    sheetHasHow:!!document.querySelector('#ov .fcforecast-how'),
    sheetHasFuture:!!document.querySelector('#ov .fc-future'),
    hasReceiptName:f.incs.some(x=>x.name==='Мелочь'),
-   hasReceiptDate:f.incs.some(x=>x.name==='Мелочь'&&x.date==='2026-12-05')
+   // December 5 is Saturday; the scheduled receipt moves to Friday, December 4.
+   hasReceiptDate:f.incs.some(x=>x.name==='Мелочь'&&x.date==='2026-12-04')
   };
  });
  expect(r.incs.length).toBeGreaterThan(0);

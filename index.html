@@ -276,27 +276,23 @@ html.bigtext{zoom:1.14}
 .fc-card-turn{border-radius:inherit}
 .fc-front{transform:rotateY(180deg);grid-template-rows:66% 34%;overflow:hidden}
 .fc-art{display:block;width:100%;height:100%;min-height:0;padding:3px 3% 0;object-fit:contain}
-.fc-card-copy{display:grid;grid-template-rows:44% 6% 50%;padding:0 5%;min-width:0}
-.fc-value{display:flex;min-width:0;align-items:center;justify-content:center;flex-direction:column}
+.fc-value{display:flex;min-width:0;padding:0 5%;align-items:center;justify-content:center;flex-direction:column}
 .fc-card-amount{white-space:nowrap;font-size:min(21cqi,calc(165cqi / var(--fc-length)));line-height:.95;font-weight:500}
 .fc-shortfall{font:600 8cqi/1.1 Forecast Serif,Georgia,serif;color:#ffd0bb}
-.fc-rule{display:flex;align-items:center;justify-content:center;width:77%;margin:auto;font:8cqi/1 Georgia,serif}
-.fc-rule::before,.fc-rule::after{content:'';flex:1;height:1px;background:#d0a4c1}
 .fc-card-caption{
   align-self:center;text-align:center;font-size:12.5cqi;line-height:.88;font-variant:small-caps;
   font-weight:600;padding-bottom:3%;white-space:nowrap;
 }
 .fc-card-caption em{font-style:italic;font-size:1.38em;font-weight:500}
 .fc-card-caption .fc-caption-stars{display:block;position:relative}
-.fc-front .fc-caption-stars::before,.fc-front .fc-caption-stars::after{
+.fc-card-caption .fc-caption-stars::before,.fc-card-caption .fc-caption-stars::after{
   content:'✦';position:absolute;top:50%;font:5cqi/1 Georgia,serif;transform:translateY(-50%);
 }
-.fc-front .fc-caption-stars::before{left:6%}
-.fc-front .fc-caption-stars::after{right:6%}
+.fc-card-caption .fc-caption-stars::before{left:6%}
+.fc-card-caption .fc-caption-stars::after{right:6%}
 .fc-caption-curls{display:block;width:79%;height:6cqi;margin:-1cqi auto -3cqi}
-.fc-back .fc-caption-curls{display:none}
 .fc-back{grid-template-rows:80% 20%;overflow:hidden;background:radial-gradient(ellipse,#583075,#261537 62%,#1f112c)}
-.fc-back svg{width:92%;height:94%;margin:auto;display:block;color:var(--fc-gold)}
+.fc-back>svg{width:92%;height:94%;margin:auto;display:block;color:var(--fc-gold)}
 .sheet.fc-magic details.fold{
   margin-top:0;background:color-mix(in srgb,var(--fc-accent) 16%,var(--fc-night));
   border:1px solid color-mix(in srgb,var(--fc-accent) 34%,var(--fc-night));
@@ -1836,10 +1832,9 @@ function fcCard(key,label,value){
   var flipped=!!(sh.fcCards&&sh.fcCards[key]);
   return '<button type="button" class="fc-card" data-a="fcFlip" data-v="'+key+'" data-label="'+title+'" data-result="'+esc(result)+'" aria-pressed="'+flipped+'" aria-label="'+esc(title+(flipped?' · '+result:''))+'">'+
     '<span class="fc-card-turn" aria-hidden="true"><span class="fc-face fc-back">'+FC_CARD_ORNAMENT+caption+'</span>'+
-    '<span class="fc-face fc-front"><img class="fc-art" src="assets/prediction/'+key+'.png" alt=""><span class="fc-card-copy"><span class="fc-value">'+
+    '<span class="fc-face fc-front"><img class="fc-art" src="assets/prediction/'+key+'.png" alt=""><span class="fc-value">'+
     (shortfall?'<span class="fc-shortfall">Не хватит</span>':'')+
-    '<span class="fc-card-amount" style="--fc-length:'+amount.length+'">'+esc(amount)+'</span></span>'+
-    '<span class="fc-rule">✦</span>'+caption+'</span></span></span></button>';
+    '<span class="fc-card-amount" style="--fc-length:'+amount.length+'">'+esc(amount)+'</span></span></span></span></button>';
 }
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>',foot='<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>';

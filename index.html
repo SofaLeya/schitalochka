@@ -1780,14 +1780,10 @@ function planCalcOut(){var c=planCalcRead(),o=document.getElementById('pc_out');
   o.className='note good';o.innerHTML='<b>Можно тратить '+money(d)+' в день</b><span class="fine">Это '+money(free)+' в месяц на жизнь: еда, транспорт, кафе, мелочи.</span>';
 }
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
-function pcCatsHtml(){var sel={};(sh&&sh.pcOut||[]).forEach(function(c){sel[c]=1});
-  return FIXCATS.concat(IRRCATS).concat(CATS.filter(function(c){return c.custom}).map(function(c){return c.id})).map(function(id){var c=CMAP[id];if(!c)return '';
-    return '<button type="button" data-a="pcCat" data-id="'+id+'" class="btn sm '+(sel[id]?'':'ghost')+'" style="flex:none;padding:6px 10px;font-size:13px">'+(sel[id]?'✓ ':'')+esc(c.name)+'</button>'}).join('')}
 function plw(n,a,b,c){n=Math.abs(n)%100;var m=n%10;return n>10&&n<20?c:m===1?a:m>=2&&m<=4?b:c}
 function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph=planHints(),full=!S.simple&&(S.incomes||[]).length>0,fp=fullPlan();
   if(full)df.irr=fp.irr||'';
   function ro(id,lab,v,hint){return '<div class="row" style="padding:2px 0"><div class="grow"><div class="t" style="font-size:14px">'+lab+'</div><div class="s">'+hint+'</div></div><b>'+money(v)+'</b><input type="hidden" id="'+id+'" value="'+Math.round(v)+'"></div>'}
-  if(sh&&!sh.pcOut)sh.pcOut=(Array.isArray(S.planOut)?S.planOut:planOutDefault(S.planCalc||{fixed:df.fixed,irr:df.irr})).slice();
   function fld(id,lab,hint,val){return '<div class="f"><label for="'+id+'">'+lab+'</label><input id="'+id+'" inputmode="decimal" value="'+esc(val===''||val==null?'':Math.round(val))+'" placeholder="0"><span class="fine">'+hint+'</span></div>'}
   if(full&&pi.cycle){var cp=pi.cycle;
     openSheet('<h3>План трат на день</h3>'+
@@ -1825,7 +1821,6 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
    fld('pc_fix','Обязательные платежи в месяц, '+sym()+'','Жильё, коммуналка, связь, кредиты, подписки.',df.fixed)+
    fld('pc_sav','Откладывать в месяц, '+sym()+'','Копилки, подушка, цели.'+(ph.save>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_sav" data-v="'+ph.save+'"><br>'+cap(ph.label)+' отложено около '+money(ph.save)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.save))+
    fld('pc_irr','Редкие расходы в среднем за месяц, '+sym()+'','Врачи, одежда, подарки, платежи раз в несколько месяцев: годовую сумму раздели на 12.'+(ph.irr>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_irr" data-v="'+ph.irr+'"><br>'+cap(ph.label)+' на одежду, красоту, здоровье, подарки, технику и поездки - около '+money(ph.irr)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.irr)+
-   '<div class="f"><label>Не сравнивать с планом на день</label><span class="fine">Траты в этих категориях уже заложены в «обязательные» и «редкие», поэтому монстрик и прогресс их не считают. В «Потрачено за месяц» они остаются.</span><div id="pc_out_cats" style="display:flex;flex-wrap:wrap;gap:6px">'+pcCatsHtml()+'</div></div>'+
    '<div id="pc_out" class="note info"></div>'+
    (h?'<p class="fine">Для сравнения: в прошлые месяцы ты тратишь в среднем около '+money(h)+' в день.</p>':'')+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить план</button></div></form>'+
@@ -1833,19 +1828,19 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
    (!full&&pi.src!=='none'?'<button type="button" class="btn ghost sm" data-a="planClear">Убрать план</button>':''));
   planCalcOut();
 }
-/* ---------- что не сравнивать с планом на день (обязательное и редкое уже заложено в план) ---------- */
-var FIXCATS=['rent','kom','conn','subs','debt','tax'],IRRCATS=['cloth','beauty','health','gift','tech','trip','edu'];
-function planOutDefault(c){var o=[];c=c||{};if(+c.fixed>0)o=o.concat(FIXCATS);if(+c.irr>0)o=o.concat(IRRCATS);return o}
-function planOutSet(){var pi=planInfo(),l;
-  if(pi.src==='calc')l=Array.isArray(S.planOut)?S.planOut:[];
-  else if(pi.src==='income')l=[]; // конкретный регулярный платёж исключается по rid, не по категории
-  else return null; // своя сумма или нет плана - всё как раньше
-  if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
+/* Подсказки редких категорий в расчёте плана; факт фильтруется в life() по rid/rare, не по списку. */
+var IRRCATS=['cloth','beauty','health','gift','tech','trip','edu'];
 function life(list){
-  // полный режим: план учитывает выбранные карты независимо от их баланса.
+  // Одни правила учёта факта в обоих режимах: со свободных денег, без платежей (rid),
+  // без редких и без чужих счетов. Устаревшее поле S.planOut на факт не влияет.
   // nobal («не с моих счетов») в историю входит, но личный дневной бюджет не уменьшает.
-  if(!S.simple&&(S.incomes||[]).length){return list.filter(function(x){if(x.nobal)return false;return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||isRareExpense(x)))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
-  var m=planOutSet();return list.filter(function(x){if(x.nobal)return false;if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(x.type==='e'&&(x.rid||(m&&m[x.cat])))})}
+  return list.filter(function(x){
+    if(x.nobal)return false;
+    if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;
+    if(x.type==='e'&&(x.rid||isRareExpense(x)))return false;
+    return true;
+  });
+}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return sumNet(life(list),LK)}
 function lifeNet(list){return lifeNetL(list,refLinks())}
@@ -5127,7 +5122,6 @@ document.addEventListener('click',function(ev){
   else if(a==='apkLater'){try{localStorage.setItem('sch-apkskip2',String(APKN.latest||+localStorage.getItem('sch-apklast')||0))}catch(e){}render()}
   else if(a==='newsOk'){S.seenVer=APP_VER;save();render()}
   else if(a==='pcHint'){var hi=document.getElementById(id);if(hi){hi.value=v;planCalcOut()}}
-  else if(a==='pcCat'){if(sh&&sh.pcOut){var ix=sh.pcOut.indexOf(id);if(ix>=0)sh.pcOut.splice(ix,1);else sh.pcOut.push(id);var bx=document.getElementById('pc_out_cats');if(bx)bx.innerHTML=pcCatsHtml()}}
   else if(a==='splitDrop'){var sy=S.entries.filter(function(e){return e.id===id})[0];if(sy){sy.splitDone='no';save();render()}}
   else if(a==='catLim'){if(!S.simple){if(!NAV.tab){NAV.tab=true;navPush('tab')}tab='plan';ptab='p';planMoreOpen=true;uiFold('clim',false);render();var ce=document.getElementById('clim');if(ce)ce.scrollIntoView({block:'start'})}else{sh={cl:true};catLimSheet()}}
   else if(a==='climEdit'){sh={clim:true,cat:v||''};climSheet()}
@@ -5392,7 +5386,7 @@ document.addEventListener('submit',function(ev){
   if(!sh)return;
   if(sh.cl){var cl={};document.querySelectorAll('[data-cl]').forEach(function(e){var v=num(e.value);if(v>0)cl[e.dataset.cl]=Math.round(v)});Object.keys(catLimits()).forEach(function(k){if(!document.querySelector('[data-cl="'+k+'"]'))cl[k]=catLimits()[k]});S.catLim=cl;save();closeSheet();render();toast('Лимиты сохранены');return}
   if(sh.tp){var tt=tplRead();if(!tt.note&&!tt.cat)return showErr('Впиши название.');if(sh.tid){S.tpls=tpls().map(function(x){return x.id===sh.tid?Object.assign(tt,{id:sh.tid}):x})}else{tt.id=uid();tpls().push(tt)}save();closeSheet();render();toast('Сохранено: '+(tt.note||'трата')+', '+tplWhen(tt));return}
-  if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});S.planOut=(sh.pcOut||[]).slice();save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;S.planOut=(sh.pcOut||[]).slice();delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
+  if(sh.dpl){var pc=planCalcRead();if(!S.simple&&(S.incomes||[]).length){S.planCalc=Object.assign({},S.planCalc||{},{irr:pc.irr});save();closeSheet();render();toast('План: '+money(dayLimit())+' в день');return}if(pc.inc>0){S.planCalc=pc;delete S.dayLimit;S.planAsked=1;save();closeSheet();render();toast(dayLimit()?'План: '+money(dayLimit())+' в день':'Доходов не хватает на обязательное',!dayLimit())}else{var o=document.getElementById('pc_out');if(o)o.scrollIntoView({block:'center'})}return}
   if(sh.pt){var lkA=false;(sh.d.acc||[]).forEach(function(o){var df=accDef(o.id);if(df&&!itemOpen(df,sh.L||0))lkA=true});
     if(lkA)return;
     if(sh.d.uname!=null){S.uname=String(sh.d.uname).trim().slice(0,20);S.unameAsked=1}

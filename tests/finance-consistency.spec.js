@@ -90,3 +90,107 @@ test('refund and editing or deleting a purchase reconstruct the original balance
  S.entries[0].amt=1200;const edit=read();S.entries=S.entries.filter(x=>x.id!=='r');const deleteRefund=read();S.entries=[];return {purchase,refund,edit,deleteRefund,deletePurchase:read()};
  });expect(r).toEqual({purchase:{balance:8500,spent:1500},refund:{balance:9000,spent:1000},edit:{balance:9300,spent:700},deleteRefund:{balance:8800,spent:1200},deletePurchase:{balance:10000,spent:0}});
 });
+
+test('mode switch: legacy planOut does not hide ordinary spends (257 vs 1756 regression)',async({page})=>{
+ const r=await probe(page,()=>{
+  // Legacy S.planOut must be ignored for fact; keep field for data compatibility
+  T='2026-11-25';S.demo=false;S.irreg=false;S.rare=[];S.rules=[];S.recur=[];
+  S.planCalc={inc:90000,fixed:15000,save:5000,irr:3000};
+  S.planOut=['rent','kom','conn','subs','debt','tax','cloth','beauty','health','gift','tech','trip','edu'];
+  S.dayLimit=undefined;
+  S.accounts=[{id:'main',type:'main',start:30000}];
+  S.entries=[
+   {id:'sub',type:'e',cat:'subs',note:'AI',amt:3499,date:'2026-11-24',acc:'main'},
+   {id:'r',type:'i',cat:'refund',amt:2000,date:'2026-11-24',acc:'main',for:'sub'},
+   {id:'food',type:'e',cat:'cafe',note:'Food',amt:857,date:'2026-11-24',acc:'main'},
+   {id:'r2',type:'i',cat:'refund',amt:600,date:'2026-11-24',acc:'main',for:'food'},
+   {id:'health',type:'e',cat:'health',note:'Pharmacy',amt:800,date:'2026-11-10',acc:'main'},
+   {id:'gift',type:'e',cat:'gift',note:'Present',amt:1068,date:'2026-11-05',acc:'main'},
+   {id:'pay',type:'e',cat:'subs',note:'Scheduled',amt:500,date:'2026-11-01',acc:'main',rid:'rule1'},
+   {id:'rarePay',type:'e',cat:'tech',note:'Annual license',amt:12000,date:'2026-11-03',acc:'main'}
+  ];
+  S.rare=[{id:'rare',cat:'tech',name:'Annual license',amt:12000}];
+  function snap(){
+   var y='2026-11-24',me=monthEntries('2026-11');
+   var cats=netByCat(life(me));
+   var g=g2();
+   return {
+    y:dayNet(y).v,month:lifeNet(me),
+    lifeIds:life(S.entries).filter(function(x){return x.type==='e'}).map(function(x){return x.id}).sort(),
+    hasSubs:!!cats.subs,hasHealth:!!cats.health,hasGift:!!cats.gift,
+    review:Math.max(0,lifeNet(me)),
+    stars:g.stars,good:g.good
+   };
+  }
+  S.simple=true;S.incomes=[];
+  PI_C=null;PI_ON=0;
+  var simple=snap();
+  S.simple=false;S.incomes=[{id:'i',day:10,amt:90000}];
+  PI_C=null;
+  var full=snap();
+  S.simple=true;S.incomes=[];
+  PI_C=null;
+  var back=snap();
+  return {simple:simple,full:full,back:back};
+ });
+ // food net 257 + sub net 1499 = 1756; health 800 + gift 1068 also in month; rid+rare excluded
+ expect(r.simple.y).toBe(1756);
+ expect(r.full.y).toBe(1756);
+ expect(r.back.y).toBe(1756);
+ expect(r.simple.month).toBe(1756+800+1068);
+ expect(r.full.month).toBe(r.simple.month);
+ expect(r.back.month).toBe(r.simple.month);
+ expect(r.simple.lifeIds).toEqual(r.full.lifeIds);
+ expect(r.simple.lifeIds).toEqual(['food','gift','health','sub']);
+ expect(r.simple.hasSubs).toBe(true);
+ expect(r.simple.hasHealth).toBe(true);
+ expect(r.simple.hasGift).toBe(true);
+ expect(r.simple.review).toBe(r.full.review);
+ expect(r.simple.stars).toBe(r.full.stars);
+ expect(r.simple.good).toBe(r.full.good);
+});
+
+test('mode switch keeps past planDayHistory; rid and rare stay out of life in both modes',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-24';S.demo=false;S.simple=true;S.irreg=false;S.incomes=[];
+  S.planCalc={inc:60000,fixed:10000,save:0,irr:2000};
+  S.planOut=['rent','kom','conn','subs','debt','tax','cloth','beauty','health','gift','tech','trip','edu'];
+  S.planDayHistory={};rememberDayLimit();
+  var limSimple=dayLimit(),hist24=S.planDayHistory['2026-11-24'];
+  T='2026-11-25';
+  S.accounts=[{id:'main',type:'main',start:20000}];
+  S.entries=[
+   {id:'cafe',type:'e',cat:'cafe',amt:400,date:T,acc:'main'},
+   {id:'rent',type:'e',cat:'rent',amt:3000,date:T,acc:'main',rid:'r-rent'},
+   {id:'rare',type:'e',cat:'trip',note:'Bali',amt:50000,date:T,acc:'main'}
+  ];
+  S.rare=[{id:'rr',cat:'trip',name:'Bali',amt:50000}];
+  S.rules=[];S.recur=[];
+  var simpleDay=dayNet(T).v,simpleLife=life(S.entries).map(function(x){return x.id}).sort();
+  S.simple=false;S.incomes=[{id:'sal',day:10,amt:60000}];
+  PI_C=null;
+  var fullDay=dayNet(T).v,fullLife=life(S.entries).map(function(x){return x.id}).sort();
+  rememberDayLimit();
+  var limFull=dayLimit(),hist25=S.planDayHistory['2026-11-25'],hist24after=S.planDayHistory['2026-11-24'];
+  var legacyOut=S.planOut&&S.planOut.slice();
+  return {
+   limSimple:limSimple,hist24:hist24,hist24after:hist24after,
+   limFull:limFull,hist25:hist25,
+   simpleDay:simpleDay,fullDay:fullDay,simpleLife:simpleLife,fullLife:fullLife,
+   at24:dayLimitAt('2026-11-24'),legacyOut:legacyOut,
+   hasPlanOutDefault:typeof planOutDefault,hasPlanOutSet:typeof planOutSet,hasPcCats:typeof pcCatsHtml
+  };
+ });
+ expect(r.hist24).toBe(r.limSimple);
+ expect(r.hist24after).toBe(r.limSimple); // past day not overwritten by mode switch
+ expect(r.at24).toBe(r.limSimple);
+ expect(r.hist25).toBe(r.limFull); // today may record the active mode's limit
+ expect(r.simpleDay).toBe(400);
+ expect(r.fullDay).toBe(400);
+ expect(r.simpleLife).toEqual(['cafe']);
+ expect(r.fullLife).toEqual(['cafe']);
+ expect(r.legacyOut).toContain('subs'); // stored field kept for compatibility
+ expect(r.hasPlanOutDefault).toBe('undefined');
+ expect(r.hasPlanOutSet).toBe('undefined');
+ expect(r.hasPcCats).toBe('undefined');
+});

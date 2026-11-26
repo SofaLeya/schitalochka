@@ -1825,7 +1825,7 @@ function dayPlanSheet(){var pi=planInfo(),df=planDefaults(),h=planByHistory(),ph
    fld('pc_fix','Обязательные платежи в месяц, '+sym()+'','Жильё, коммуналка, связь, кредиты, подписки.',df.fixed)+
    fld('pc_sav','Откладывать в месяц, '+sym()+'','Копилки, подушка, цели.'+(ph.save>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_sav" data-v="'+ph.save+'"><br>'+cap(ph.label)+' отложено около '+money(ph.save)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.save))+
    fld('pc_irr','Редкие расходы в среднем за месяц, '+sym()+'','Врачи, одежда, подарки, платежи раз в несколько месяцев: годовую сумму раздели на 12.'+(ph.irr>0?' <button type="button" class="fine" style="text-decoration:underline" data-a="pcHint" data-id="pc_irr" data-v="'+ph.irr+'"><br>'+cap(ph.label)+' на одежду, красоту, здоровье, подарки, технику и поездки - около '+money(ph.irr)+(ph.label==='в этом месяце'?'':' в месяц')+' - подставить</button>':''),df.irr)+
-   '<div class="f"><label>Не сравнивать с планом на день</label><span class="fine">Траты в этих категориях уже заложены в «обязательные» и «редкие», поэтому монстрик и прогресс их не считают. В «Потрачено за месяц» они остаются.</span><div id="pc_out_cats" style="display:flex;flex-wrap:wrap;gap:6px">'+pcCatsHtml()+'</div></div>'+
+   '<div class="f"><label>Учтено в расчёте плана</label><span class="fine">Эти категории уже входят в суммы «обязательные» и «редкие» при расчёте дневного плана. Фактические траты по ним всё равно считаются в обоих режимах; из факта убираются только отмеченные платежи (rid) и редкие по названию.</span><div id="pc_out_cats" style="display:flex;flex-wrap:wrap;gap:6px">'+pcCatsHtml()+'</div></div>'+
    '<div id="pc_out" class="note info"></div>'+
    (h?'<p class="fine">Для сравнения: в прошлые месяцы ты тратишь в среднем около '+money(h)+' в день.</p>':'')+
    '<div class="btns"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить план</button></div></form>'+
@@ -1842,10 +1842,17 @@ function planOutSet(){var pi=planInfo(),l;
   else return null; // своя сумма или нет плана - всё как раньше
   if(!l.length)return null;var m={};l.forEach(function(c){m[c]=1});return m}
 function life(list){
-  // полный режим: план учитывает выбранные карты независимо от их баланса.
+  // Одни правила учёта факта в обоих режимах: со свободных денег, без платежей (rid),
+  // без редких и без чужих счетов. Категория из planOut / FIXCATS / IRRCATS сама по себе
+  // расход не прячет — иначе «Учёт трат» и «Планирование» расходятся на одних данных.
   // nobal («не с моих счетов») в историю входит, но личный дневной бюджет не уменьшает.
-  if(!S.simple&&(S.incomes||[]).length){return list.filter(function(x){if(x.nobal)return false;return !(x.type==='e'&&(x.rid||!isPlanId(accOf(x))||isRareExpense(x)))&&!(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))})}
-  var m=planOutSet();return list.filter(function(x){if(x.nobal)return false;if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;return !(x.type==='e'&&(x.rid||(m&&m[x.cat])))})}
+  return list.filter(function(x){
+    if(x.nobal)return false;
+    if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;
+    if(x.type==='e'&&(x.rid||isRareExpense(x)))return false;
+    return true;
+  });
+}
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
 function lifeNetL(list,LK){return sumNet(life(list),LK)}
 function lifeNet(list){return lifeNetL(list,refLinks())}

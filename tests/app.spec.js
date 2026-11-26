@@ -714,7 +714,14 @@ test('предсказание: сколько останется к зарпл�
   await page.click('[data-a=fcOpen]');
   const sheet = page.locator('#ov .sheet');
   await expect(sheet).toContainText('останется');
-  await expect(sheet).toContainText('без крупных покупок');
+  await expect(sheet).toContainText('Если сократить необязательные траты');
+  await expect(sheet).toContainText('Обычные траты в день');
+  await expect(sheet).toContainText('Запланированные покупки');
+  // доп. блоки свёрнуты; форма добавления — после «+ Добавить план»
+  await expect(sheet.locator('#fc_amt')).toHaveCount(0);
+  await sheet.locator('details.fold', {hasText: 'Мои планы'}).locator('summary').click();
+  await sheet.locator('[data-a=fcFormShow]').click();
+  await expect(sheet.locator('#fc_amt')).toBeVisible();
   // свой план: по средам 2 000, половину вернут
   await page.selectOption('#fc_cat', 'prod').catch(() => {});
   await page.fill('#fc_amt', '2000');
@@ -790,7 +797,8 @@ test('нерегулярный доход: на сколько дней хват
   await page.click('[data-a=fcOpen]');
   await page.click('#ov [data-a=irrOn]');
   const sheet = page.locator('#ov .sheet');
-  await expect(sheet).toContainText('хватит на');
+  await expect(sheet).toContainText('Хватит примерно до');
+  await expect(sheet).toContainText('Обычные траты в день');
   await page.click('#ov [data-a=close]');
   // правило 10% и подушка - через мастер в настройках
   await page.click('[data-a=settings]');
@@ -839,7 +847,7 @@ test('нерегулярный доход в полном режиме: плит
   await page.reload();
   await expect(page.locator('.hero')).toContainText('Хватит');
   await page.click('[data-a=fcOpen]');
-  await expect(page.locator('#ov .sheet')).toContainText('хватит на');
+  await expect(page.locator('#ov .sheet')).toContainText(/Хватит (примерно до|на 3\+)/);
   expect(errs).toEqual([]);
 });
 
@@ -864,7 +872,7 @@ test('нерегулярный доход: мне должны, сам себе 
   await page.click('#ov [data-a=close]');
   await expect(page.locator('[data-a=owedOpen]')).toContainText('3 000');
   await page.click('[data-a=fcOpen]');
-  await expect(page.locator('#ov .sheet')).toContainText('если заплатят');
+  await expect(page.locator('#ov .sheet')).toContainText('Если заплатят, что должны');
   await page.click('#ov [data-a=close]');
   const before = await heroNumber(page);
   await page.click('[data-a=owedOpen]');

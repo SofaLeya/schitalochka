@@ -5222,18 +5222,19 @@ var BANK_PKG_PREFIX=['ru.sberbank','ru.alfabank.','ru.tinkoff.','com.idamob.tink
 function bankPkgOk(pkg){pkg=String(pkg||'');if(!pkg)return false;if(BANK_PKG_EXACT[pkg])return true;for(var i=0;i<BANK_PKG_PREFIX.length;i++)if(pkg.indexOf(BANK_PKG_PREFIX[i])===0)return true;return false}
 function bankParse(t){t=String(t||'').replace(/[\u00a0\u202f]/g,' ');
   var op=t.replace(/\s+/g,' ');
-  if(/(?<![\p{L}\p{N}_])(?:код (?:для|подтверждения)|код из смс|отклон[её]н[ао]?|не (?:выполнен[ао]?|прош[её]л|прошла|удалось)|недостаточно средств|лимит на перевод)(?![\p{L}\p{N}_])/iu.test(op))return null;
-  op=op.split(/(?<![\p{L}\p{N}_])(?:баланс|доступно|остаток|balans|dostupno|ostatok)(?![\p{L}\p{N}_])/iu,1)[0];
-  var m=/([+−-]?)(\d[\d ]*(?:[.,]\d{1,2})?) *(?:₽|(?:руб(?:лей|ля|ль)?|RU[BR])(?![\p{L}\p{N}_])|р\.)/iu.exec(op);
+  if(/(?:^|[^а-яёa-z0-9_])(?:код (?:для|подтверждения)|код из смс|отклон[её]н[ао]?|не (?:выполнен[ао]?|прош[её]л|прошла|удалось)|недостаточно средств|лимит на перевод)(?![а-яёa-z0-9_])/i.test(op))return null;
+  var balance=/(^|[^а-яёa-z0-9_])(?:баланс|доступно|остаток|balans|dostupno|ostatok)(?![а-яёa-z0-9_])/i.exec(op);
+  if(balance)op=op.slice(0,balance.index+balance[1].length);
+  var m=/([+−-]?)(\d[\d ]*(?:[.,]\d{1,2})?) *(?:₽|(?:руб(?:лей|ля|ль)?|RU[BR])(?![а-яёa-z0-9_])|р\.)/i.exec(op);
   if(!m)return null;var amt=parseFloat(m[2].replace(/ /g,'').replace(',','.'));if(!(amt>0))return null;
-  var kind=/(?<![\p{L}\p{N}_])((зачисл|поступ|пополн|возврат|вернули|кэшбэк|(?:zachislenie|postuplenie|popolnenie|vozvrat|cashback)(?![\p{L}\p{N}_])|(?:входящий|vhodyashchiy|vkhodyashchiy) (?:перевод|perevod)(?![\p{L}\p{N}_]))|покупк|оплат|списан|снятие|плат[её]ж|(?:pokupka|oplata|spisanie|snyatie|platezh)(?![\p{L}\p{N}_])|(?:исходящий|ishodyashchiy|iskhodyashchiy) (?:перевод|perevod)(?![\p{L}\p{N}_]))/iu.exec(op);
-  var transfer=/(?<![\p{L}\p{N}_])(?:перевод|perevod)(?![\p{L}\p{N}_])/iu.exec(op);
+  var kind=/(?:^|[^а-яёa-z0-9_])(?:(зачисл|поступ|пополн|возврат|вернули|кэшбэк|(?:zachislenie|postuplenie|popolnenie|vozvrat|cashback)(?![а-яёa-z0-9_])|(?:входящий|vhodyashchiy|vkhodyashchiy) (?:перевод|perevod)(?![а-яёa-z0-9_]))|покупк|оплат|списан|снятие|плат[её]ж|(?:pokupka|oplata|spisanie|snyatie|platezh)(?![а-яёa-z0-9_])|(?:исходящий|ishodyashchiy|iskhodyashchiy) (?:перевод|perevod)(?![а-яёa-z0-9_]))/i.exec(op);
+  var transfer=/(?:^|[^а-яёa-z0-9_])(?:перевод|perevod)(?![а-яёa-z0-9_])/i.exec(op);
   if(!kind&&!transfer)return null;
-  var refund=/(?<![\p{L}\p{N}_])(?:возврат|вернули|vozvrat(?![\p{L}\p{N}_]))/iu.test(op);
-  var inc=refund||!!(kind&&kind[2]);
+  var refund=/(?:^|[^а-яёa-z0-9_])(?:возврат|вернули|vozvrat(?![а-яёa-z0-9_]))/i.test(op);
+  var inc=refund||!!(kind&&kind[1]);
   if(!kind&&transfer){
     // «Перевод от …» и «Перевод 570 RUR от …» указывают на отправителя.
-    var from=/^ *(?:от|ot)(?![\p{L}\p{N}_])/iu;
+    var from=/^ *(?:от|ot)(?![а-яёa-z0-9_])/i;
     inc=m[1]==='+'||(!m[1]&&(from.test(op.slice(transfer.index+transfer[0].length))||
       (transfer.index<m.index&&from.test(op.slice(m.index+m[0].length)))));
   }

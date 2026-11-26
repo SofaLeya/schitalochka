@@ -1570,7 +1570,8 @@ function nextLifePayoutDate(ev,after){
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
 function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()+perNote()}
 function bankCardWrap(h){return h+bankCard()}
-function fcRound(v){return money(Math.round(v/lc(100))*lc(100))}
+function fcRound(v){var step=lc(100);return money(step>0?Math.round(v/step)*step:v)}
+function fcResultText(v){var step=lc(100);if(v===0||(step>0&&Math.abs(v)<step/2))return 'примерно в ноль';return (v>=0?'останется ~':'не хватит ~')+fcRound(Math.abs(v))}
 function fcFold(title,count,body,open){
   return '<details class="fold"'+(open?' open':'')+'><summary><span>'+title+'</span>'+(count!=null?'<span class="fine" style="font-weight:500">'+count+'</span>':'')+'</summary><div class="fcfold">'+body+'</div></details>';
 }
@@ -1579,7 +1580,7 @@ function fcEnd(){
   try{var ev=plannedItems(T,sourceForecastDays()),nd=nextLifePayoutDate(ev,T);if(nd)return nd}catch(e){}
   return nextPayDates(1,iso(addDays(parse(T),1)))[0]||null;
 }
-function fcPace(){
+function fcPace(netForecast){
   var LK=refLinks(),lim=dayLimit(),huge=lim?lim*3:lc(5000),big=lim?lim/4:lc(400),EV={prod:1,cafe:1,trans:1,taxi:1},pl=S.fcPlans||[],nsM={};
   (S.noSpend||[]).forEach(function(x){nsM[x]=1});
   var kn=0,all=0,base=0,hugeS=0;
@@ -1588,7 +1589,7 @@ function fcPace(){
     life(l0).forEach(function(x){
       if(x.type==='e'&&!x.skip){
         if(pl.some(function(q){return q.cat===x.cat&&+q.wd===wd}))return;
-        if(!isLiveId(accOf(x)))return;var v=receivedNetOf(x,LK);if(v>=huge){hugeS+=v;return}
+        if(!isLiveId(accOf(x)))return;var v=netForecast?netOf(x,LK):receivedNetOf(x,LK);if(v>=huge){hugeS+=v;return}
         all+=v;if(EV[x.cat]||v<big)base+=v}
       else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]&&isLiveId(accOf(x))){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,hugeS:hugeS,huge:huge,pl:pl}}
@@ -1621,7 +1622,7 @@ function fcWhatIfInput(el){
   }else{
     var f=fcCalc();if(!f)return;
     var leftV=f.avail-sh.fcWhatIf*f.dl-f.pc;
-    if(left)left.textContent=leftV>=0?'останется ~'+fcRound(leftV):'не хватит ~'+fcRound(-leftV);
+    if(left)left.textContent=fcResultText(leftV);
   }
 }
 try{window.fcWhatIfInput=fcWhatIfInput}catch(e){}
@@ -1647,9 +1648,21 @@ function fcRun(pace,extra){var pl=S.fcPlans||[],m=balance()+(extra||0),outs={},s
   if(!S.simple){try{plannedItems(T,92).forEach(function(e){if(e.kind==='out'&&!offMain(e)&&e.date>T)outs[e.date]=(outs[e.date]||0)+e.amt})}catch(e){}}
   for(var j=1;j<=92;j++){var d=addDays(parse(T),j),di=iso(d);if(spd[di]&&buf>0){var g=Math.min(sp.amt,buf);buf-=g;m+=g}m-=pace+(outs[di]||0);pl.forEach(function(q){if(d.getDay()===+q.wd)m-=q.amt*(q.half?0.5:1)});if(m<0)return {days:j-1,date:iso(addDays(parse(T),j-1))}}
   return {days:92,date:null}}
+/* Только прогноз до выплаты: предполагаем, что открытые возвраты по уже
+   совершённым покупкам поступят до этой даты. В фактический баланс не добавляем.
+   backOf распределяет возвраты по частям чека и вычитает уже полученное. */
+function fcPendingRefunds(){
+  var LK=refLinks(),sum=0;
+  S.entries.forEach(function(x){
+    if(x.type!=='e'||x.demo||x.skip||x.nobal||x.hist||x.date>T)return;
+    var a=accById(accOf(x));if(!a||a.archived||!isLive(a))return;
+    sum+=Math.min(Math.max(0,(+x.amt||0)-backOf(x,LK).back),backOf(x,LK).pend);
+  });
+  return sum;
+}
 function fcCalc(){
   var nd=fcEnd();if(!nd)return null;
-  var P=fcPace(),kn=P.kn,pl=P.pl,huge=P.huge,hugeS=P.hugeS;
+  var P=fcPace(true),kn=P.kn,pl=P.pl,huge=P.huge,hugeS=P.hugeS;
   // due и inc вместе: иначе раскладка до зарплаты съедает накопленное, а поступление не компенсирует
   var due=0,inc=0;if(!S.simple&&(S.incomes||[]).length){try{
     var pd=perDay();
@@ -1659,8 +1672,8 @@ function fcCalc(){
       var cf=cashUntil(ev,nd,nextPay,nextYm,{});due=cf.due;inc=cf.inc}
   }catch(e){}}
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
-  var avail=balance()-due+inc,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
-  return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
+  var pending=fcPendingRefunds(),avail=balance()-due+inc+pending,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
+  return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pending:pending,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
 function fcPlansHtml(prow,irr){
   var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||sh.fcForm));
   var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
@@ -1688,7 +1701,7 @@ function fcWhatIfBlock(defPace,irr){
   var f=fcCalc(),leftV=f?f.avail-pace*f.dl-f.pc:0;
   return '<div class="fcwhat"><div class="fcwrow"><span>А если тратить меньше?</span><b id="fc_wif_pace">'+money(pace)+'</b></div>'+
     '<input type="range" id="fc_wif" min="0" max="'+max+'" step="'+step+'" value="'+Math.round(pace)+'" oninput="fcWhatIfInput(this)">'+
-    '<div class="fcwrow"><span class="fine">К зарплате</span><b id="fc_wif_left">'+(leftV>=0?'останется ~'+fcRound(leftV):'не хватит ~'+fcRound(-leftV))+'</b></div></div>';
+    '<div class="fcwrow"><span class="fine">К зарплате</span><b id="fc_wif_left">'+(fcResultText(leftV))+'</b></div></div>';
 }
 function fcIrrBody(){var P=fcPace();
   if(P.kn<5)return '<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
@@ -1721,12 +1734,13 @@ function fcSheet(){
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   else{
     if(sh.fcWhatIf==null)sh.fcWhatIf=f.pace;
-    var ok=f.left>=0,heroCls=ok?'good':(f.left>-lc(5000)?'warn':'bad');
-    body='<div class="note '+heroCls+'"><span class="fine">К '+dt+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+(ok?'останется ~'+fcRound(f.left):'не хватит ~'+fcRound(-f.left))+'</b></div>'+
+    var ok=f.left>=0,heroCls=fcResultText(f.left)==='примерно в ноль'?'info':(ok?'good':(f.left>-lc(5000)?'warn':'bad'));
+    body='<div class="note '+heroCls+'"><span class="fine">К '+dt+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+fcResultText(f.left)+'</b></div>'+
     '<div class="fcmeta" style="margin-top:8px"><div class="row"><div class="grow fine">Обычные траты в день</div><b>'+money(f.pace)+'</b></div>'+
     '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+(f.pc>0?money(f.pc)+' · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'):'нет · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'))+'</b></div>'+
     '<div class="row"><div class="grow fine">Обязательные платежи</div><b>'+(f.due>0?money(f.due):'нет')+'</b></div></div>'+
-    '<p class="fine" style="margin:8px 0 0">Темп по кассе: в «обычный день» входят только уже полученные возвраты, не ожидаемые по «Делю с кем-то».</p>'+
+    '<p class="fine" style="margin:8px 0 0">Обычные траты — с учётом твоей доли. Прогноз предполагает, что ожидаемые возвраты придут до зарплаты.</p>'+
+    (f.pending>0?'<div class="row"><div class="grow fine">Ожидаемые возвраты</div><b>'+money(f.pending)+'</b></div>':'')+
     (f.left<0&&f.dl?(f.avail-f.pc>0?'<p class="fine" style="margin:8px 0 0">Чтобы дотянуть — до '+money((f.avail-f.pc)/f.dl)+' в день.</p>':'<p class="fine" style="margin:8px 0 0">Свободных денег уже не хватает на платежи до зарплаты.</p>'):'')+
     fcWhatIfBlock(f.pace,false);
   }
@@ -1739,9 +1753,10 @@ function fcSheet(){
       how.push([dlabel(r.date)+' · '+esc(r.name),(r.allSave?money(r.amt)+' → ':'')+lifeTxt,1]);
     });
   }else if(f.inc>0)how.push(['+ Ожидаемые поступления',money(f.inc)]);
+  if(f.pending>0)how.push(['+ Ожидаемые возвраты до зарплаты',money(f.pending)]);
   if(f.kn>=5){
     how.push(['− Обычные траты ('+money(f.pace)+' × '+f.dl+')',money(f.pace*f.dl)]);
-    how.push(['Обычный темп — по кассе','ожидаемые возвраты «Делю с кем-то» не вычитаются, пока деньги не пришли',1]);
+    how.push(['Обычный темп','с учётом твоей доли в совместных покупках',1]);
     if(f.pc>0)how.push(['− Запланированные покупки',money(f.pc)]);
     how.push(['Прогноз к '+dt,fcRound(f.left)]);
     how.push(['Крупные покупки от '+money(f.huge),'не в «обычный день»']);

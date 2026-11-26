@@ -170,7 +170,7 @@ test('D1/D2 full flow: shift, receive, save rules, month flip without double cre
   expect(r.free).toBe(60000); // 20000 start + 50000 income - 10000 to save
 });
 
-test('D3 prediction keeps cash pace; UI explains pending split refunds', async ({page}) => {
+test('D3 prediction uses personal share; cash pace and actual balance stay unchanged', async ({page}) => {
   const r = await probe(page, () => {
     T = '2026-11-25'; S.demo = false; S.simple = true; S.irreg = false; S.planCalc = null; S.dayLimit = 2000; S.payDays = [10];
     S.accounts = [{id: 'main', type: 'main', start: 50000}]; S.fcPlans = []; S.noSpend = []; S.incomes = []; S.entries = [];
@@ -180,15 +180,19 @@ test('D3 prediction keeps cash pace; UI explains pending split refunds', async (
       else S.entries.push({id: 'e' + i, type: 'e', acc: 'main', cat: 'cafe', amt: 1000, date: d});
     }
     let lifeSum = 0; for(let i = 1; i <= 14; i++) lifeSum += dayNet(iso(addDays(parse(T), -i))).v;
-    const pace = fcPace().pace;
+    const pace = fcPace().pace, f = fcCalc(), bal = balance();
     fcSheet();
     const sheet = document.querySelector('.sheet');
     const txt = sheet ? sheet.textContent : '';
-    return {pace, lifeAvg: lifeSum / 14, cashAvg: (13 * 1000 + 2000) / 14, hasCashNote: /касс|полученн|ожидаем/i.test(txt)};
+    return {pace, predictedPace:f.pace, pending:f.pending, avail:f.avail, bal, left:f.left, days:f.dl, lifeAvg: lifeSum / 14, cashAvg: (13 * 1000 + 2000) / 14, hasRefundNote: /ожидаемые возвраты/i.test(txt)};
   });
   expect(r.pace).toBeCloseTo(r.cashAvg, 5);
-  expect(r.pace).not.toBeCloseTo(r.lifeAvg, 5);
-  expect(r.hasCashNote).toBe(true);
+  expect(r.predictedPace).toBeCloseTo(r.lifeAvg, 5);
+  expect(r.pending).toBe(1000);
+  expect(r.bal).toBe(35000);
+  expect(r.avail).toBe(36000);
+  expect(r.left).toBeCloseTo(36000-1000*r.days,5);
+  expect(r.hasRefundNote).toBe(true);
 });
 
 test('D4 delete purchase with refunds: delete-all keeps free money; keep-refunds is explicit', async ({page}) => {
@@ -220,4 +224,50 @@ test('D4 delete purchase with refunds: delete-all keeps free money; keep-refunds
   expect(r.only.after).toBe(12000);
   expect(r.afterKeep).toBe(12000);
   expect(r.htmlHas).toBe(true);
+});
+
+test('D3a forecast stays stable as expected refunds arrive; balance stays factual',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.cur='RUB';S.payDays=[10];S.incomes=[];S.rare=[];S.noSpend=[];S.fcPlans=[];
+  S.accounts=[{id:'main',type:'main',start:50000}];S.entries=[];
+  for(let i=1;i<=14;i++)S.entries.push({id:'e'+i,type:'e',acc:'main',cat:'cafe',amt:i===3?2000:1000,split:i===3?1000:0,date:iso(addDays(parse(T),-i))});
+  const snap=()=>{const f=fcCalc();return {bal:balance(),pace:f.pace,pending:f.pending,avail:f.avail,left:f.left,days:f.dl,day:dayNet('2026-11-22').v}};
+  const before=snap();
+  S.entries.push({id:'r1',type:'i',cat:'refund',amt:400,date:T,acc:'main',for:'e3'});
+  const partial=snap();
+  S.entries.push({id:'r2',type:'i',cat:'refund',amt:600,date:T,acc:'main',for:'e3'});
+  const full=snap();
+  return {before,partial,full,zero:fcResultText(-1),positive:fcResultText(100),negative:fcResultText(-100)};
+ });
+ expect(r.before.bal).toBe(35000);
+ expect(r.partial.bal).toBe(35400);
+ expect(r.full.bal).toBe(36000);
+ expect([r.before.pending,r.partial.pending,r.full.pending]).toEqual([1000,600,0]);
+ for(const v of [r.before,r.partial,r.full]){
+  expect(v.pace).toBe(1000);
+  expect(v.day).toBe(1000);
+  expect(v.avail).toBe(36000);
+  expect(v.left).toBe(36000-1000*v.days);
+ }
+ expect(r.zero).toBe('примерно в ноль');
+ expect(r.positive).toContain('останется');
+ expect(r.negative).toContain('не хватит');
+});
+
+test('D3b grouped pending refund counted once; excluded and future purchases do not inflate available cash',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.payDays=[10];S.incomes=[];S.rare=[];S.fcPlans=[];
+  S.accounts=[{id:'main',type:'main',start:50000},{id:'save',type:'save',start:10000},{id:'closed',type:'other',live:true,archived:true,start:10000}];
+  const e=(id,amt,split,extra)=>Object.assign({id,type:'e',amt,split,cat:'cafe',date:'2026-11-20',acc:'main'},extra||{});
+  S.entries=[e('a',600,500,{grp:'g'}),e('b',400,0,{grp:'g'}),
+   {id:'r',type:'i',cat:'refund',amt:200,date:T,acc:'main',for:'a'},
+   e('old',1000,300,{date:'2026-10-01'}),e('future',1000,500,{date:'2026-11-26'}),
+   e('skip',1000,500,{skip:true}),e('other',1000,500,{acc:'save'}),
+   e('nobal',1000,500,{nobal:true}),e('closed',1000,500,{acc:'closed'}),
+   e('hist',1000,500,{hist:true})];
+  const f=fcCalc();
+  return {pending:f.pending,avail:f.avail,bal:balance()};
+ });
+ expect(r.pending).toBeCloseTo(600,5);
+ expect(r.avail).toBeCloseTo(r.bal+600,5);
 });

@@ -3975,14 +3975,21 @@ function g2LevelOf(stars){return Math.floor(Math.sqrt(Math.max(0,+stars||0)/40))
 function g2ProgressFromState(state){
   var src=planHistUnpack(state)||state;if(!src||typeof src!=='object')return null;
   var L=+src.g2L||0,stars=+src.g2Stars||0;
-  if(L>0)stars=Math.max(stars,g2MinStars(L));
+  // Старый бэкап только с g2L → минимум звёзд уровня. Явный g2Stars при g2From не раздуваем:
+  // уровень мог вырасти из live поверх пола (иначе 6→7 удваивает live).
+  if(L>0&&!(+src.g2Stars>0))stars=g2MinStars(L);
+  else if(L>0&&!src.g2From)stars=Math.max(stars,g2MinStars(L));
   if(!L&&stars>0)L=g2LevelOf(stars);
   if(!L&&!stars)return null;
   return {L:L,stars:stars,from:src.g2From||null};
 }
 function g2ProgressLift(p){
   if(!p||S.demo)return false;
-  var ch=false,stars=Math.max(+S.g2Stars||0,+p.stars||0,g2MinStars(+S.g2L||0),g2MinStars(+p.L||0));
+  var ch=false;
+  // Явный пол (stars) не раздуваем через g2MinStars(L): уровень мог вырасти из live поверх g2From.
+  var stars=Math.max(+S.g2Stars||0,+p.stars||0);
+  if(!(+p.stars>0)&&p.L&&!p.from&&!S.g2From)stars=Math.max(stars,g2MinStars(+p.L||0));
+  if(!(+S.g2Stars>0)&&!S.g2From)stars=Math.max(stars,g2MinStars(+S.g2L||0));
   var L=Math.max(+S.g2L||0,+p.L||0,g2LevelOf(stars));
   if(stars>(+S.g2Stars||0)){S.g2Stars=stars;ch=true}
   if(L>(+S.g2L||0)){S.g2L=L;ch=true}
@@ -3997,10 +4004,13 @@ function g2ProgressSeal(){
   var live=0;
   try{live=+(g2().live||0)}catch(e){live=0}
   finally{S.g2From=prev}
-  var banked=Math.max(+S.g2Stars||0,g2MinStars(+S.g2L||0)),ch=false;
+  var banked=+S.g2Stars||0,ch=false;
+  if(!S.g2From)banked=Math.max(banked,g2MinStars(+S.g2L||0));
+  else if(!banked)banked=g2MinStars(+S.g2L||0);
   if(live>banked){S.g2Stars=live;ch=true;banked=live}
+  if(banked>(+S.g2Stars||0)&&!S.g2From){S.g2Stars=banked;ch=true}
   if(banked>live&&!S.g2From){S.g2From=T;ch=true}
-  var L=Math.max(+S.g2L||0,g2LevelOf(banked));
+  var L=Math.max(+S.g2L||0,g2LevelOf(Math.max(banked,+S.g2Stars||0)));
   if(L>(+S.g2L||0)){S.g2L=L;ch=true}
   return ch;
 }
@@ -4043,8 +4053,15 @@ function g2(){
   return g2fin(g);
 }
 function g2fin(g){
-  var live=+g.live||0,banked=Math.max(+S.g2Stars||0,g2MinStars(+S.g2L||0));
-  g.stars=S.g2From?banked+live:Math.max(live,banked);
+  var live=+g.live||0,banked=+S.g2Stars||0;
+  if(S.g2From){
+    // При cutover не поднимать пол через g2MinStars(g2L): L мог вырасти из live.
+    if(!banked)banked=g2MinStars(+S.g2L||0);
+    g.stars=banked+live;
+  }else{
+    banked=Math.max(banked,g2MinStars(+S.g2L||0));
+    g.stars=Math.max(live,banked);
+  }
   g.L=Math.max(g2LevelOf(g.stars),+S.g2L||0);
   g.fl=40*(g.L-1)*(g.L-1);g.nx=40*g.L*g.L;
   g.title=G2TITLES[Math.min(g.L-1,G2TITLES.length-1)];
@@ -4071,9 +4088,8 @@ function progCard(){
   if(!S.demo){
     var lift=false;
     if(g.L>(+S.g2L||0)){setTimeout(function(){toast('Новый уровень: '+g.L+' · '+g.title)},300);S.g2L=g.L;lift=true}
-    // пол звёзд только растёт: смена лимитов/режима/пересчёт истории не забирает награды
+    // пол звёзд только растёт без cutover; при g2From live уже поверх пола — не переносить min(L) в g2Stars
     if(!S.g2From&&g.stars>(+S.g2Stars||0)){S.g2Stars=g.stars;lift=true}
-    else if(S.g2From&&(+S.g2Stars||0)<g2MinStars(g.L)){S.g2Stars=g2MinStars(g.L);lift=true}
     if(lift)saveLocal();
   }
   if(uiFold('prog'))return '<div class="card prog">'+fhead('prog','🏆 Прогресс','Уровень '+g.L+' · до '+(g.L+1)+'-го ещё '+Math.max(1,g.nx-g.stars)+' ★')+'</div>';

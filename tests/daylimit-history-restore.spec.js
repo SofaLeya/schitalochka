@@ -1,14 +1,24 @@
 const {test,expect}=require('@playwright/test');
-async function probe(page, scenario){
+const fs=require('fs');
+const path=require('path');
+async function probe(page, scenario, data){
  await page.route(u=>!/^(localhost|127\.0\.0\.1)$/.test(u.hostname),r=>r.abort());
  await page.route(/\/index\.html(?:\?.*)?$/,async route=>{
   const response=await route.fetch(),html=await response.text();
   const marker='})();\n/* Новая версия на сайте:';
   if(!html.includes(marker))throw Error('probe marker missing');
-  await route.fulfill({response,body:html.replace(marker,'window.__phrProbe = '+scenario.toString()+';\n'+marker)});
+  const inject=(data!==undefined?'window.__phrData='+JSON.stringify(data)+';\n':'')+'window.__phrProbe = '+scenario.toString()+';\n';
+  await route.fulfill({response,body:html.replace(marker,inject+marker)});
  });
  await page.goto('/index.html');
  return page.evaluate(async()=>await window.__phrProbe());
+}
+function loadRealArchive(){
+ const dir=path.join(__dirname,'fixtures/daylimit-real-archive');
+ const days=['2026-11-20','2026-11-21','2026-11-22','2026-11-23','2026-11-24','2026-11-25'];
+ const packs=days.map(d=>JSON.parse(fs.readFileSync(path.join(dir,'schitalochka-'+d+'.json'),'utf8')));
+ const current=JSON.parse(fs.readFileSync(path.join(dir,'schitalochka-2026-11-26.json'),'utf8'));
+ return {packs,current};
 }
 
 test('planHistEvalDayLimit uses real dayLimit formulas for simple/calc/irreg/full',async({page})=>{
@@ -533,4 +543,113 @@ test('regression: backup g2L=6 restores level after update dropped it to 3',asyn
  expect(r.rev).toBe(3);
  expect(r.at20).toBeGreaterThan(0);
  expect(r.approx20).toBe(true);
+});
+
+test('restored level 6→7: stars stable across render, restart and sync',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-26';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];S.rules=[];S.noSpend=[];
+  S.dayLimit=1000;S.dlForm=DL_FORM;
+  // Пол с бэкапа (уровень 6) + live за 25.11 (+10) → 1440 → уровень 7
+  S.g2Stars=1430;S.g2L=6;S.g2From='2026-11-25';
+  S.planDayHistory={'2026-11-25':1000};S.planDayHistoryApprox={};
+  S.accounts=[{id:'main',type:'main',start:20000}];
+  S.entries=[{id:'a',type:'e',cat:'cafe',amt:800,date:'2026-11-25',acc:'main'}];
+  function snap(){var g=g2();return {stars:g.stars,L:g.L,live:g.live,g2Stars:S.g2Stars,g2L:S.g2L,g2From:S.g2From}}
+  var first=snap();
+  // progCard фиксирует новый уровень; не должен раздувать g2Stars через min(L)
+  progCard();progCard();progCard();
+  var afterRender=snap();
+  // «перезапуск»: сериализация состояния и migrate
+  var raw=JSON.parse(JSON.stringify(S));
+  S=migrate(raw);S.demo=false;
+  var afterRestart=snap();
+  // FromState не должен раздувать явный пол до min(7) при g2From
+  var fromSelf=g2ProgressFromState(S);
+  // sync/adopt с меньшим прогрессом на диске (как другое устройство без live)
+  clearTimeout(YD.phrT);S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV;SNAPS=[];
+  ydAdopt({data:{
+   entries:S.entries.slice(),accounts:S.accounts.slice(),simple:true,dayLimit:1000,dlForm:DL_FORM,
+   planDayHistory:Object.assign({},S.planDayHistory),planDayHistoryApprox:{},
+   g2L:6,g2Stars:1000,planHistRestored:1,planHistRestoreRev:PLAN_HIST_RESTORE_REV
+  }},'sync');
+  clearTimeout(YD.phrT);
+  var afterSync=snap();
+  // повторный lift тем же состоянием — без повторного начисления
+  g2ProgressLift({L:S.g2L,stars:S.g2Stars,from:S.g2From});
+  progCard();progCard();
+  var afterLift=snap();
+  return {first,afterRender,afterRestart,afterSync,afterLift,fromSelf:fromSelf,min7:g2MinStars(7)};
+ });
+ expect(r.first.stars).toBe(1440);
+ expect(r.first.L).toBe(7);
+ expect(r.first.live).toBe(10);
+ expect(r.afterRender.stars).toBe(1440);
+ expect(r.afterRender.L).toBe(7);
+ expect(r.afterRender.g2L).toBe(7);
+ expect(r.afterRender.g2Stars).toBe(1430); // пол не раздут до min(7)=1440
+ expect(r.afterRestart.stars).toBe(1440);
+ expect(r.afterRestart.L).toBe(7);
+ expect(r.fromSelf.stars).toBe(1430);
+ expect(r.fromSelf.L).toBe(7);
+ expect(r.afterSync.stars).toBe(1440);
+ expect(r.afterSync.L).toBe(7);
+ expect(r.afterSync.g2Stars).toBe(1430);
+ expect(r.afterSync.live).toBe(10);
+ expect(r.afterLift.stars).toBe(1440);
+ expect(r.afterLift.g2Stars).toBe(1430);
+});
+
+test('real archive fixtures: fill Oct–Nov including 2026-11-24 as approx',async({page})=>{
+ const data=loadRealArchive();
+ const r=await probe(page,()=>{
+  var packs=window.__phrData.packs,current=window.__phrData.current;
+  var fileDays=['2026-11-20','2026-11-21','2026-11-22','2026-11-23','2026-11-24','2026-11-25'];
+  T='2026-11-26';
+  S=migrate(JSON.parse(JSON.stringify(current)));S.demo=false;S.dlForm=DL_FORM;
+  S.g2L=3;delete S.g2Stars;delete S.g2From;
+  S.planDayHistory={'2026-11-26':(current.planDayHistory&&current.planDayHistory['2026-11-26'])||1778};
+  S.planDayHistoryApprox={};delete S.planDayHistoryRepair;
+  var h={},a={},sources=[];
+  packs.forEach(function(pack,i){
+   var asOf=planHistResolveAsOf(pack,fileDays[i],null);
+   planHistCollectFromState(h,a,pack,asOf);
+   sources.push({state:pack,asOf:asOf});
+   g2ProgressLift(g2ProgressFromState(pack));
+  });
+  var filled=planHistFillGaps(h,a,sources);
+  planHistMergeIntoS(h,a);
+  if(planHistCycleRepair(S,T))planHistApplyCycleRepair(planHistCycleRepair(S,T));
+  g2ProgressSeal();
+  var missing=[],oct=[],nov=[];
+  for(var d=2;d<=31;d++){
+   var day='2026-10-'+p2(d);
+   if(!Object.prototype.hasOwnProperty.call(S.planDayHistory,day))missing.push(day);else oct.push(day);
+  }
+  for(var d2=1;d2<=25;d2++){
+   var day2='2026-11-'+p2(d2);
+   if(!Object.prototype.hasOwnProperty.call(S.planDayHistory,day2))missing.push(day2);else nov.push(day2);
+  }
+  return {
+   at24:dayLimitAt('2026-11-24'),approx24:dayLimitApprox('2026-11-24'),
+   at02:dayLimitAt('2026-10-02'),approx02:dayLimitApprox('2026-10-02'),
+   at30:dayLimitAt('2026-10-30'),at20:dayLimitAt('2026-11-20'),
+   missing:missing.slice(0,20),missingN:missing.length,
+   octN:oct.length,novN:nov.length,filled:filled.n,
+   g2L:S.g2L,g2Stars:S.g2Stars,g2From:S.g2From,min6:g2MinStars(6),
+   legacySample:planHistEvalDayLimit(packs[3].data,'2026-11-23',packs[3]),
+   asOfs:sources.map(function(s){return s.asOf})
+  };
+ },data);
+ expect(r.asOfs).toEqual(['2026-11-20','2026-11-21','2026-11-22','2026-11-23','2026-11-24','2026-11-25']);
+ expect(r.g2L).toBe(6);
+ expect(r.g2Stars).toBe(r.min6);
+ expect(r.at24).toBeGreaterThan(0);
+ expect(r.approx24).toBe(true);
+ expect(r.at20).toBeGreaterThan(0);
+ expect(r.at02).toBeGreaterThan(0);
+ expect(r.approx02).toBe(true);
+ expect(r.missingN).toBe(0);
+ expect(r.octN).toBe(30);
+ expect(r.novN).toBe(25);
+ expect(r.legacySample).toBeGreaterThan(0);
 });

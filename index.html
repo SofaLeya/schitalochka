@@ -6049,11 +6049,12 @@ function ydPack(d){
 }
 function ydEmpty(){return S.demo||!realCount()}
 function ydAdopt(r,mod){
-  var keepH=S.planDayHistory,keepA=S.planDayHistoryApprox,keepR=S.planHistRestored,keepF=S.dlForm,keepRepair=S.planDayHistoryRepair;
+  var keepH=S.planDayHistory,keepA=S.planDayHistoryApprox,keepR=S.planHistRestored,keepRev=S.planHistRestoreRev,keepF=S.dlForm,keepRepair=S.planDayHistoryRepair;
   snapTake('pre',true);S=migrate(r.data);S.demo=false;
   if(keepH)planHistMergeIntoS(keepH,keepA);
   if(keepRepair)planHistApplyCycleRepair(+keepRepair[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
   if(keepR)S.planHistRestored=1;
+  if(keepRev!=null)S.planHistRestoreRev=keepRev;
   if(keepF!=null&&S.dlForm==null)S.dlForm=keepF;
   ensureDlForm();
   saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});ydBaseSet(r.data);
@@ -6079,11 +6080,12 @@ async function ydSync(){
         if(m3eq(merged,r.data))ydAdopt(r,meta.modified);
         else{
           if(!m3eq(merged,mine)){
-            var keepH2=S.planDayHistory,keepA2=S.planDayHistoryApprox,keepR2=S.planHistRestored,keepRepair2=S.planDayHistoryRepair;
+            var keepH2=S.planDayHistory,keepA2=S.planDayHistoryApprox,keepR2=S.planHistRestored,keepRev2=S.planHistRestoreRev,keepRepair2=S.planDayHistoryRepair;
             snapTake('pre',true);S=migrate(merged);S.demo=false;
             if(keepH2)planHistMergeIntoS(keepH2,keepA2);
             if(keepRepair2)planHistApplyCycleRepair(+keepRepair2[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
             if(keepR2)S.planHistRestored=1;
+            if(keepRev2!=null)S.planHistRestoreRev=keepRev2;
             ensureDlForm();saveLocal();syncCats();
             if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
           ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data);

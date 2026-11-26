@@ -378,20 +378,28 @@ test('legacy full snapshot uses actual income, covered payments and conditional 
 });
 test('migration reopens completed restore and repairs bad transition-day limit in same payout cycle',async({page})=>{
  const r=await probe(page,async()=>{
-  T='2026-11-26';S.demo=false;S.simple=false;S.irreg=false;S.rare=[];S.recur=[];S.planFrom='2026-01-01';
+  T='2026-11-26';S.demo=false;S.simple=false;S.irreg=false;S.rare=[];S.recur=[];S.planFrom='2026-01-01';S.skips=[];
+  // Ноябрьская раскладка day=5 уже закрыта (ruleZero): иначе просроченное правило
+  // смещается на from и занижает free на 2000 без парного дохода. В цикле остаётся
+  // декабрьский wash 2000→копилка (net 0). Бюджет: (20000+55000-30000)/15 = 3000.
+  S.ruleZero={'r5|2026-11':1};
   S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',start:0}];
   S.incomes=[{id:'salary',day:25,amt:55000},{id:'next',day:10,amt:57000},{id:'small',day:5,amt:2000}];
   S.rules=[{id:'r25',day:25,acc:'save',amt:30000},{id:'r5',day:5,acc:'save',amt:2000}];
   S.entries=[{id:'income',type:'i',iid:'salary',date:'2026-11-25',amt:55000,acc:'main',cat:'salary'},{id:'alloc',type:'t',rule:'r25',date:'2026-11-25',amt:30000,from:'main',to:'save'},{id:'buy',type:'e',date:'2026-11-26',amt:700,acc:'main',cat:'prod'}];
   S.planDayHistory={'2026-11-24':1200,'2026-11-25':5000};S.planDayHistoryApprox={};delete S.planDayHistoryRepair;S.planHistRestored=1;delete S.planHistRestoreRev;
   SNAPS=[];YD.st='off';try{localStorage.removeItem(YD.key)}catch(e){}
-  const before=JSON.stringify(S.entries),bal=balance(),v=dayLimit(),candidate=planHistCycleRepair(S,T);
+  const before=JSON.stringify(S.entries),bal=balance(),cp=cycleDayPlan(),v=dayLimit(),candidate=planHistCycleRepair(S,T);
   await planHistRestore();
   const after=dayLimitAt('2026-11-25'),approx=dayLimitApprox('2026-11-25');
   const stale=JSON.parse(JSON.stringify(S));stale.planDayHistory['2026-11-25']=5000;delete stale.planDayHistoryRepair;delete stale.planDayHistoryApprox['2026-11-25'];
   ydAdopt({data:stale},'stale');
-  return {candidate,v,after,approx,rev:S.planHistRestoreRev,old:dayLimitAt('2026-11-24'),afterSync:dayLimitAt('2026-11-25'),approxSync:dayLimitApprox('2026-11-25'),same:JSON.stringify(S.entries)===before&&balance()===bal};
+  return {candidate,v,after,approx,rev:S.planHistRestoreRev,old:dayLimitAt('2026-11-24'),afterSync:dayLimitAt('2026-11-25'),approxSync:dayLimitApprox('2026-11-25'),same:JSON.stringify(S.entries)===before&&balance()===bal,free:cp.free,days:cp.days,due:cp.due,inc:cp.inc};
  });
+ // free/days: 45000/15; due+inc декабря day=5 взаимно гасятся.
+ expect(r.free).toBe(45000);
+ expect(r.days).toBe(15);
+ expect(r.due).toBe(r.inc);
  expect(r.candidate).toBeCloseTo(3000,5);
  expect(r.v).toBeCloseTo(r.candidate,5);
  expect(r.after).toBeCloseTo(r.candidate,5);

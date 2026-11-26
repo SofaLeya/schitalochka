@@ -1,4 +1,12 @@
-self.addEventListener('install',function(){self.skipWaiting()});
+self.addEventListener('install',function(e){
+  e.waitUntil(caches.open('sch-v1').then(function(ch){
+    return ch.addAll([
+      'assets/prediction/CormorantGaramond.woff',
+      'assets/prediction/usual.png',
+      'assets/prediction/large.png'
+    ]);
+  }).then(function(){return self.skipWaiting()}));
+});
 self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim())});
 // Сначала спрашиваем у сервера свежую версию (не из 10-минутного кэша браузера).
 // Если сеть молчит дольше 2,5 с (метро, слабый интернет) - сразу отдаём сохранённую версию,

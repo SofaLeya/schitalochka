@@ -279,8 +279,11 @@ test('D3c two forecast scenarios share available cash and plans; large purchases
   for(let i=1;i<=14;i++)S.entries.push({id:'e'+i,type:'e',acc:'main',cat:'cafe',amt:1000,date:iso(addDays(parse(T),-i))});
   S.entries.push({id:'gift',type:'e',acc:'main',cat:'gift',amt:2800,date:'2026-11-22'},{id:'tech',type:'e',acc:'main',cat:'tech',amt:7000,date:'2026-11-23'});
   const f=fcCalc(),bal=balance();sh={id:'fc',fc:1};fcSheet();
-  const html=document.getElementById('ov').innerHTML;
-  return {bal,avail:f.avail,usual:f.usualPace,withLarge:f.withLargePace,days:f.dl,usualLeft:f.usualLeft,withLargeLeft:f.withLargeLeft,oldPace:fcPace().pace,slider:!!document.getElementById('fc_wif'),ui:html.includes('без крупных покупок')&&html.includes('С крупными покупками')&&html.includes('fc-magic')};
+  const cards=[...document.querySelectorAll('#ov .fc-magic .fc-card')].map(card=>({
+    label:card.getAttribute('aria-label'),closed:card.getAttribute('aria-pressed')==='false',
+    amount:card.querySelector('.fc-card-amount').textContent
+  }));
+  return {bal,avail:f.avail,usual:f.usualPace,withLarge:f.withLargePace,days:f.dl,usualLeft:f.usualLeft,withLargeLeft:f.withLargeLeft,oldPace:fcPace().pace,slider:!!document.getElementById('fc_wif'),cards};
  });
  expect(r.bal).toBe(26200);
  expect(r.avail).toBe(r.bal);
@@ -290,7 +293,10 @@ test('D3c two forecast scenarios share available cash and plans; large purchases
  expect(r.usualLeft).toBe(r.bal-1000*r.days);
  expect(r.withLargeLeft).toBe(r.bal-1700*r.days);
  expect(r.slider).toBe(false);
- expect(r.ui).toBe(true);
+ expect(r.cards).toEqual([
+  {label:'Вдали от крупных трат',closed:true,amount:'~12 200 ₽'},
+  {label:'Во власти крупных трат',closed:true,amount:'~2 400 ₽'}
+ ]);
 });
 
 test('D3d no large purchases gives equal predictions; planned groceries are not duplicated',async({page})=>{

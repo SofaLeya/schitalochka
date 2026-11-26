@@ -226,19 +226,20 @@ html.bigtext{zoom:1.14}
 .fcsum.sub{font-size:13px;padding:3px 0 3px 10px;border-bottom:0;font-weight:400}
 .fcsum.sub .lbl{font-weight:400}
 .fcmeta .row{padding:4px 0}
-.fcspell{position:relative;overflow:hidden;isolation:isolate;border:1px solid var(--accent);background:radial-gradient(ellipse at 92% 5%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 66%),var(--surface2);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:inset 0 0 22px color-mix(in srgb,var(--accent) 13%,transparent)}
-.fcspell .fcstars{position:absolute;right:14px;top:10px;color:var(--accent);font-size:25px;letter-spacing:5px;opacity:.85;text-shadow:0 0 10px var(--accent);pointer-events:none}
-.fcspell .fcstars small{font-size:12px;vertical-align:12px}
-.fcspell .fcspell-result{font-size:clamp(19px,6vw,27px);font-weight:800;line-height:1.15;overflow-wrap:anywhere}
-.fcspell .fcspell-alt{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
-.fcspell .fcspell-alt b{font-size:18px;overflow-wrap:anywhere}
-.fcspell .fcspell-date{padding-right:65px}
-.fcquick{display:flex;flex-direction:column;gap:7px;margin-top:4px}
-.fcquick .row{gap:10px;padding:3px 0;align-items:baseline}
-.fcquick .row b{white-space:nowrap;flex-shrink:0;font-size:14px}
-.fcquick .row .fine{min-width:0}
-.fcforecast-how .fcsum:not(.sub)>span:last-child{white-space:nowrap;flex-shrink:0}
-.fcforecast-how .fcsum.sub>span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
+.sheet.fc-magic{background:var(--bg);background-image:radial-gradient(ellipse at 12% 4%,color-mix(in srgb,var(--accent) 23%,transparent),transparent 48%),radial-gradient(ellipse at 95% 40%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 55%),radial-gradient(circle at 8% 37%,color-mix(in srgb,var(--accent) 36%,transparent) 0 1px,transparent 2px),radial-gradient(circle at 91% 14%,color-mix(in srgb,var(--accent) 55%,transparent) 0 1.5px,transparent 2.5px),radial-gradient(circle at 70% 76%,color-mix(in srgb,var(--accent) 35%,transparent) 0 1px,transparent 2px);background-size:auto,auto,89px 107px,131px 157px,173px 139px;gap:10px}
+.sheet.fc-magic>*{flex-shrink:0}
+.sheet.fc-magic details.fold{margin-top:0}
+.fcspell{display:flex;flex-direction:column;gap:8px;padding:15px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--line);flex:0 0 auto;min-height:max-content;overflow:visible}
+.fcspell .fcspell-date{color:var(--muted);font-size:13px}
+.fcspell .fcspell-result{font-size:clamp(23px,7vw,32px);font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.fcspell .fcspell-alt{border-top:1px solid var(--line);padding-top:10px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.fcspell .fcspell-alt b{font-size:17px;overflow-wrap:anywhere}
+.fc-magic .fcplan-amount{white-space:nowrap}
+.fcforecast-how .fcsum{gap:8px}
+.fcforecast-how .fcsum>span:last-child{flex-shrink:0;white-space:nowrap}
+.fcforecast-how .fcsum.sub{display:block;padding-left:0;font-size:12px;line-height:1.35}
+.fcforecast-how .fcsum.sub>span:last-child{white-space:normal;overflow-wrap:anywhere}
+.fc-magic .fcfold .fcsum:last-child{font-weight:400}
 .fcwhat{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);display:flex;flex-direction:column;gap:6px}
 .fcwhat input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
 .fcwhat .fcwrow{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:14px}
@@ -1693,7 +1694,7 @@ function fcCalc(){
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pending:pending,pace:pace,paceB:paceB,usualPace:P.usualPace,withLargePace:P.withLargePace,usualLeft:avail-P.usualPace*dl-pc,withLargeLeft:avail-P.withLargePace*dl-pc,largeMin:P.largeMin,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
 function fcPlansHtml(prow,irr){
   var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||sh.fcForm));
-  var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
+  var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':'<br>'+o.n+' × <span class="fcplan-amount">'+money(o.q.amt*(o.q.half?0.5:1))+'</span> = <span class="fcplan-amount">'+money(o.c)+'</span>')+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
   var formHtml=form
    ?'<div class="f" style="gap:10px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,'prod')+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000"></div></div>'+
     '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'">по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"> вернут половину</label></div>'+
@@ -1750,41 +1751,27 @@ function fcSheet(){
   var dt=dlabel(f.nd),body;
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   else{
-    if(sh.fcWhatIf==null)sh.fcWhatIf=f.usualPace;
-    var same=Math.abs(f.usualLeft-f.withLargeLeft)<0.005;
-    var flow=function(label,v){return '<div class="row"><div class="grow fine">'+label+'</div><b>'+v+'</b></div>'};
-    body='<div class="fcspell"><span class="fcstars" aria-hidden="true">✦<small>✧</small></span><span class="fine fcspell-date">К '+dt+'</span>'+
-      '<div class="fine">Без крупных покупок</div><b class="fcspell-result">'+fcResultText(f.usualLeft)+'</b>'+
-      '<div class="fcspell-alt"><span class="fine">Если продолжишь делать крупные покупки</span><b>'+fcResultText(f.withLargeLeft)+'</b>'+
-      (same?'<span class="fine">За последние 2 недели крупные покупки не изменили прогноз.</span>':'')+'</div></div>'+
-      '<div class="fcquick">'+flow('Деньги сейчас',money(balance()))+
-      (f.inc>0?flow('Ещё поступит','+'+money(f.inc)):'')+
-      (f.pending>0?flow('Ожидаемые возвраты','+'+money(f.pending)):'')+
-      (f.due>0?flow('Обязательные платежи','−'+money(f.due)):'')+
-      flow('Покупки по плану','−'+money(f.pc))+
-      flow('Повседневные траты ('+f.dl+' '+plw(f.dl,'день','дня','дней')+')','−'+money(f.usualPace*f.dl))+
-      '</div><p class="fine" style="margin:6px 0 0">Прогноз по тратам последних 2 недель.'+(f.pending>0?' Если возвраты задержатся, денег будет меньше.':'')+'</p>'+
-      fcWhatIfBlock(f.usualPace,false);
+    var shortResult=function(v){return v<0&&fcResultText(v)!=='примерно в ноль'?'Не хватит '+fcRound(-v):fcResultText(v)==='примерно в ноль'?'~'+money(0):'~'+fcRound(v)};
+    body='<div class="fcspell"><div class="fcspell-date">К '+dt+'</div>'+
+      '<div class="fine">'+(f.usualLeft<0&&fcResultText(f.usualLeft)!=='примерно в ноль'?'Без крупных покупок':'Может остаться без крупных покупок')+'</div><b class="fcspell-result">'+shortResult(f.usualLeft)+'</b>'+
+      '<div class="fcspell-alt"><span class="fine">С крупными покупками</span><b>'+shortResult(f.withLargeLeft)+'</b></div></div>';
   }
   var how=[['Деньги сейчас',money(balance())]];
-  if(f.due>0)how.push(['− Платежи и копилки',money(f.due)]);
-  if(f.incs&&f.incs.length){
-    how.push(['+ Ещё поступит',money(f.inc)]);
-    f.incs.forEach(function(r){
-      var lifeTxt=r.allSave?'0 ₽ на жизнь':money(r.life);
-      how.push([dlabel(r.date)+' · '+esc(r.name),(r.allSave?money(r.amt)+' → ':'')+lifeTxt,1]);
-    });
-  }else if(f.inc>0)how.push(['+ Ещё поступит',money(f.inc)]);
-  if(f.pending>0)how.push(['+ Ожидаемые возвраты до зарплаты',money(f.pending)]);
+  if(f.inc>0)how.push(['Ещё поступит','+'+money(f.inc)]);
+  if(f.due>0)how.push(['Платежи и копилки','−'+money(f.due)]);
+  if(f.incs&&f.incs.length)f.incs.forEach(function(r){
+    how.push(['',dlabel(r.date)+' · '+esc(r.name)+' · '+(r.allSave?money(r.amt)+' → 0 ₽ на жизнь':money(r.life)),1]);
+  });
+  if(f.pending>0)how.push(['Ожидаемые возвраты','+'+money(f.pending)]);
   if(f.kn>=5){
-    if(f.pc>0)how.push(['− Покупки по плану',money(f.pc)]);
-    how.push(['− Повседневные траты ('+money(f.usualPace)+' × '+f.dl+')',money(f.usualPace*f.dl)]);
-    how.push(['Без крупных покупок',fcRound(f.usualLeft)]);
-    how.push(['− Возможные крупные покупки',money(Math.max(0,(f.withLargePace-f.usualPace)*f.dl))]);
-    how.push(['С крупными покупками',fcRound(f.withLargeLeft)]);
-    how.push(['Что считаем крупным','Покупки от '+money(f.largeMin)+', кроме обычных продуктов, кафе и транспорта; очень крупные от '+money(f.huge)+' — в любой категории.',1]);
+    if(f.pc>0)how.push(['Покупки по плану','−'+money(f.pc)]);
+    how.push(['Повседневные траты','−'+money(f.usualPace*f.dl)]);
+    how.push(['','Около '+money(f.usualPace)+' в день × '+f.dl+' '+plw(f.dl,'день','дня','дней'),1]);
+    how.push(['Крупные покупки (если будут)','−'+money(Math.max(0,(f.withLargePace-f.usualPace)*f.dl))]);
+    how.push(['','По тратам за 2 недели. Крупные — от '+money(f.largeMin)+' вне продуктов, кафе и транспорта, или от '+money(f.huge)+' в любой категории.'+(f.pending>0?' Возвраты могут задержаться.':''),1]);
   }
   openSheet(h+body+fcPlansHtml(f.prow)+fcHowHtml(how,true)+foot);
+  var sheet=document.querySelector('#ov .sheet');if(sheet)sheet.classList.add('fc-magic');
 }
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&!isLive(a))}
 // Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.

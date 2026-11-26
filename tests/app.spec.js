@@ -713,20 +713,20 @@ test('предсказание: сколько останется к зарпл�
   await page.reload();
   await page.click('[data-a=fcOpen]');
   const sheet = page.locator('#ov .sheet');
-  await expect(sheet).toContainText('останется');
-  await expect(sheet).toContainText('А если тратить меньше?');
+  await expect(sheet).toHaveClass(/fc-magic/);
   await expect(sheet.locator('.fcspell-result')).toContainText('10 000');
   await expect(sheet.locator('.fcspell-alt')).toContainText('9 200');
-  await expect(sheet).toContainText('Без крупных покупок');
-  await expect(sheet).toContainText('Если продолжишь делать крупные покупки');
-  await expect(sheet.locator('.fcquick')).toContainText('Повседневные траты');
-  await expect(sheet.locator('.fcquick')).toContainText('Покупки по плану');
-  await expect(sheet.locator('#fc_wif')).toBeVisible();
-  // ползунок по умолчанию = повседневный темп; сдвиг меняет прогноз остатка
-  const before = await page.locator('#fc_wif_left').textContent();
-  await page.locator('#fc_wif').evaluate((el) => { el.value = '0'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  const after = await page.locator('#fc_wif_left').textContent();
-  expect(after).not.toBe(before);
+  await expect(sheet).toContainText('без крупных покупок');
+  await expect(sheet).toContainText('С крупными покупками');
+  await expect(sheet.locator('#fc_wif')).toHaveCount(0);
+  // Both amounts must fit inside the card even with a small viewport.
+  await page.setViewportSize({width:360,height:640});
+  const bounds=await sheet.locator('.fcspell').evaluate(el=>{
+    const r=el.getBoundingClientRect(),a=el.querySelector('.fcspell-result').getBoundingClientRect(),b=el.querySelector('.fcspell-alt').getBoundingClientRect();
+    return {fits:a.top>=r.top&&b.bottom<=r.bottom+1,shrink:getComputedStyle(el).flexShrink,scroll:el.scrollHeight<=el.clientHeight+1};
+  });
+  expect(bounds).toEqual({fits:true,shrink:'0',scroll:true});
+  await expect(sheet.locator('details.fold',{hasText:'Как считается'})).not.toHaveAttribute('open','');
   // доп. блоки свёрнуты; форма добавления — после «+ Добавить план»
   await expect(sheet.locator('#fc_amt')).toHaveCount(0);
   await sheet.locator('details.fold', {hasText: 'Мои планы'}).locator('summary').click();

@@ -715,11 +715,14 @@ test('предсказание: сколько останется к зарпл�
   const sheet = page.locator('#ov .sheet');
   await expect(sheet).toContainText('останется');
   await expect(sheet).toContainText('А если тратить меньше?');
-  await expect(sheet).toContainText('Обычные траты в день');
-  await expect(sheet).toContainText('Запланированные покупки');
-  await expect(sheet).toContainText('Обязательные платежи');
+  await expect(sheet.locator('.fcspell-result')).toContainText('10 000');
+  await expect(sheet.locator('.fcspell-alt')).toContainText('9 200');
+  await expect(sheet).toContainText('Без крупных покупок');
+  await expect(sheet).toContainText('Если продолжишь делать крупные покупки');
+  await expect(sheet.locator('.fcquick')).toContainText('Повседневные траты');
+  await expect(sheet.locator('.fcquick')).toContainText('Покупки по плану');
   await expect(sheet.locator('#fc_wif')).toBeVisible();
-  // ползунок по умолчанию = текущий средний темп; сдвиг меняет прогноз остатка
+  // ползунок по умолчанию = повседневный темп; сдвиг меняет прогноз остатка
   const before = await page.locator('#fc_wif_left').textContent();
   await page.locator('#fc_wif').evaluate((el) => { el.value = '0'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   const after = await page.locator('#fc_wif_left').textContent();

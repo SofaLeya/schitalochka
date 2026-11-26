@@ -1786,6 +1786,7 @@ function dayLimitAt(d){
   return 0;
 }
 function rememberDayLimit(){if(S.demo)return false;var h=S.planDayHistory||(S.planDayHistory={}),v=dayLimit();if(!Number.isFinite(v)||h[T]===v)return false;h[T]=v;return true}
+function dayLimitApprox(d){return !!(S.planDayHistoryApprox&&S.planDayHistoryApprox[d])}
 /* Месячный / недельный план на жизнь = сумма дневных лимитов (с историей), не «текущий × дни». */
 function monthEnvelope(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),s=0;for(var d=1;d<=n;d++)s+=dayLimitAt(ym+'-'+p2(d));return s}
 function daysEnvelope(from,n){var s=0;for(var i=0;i<n;i++)s+=dayLimitAt(iso(addDays(parse(from),i)));return s}
@@ -1801,6 +1802,63 @@ function monthPlanKnown(ym){
 function weekPlanKnown(monIso){
   for(var i=0;i<7;i++){var dd=iso(addDays(parse(monIso),i));if(dd<T&&!dayLimitKnown(dd))return false}
   return true;
+}
+/* Восстановление истории дневных лимитов из облачных копий и локальных снимков (без перезаписи). */
+function planHistUnpack(raw){
+  if(!raw||typeof raw!=='object')return null;
+  if(raw.data&&Array.isArray(raw.data.entries))return raw.data;
+  if(Array.isArray(raw.entries))return raw;
+  return null;
+}
+/* Приблизительный дневной план по настройкам снимка. Без cycleDayPlan (нужен живой остаток) — иначе неизвестно. */
+function approxDayLimitFromState(s){
+  if(!s||typeof s!=='object')return 0;
+  if(s.planCalc&&+s.planCalc.inc>0){
+    var c={inc:+s.planCalc.inc||0,fixed:+s.planCalc.fixed||0,save:+s.planCalc.save||0,
+      irr:s.planCalc.irr!=null&&s.planCalc.irr!==''?+s.planCalc.irr||0:0};
+    if(s.irreg){
+      var sp=s.selfPay;
+      if(sp&&+sp.amt>0){var ii=sp.every==='w'?+sp.amt*52/12:+sp.amt;c.inc=ii}
+      // без «Сам себе зарплата» берём planCalc.inc как осторожный доход той версии
+    }
+    var v0=planCalcVal(c);return v0>0?v0:0;
+  }
+  if(+s.dayLimit>0)return +s.dayLimit;
+  // полный режим без planCalc/dayLimit: статический планCalcVal по доходам и платежам снимка (не cycleDayPlan)
+  if(!s.simple&&Array.isArray(s.incomes)&&s.incomes.length){
+    var inc=0,fx=0,sv=0,irr=0;
+    s.incomes.forEach(function(r){inc+=+r.amt||0});
+    (s.recur||[]).forEach(function(r){fx+=(+r.amt||0)/(+r.every||1)});
+    (s.rules||[]).forEach(function(r){sv+=+r.amt||0});
+    (s.rare||[]).forEach(function(r){irr+=(+r.amt||0)/12});
+    var v1=planCalcVal({inc:inc,fixed:fx,save:sv,irr:irr});return v1>0?v1:0;
+  }
+  return 0;
+}
+function planHistPut(h,approx,d,v,isApprox){
+  if(!d||!(d<T)||!Number.isFinite(v)||v<0)return false;
+  if(Object.prototype.hasOwnProperty.call(h,d))return false; // не перезаписываем
+  h[d]=v;
+  if(isApprox){approx[d]=1}else if(approx[d])delete approx[d];
+  return true;
+}
+function planHistCollectFromState(h,approx,state,asOf){
+  var n=0,a=0,src=planHistUnpack(state)||state;
+  if(!src||typeof src!=='object')return {n:0,a:0};
+  var ph=src.planDayHistory||{},pa=src.planDayHistoryApprox||{};
+  Object.keys(ph).forEach(function(d){
+    var wasApprox=!!pa[d];
+    if(planHistPut(h,approx,d,+ph[d],wasApprox)){n++;if(wasApprox)a++}
+  });
+  if(asOf&&asOf<T&&!Object.prototype.hasOwnProperty.call(h,asOf)){
+    var v=approxDayLimitFromState(src);
+    if(v>0&&planHistPut(h,approx,asOf,v,true)){n++;a++}
+  }
+  return {n:n,a:a};
+}
+function planHistDayFromName(name){
+  var m=/schitalochka-(\d{4}-\d{2}-\d{2})\.json$/.exec(name||'');
+  return m?m[1]:null;
 }
 /* Остаток на сегодня / план на завтра — одни формулы для простой и полной главной. */
 function homeTodayLeft(pd,spent){
@@ -2998,7 +3056,7 @@ function histList(){
             u+=x.amt;
           }
         });return Math.max(0,u-en)})(),
-        p1=pl?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
+        p1=pl?'<span style="color:var('+(ln>lim?'--out':'--in')+')">'+money(ln)+' из '+(dayLimitApprox(d)?'≈':'')+money(lim)+'</span>':dsp>0?'траты '+money(dsp):'',
         dsum=p1+(din>0?'<span class="hist-day-income" style="color:var(--in)">+'+money(din)+'</span>':'')+(pl&&(Math.abs(dsp-ln)>1||excessRef>1)?'<span style="display:block;text-align:right;opacity:.7;font-weight:500">'+(excessRef>1?'вернули на '+money(excessRef)+' больше':dsp>=0?'всего '+money(dsp):'вернули на '+money(-dsp)+' больше')+'</span>':''),
         dn=d===T?'Сегодня, ':d===iso(addDays(parse(T),-1))?'Вчера, ':'';
       out+='<div class="card" style="gap:4px"><div class="daytitle"><span>'+dn+dt.getDate()+' '+MONTHS_G[dt.getMonth()]+(dn?'':', '+WD[dt.getDay()])+'</span><span>'+dsum+'</span></div><div class="list">'+by[d].slice().reverse().map(function(x){return histRow(x,LK)}).join('')+'</div></div>';
@@ -5764,6 +5822,81 @@ async function ydDaily(day){ // копия дня + чистка старше 14
   var it=((r._embedded&&r._embedded.items)||[]).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)});
   for(var i=0;i<it.length-14;i++){try{await ydReq('DELETE',YD.api+'?permanently=true&path='+encodeURIComponent(it[i].path))}catch(e){}}
 }
+async function ydListDailies(){
+  if(gdOn()){
+    var fid=await gdFolder();
+    var r=await gdReq('GET',GD.api+'?spaces=drive&orderBy=name&pageSize=200&fields=files(id,name)&q='+encodeURIComponent("name contains 'schitalochka-' and "+gdQ(fid)+' in parents and trashed=false')).then(function(r){return ydOk(r).json()});
+    return (r.files||[]).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)}).map(function(x){return {name:x.name,path:x.name,id:x.id,day:planHistDayFromName(x.name)}});
+  }
+  await ydDir();
+  var r=await ydReq('GET',YD.api+'?limit=200&sort=name&fields=_embedded.items.name,_embedded.items.path&path='+encodeURIComponent(YD.dir)).then(function(r){return ydOk(r).json()});
+  return (((r._embedded&&r._embedded.items)||[])).filter(function(x){return /^schitalochka-\d{4}-\d\d-\d\d\.json$/.test(x.name)}).map(function(x){return {name:x.name,path:x.path,day:planHistDayFromName(x.name)}});
+}
+async function ydDownloadPath(path){
+  if(gdOn()){
+    var name=String(path).split('/').pop(),f=await gdFind(name);if(!f)return null;
+    var t=await gdReq('GET',GD.api+'/'+f.id+'?alt=media').then(function(r){return ydOk(r).text()});
+    try{return JSON.parse(t)}catch(e){return null}
+  }
+  var r=await ydReq('GET',YD.api+'/download?path='+encodeURIComponent(path));
+  if(r.status===404)return null;
+  var j=await ydOk(r).json();
+  var t=await fetch(j.href,{credentials:'omit',referrerPolicy:'no-referrer'}).then(function(x){return ydOk(x).text()});
+  try{return JSON.parse(t)}catch(e){return null}
+}
+function schedulePlanHistRestore(){
+  if(S.demo||S.planHistRestored||!realCount())return;
+  clearTimeout(YD.phrT);
+  YD.phrT=setTimeout(function(){planHistRestore().catch(function(){})},50);
+}
+async function planHistRestore(){
+  if(S.demo||S.planHistRestored||!realCount()||YD.phrBusy)return;
+  YD.phrBusy=true;
+  var h=S.planDayHistory||(S.planDayHistory={}),approx=S.planDayHistoryApprox||(S.planDayHistoryApprox={});
+  var added=0,approxN=0,cloudTried=false,cloudOk=false;
+  function acc(r){if(!r)return;added+=r.n||0;approxN+=r.a||0}
+  try{
+    // локальные снимки IndexedDB/localStorage — без сети
+    try{(snaps()||[]).forEach(function(sx){
+      if(!sx||!sx.raw)return;
+      var st;try{st=JSON.parse(sx.raw)}catch(e){return}
+      acc(planHistCollectFromState(h,approx,st,sx.d));
+    })}catch(e){}
+    // последняя известная база с Диска (уже на устройстве)
+    try{var base=ydBase();if(base)acc(planHistCollectFromState(h,approx,base,null))}catch(e){}
+    // облачные копии — только при подключении, без повторного логина
+    if(ydOn()&&!gdExpired()&&YD.st!=='err'&&YD.st!=='exp'){
+      cloudTried=true;
+      try{
+        var main=await ydDownload();
+        if(main){var md=planHistUnpack(main)||main.data;acc(planHistCollectFromState(h,approx,main,null));
+          if(md&&md.planHistRestored){/* уже восстанавливали на другом устройстве */}}
+        var list=await ydListDailies();
+        for(var i=0;i<(list||[]).length;i++){
+          var it=list[i];if(!it||!it.path)continue;
+          try{
+            var pack=await ydDownloadPath(it.path);
+            if(pack)acc(planHistCollectFromState(h,approx,pack,it.day));
+          }catch(e1){if(e1&&e1.code===401)throw e1}
+        }
+        cloudOk=true;
+      }catch(e2){
+        if(e2&&e2.code===401){YD.st=gdOn()?'exp':'err';ydBadge();return} // не ставим флаг — повторим после входа
+        // сеть/прочее: не блокируем UI, повторим при следующей синхронизации
+        return;
+      }
+    }
+    // одноразовый флаг: после успешного прохода (локально или с облаком)
+    if(!cloudTried||cloudOk){
+      S.planHistRestored=1;
+      if(added>0){
+        save(); // синхронизируем историю на другие устройства
+        try{toast('Восстановлен дневной план за '+added+' '+plw(added,'день','дня','дней')+(approxN?' (≈ приблизительные)':''))}catch(e){}
+        try{render()}catch(e){}
+      }else{try{saveLocal()}catch(e){}}
+    }
+  }finally{YD.phrBusy=false}
+}
 /* Склейка трёх версий: b - общая (что было в Диске при прошлой синхронизации), l - это устройство, r - Диск сейчас.
    Что поменяли только на одной стороне - берём оттуда. Поменяли обе - склеиваем глубже: объекты по полям,
    списки записей по id, простые списки как множества. Правка побеждает удаление. Совсем одно и то же поле
@@ -5836,6 +5969,7 @@ async function ydSync(){
       }
     }
     ydSet({at:Date.now()});YD.st='ok';YD.msg='';
+    schedulePlanHistRestore();
   }catch(e){YD.st=ydOn()?'err':'off';if(!(e&&e.code===401))YD.msg=ydErr(e)}
   YD.busy=false;ydBadge();
   if(YD.again){YD.again=false;setTimeout(ydSync,300)}
@@ -5889,6 +6023,7 @@ window.addEventListener('beforeunload',function(e){if(!YD.leaving&&ydOn()&&YD.st
 setInterval(function(){if(ydOn()&&!YD.busy&&document.visibilityState==='visible')ydSync()},60000); // открыто долго - раз в минуту проверяем, не появилось ли новое
 window.addEventListener('storage',function(e){if(e.key===YD.key){var was=YD.st==='off';if(ydOn()&&was)ydSync();else ydBadge()}});
 if(ydOn()){YD.st='wait';setTimeout(function(){ydSync();if(YD.justIn)toast(cloudName()+' подключён')},600)}
+else setTimeout(function(){schedulePlanHistRestore()},800); // без Диска — только локальные снимки, в фоне
 /* Google даёт вход на час: при открытии приложения тихо берём новый (не чаще раза в 10 минут) */
 try{if(GD.cid&&gdExpired()&&document.visibilityState==='visible'){var gt0=+sessionStorage.getItem('gd-try')||0;if(Date.now()-gt0>600000)setTimeout(function(){if(!(sh&&document.getElementById('ov')&&!document.getElementById('ov').hidden))gdLogin(true)},700)}}catch(e){}
 

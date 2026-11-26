@@ -36,9 +36,10 @@ test('incomplete history: history shows spend only; review hides month plan',asy
  expect(r.hist).toMatch(/траты 900/);
  expect(r.hist).not.toMatch(/900[\s\S]{0,12}из/);
  expect(r.hist).toMatch(/700[\s\S]{0,12}из/);
- expect(r.rev).not.toMatch(/\|\s*план/);
- expect(r.rev).not.toMatch(/>План</);
- expect(r.life).not.toMatch(/из[\s\u00a0\u202f]*\d/);
+ // данных мало — явно «неполный план», без сравнения прогноза с полным планом
+ expect(r.rev).toMatch(/неполный план/i);
+ expect(r.rev).not.toMatch(/больше плана|меньше плана|ровно в плане/);
+ expect(r.life).toMatch(/[Нн]еполный план/);
 });
 
 test('complete history in both modes: month plan stays reliable; past snapshots unchanged',async({page})=>{

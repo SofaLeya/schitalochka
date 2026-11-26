@@ -223,7 +223,12 @@ html.bigtext{zoom:1.14}
 .fcsum{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
 .fcsum:last-child{border-bottom:0;font-weight:700;padding-top:8px}
 .fcsum .lbl{color:var(--muted);min-width:0}
+.fcsum.sub{font-size:13px;padding:3px 0 3px 10px;border-bottom:0;font-weight:400}
+.fcsum.sub .lbl{font-weight:400}
 .fcmeta .row{padding:4px 0}
+.fcwhat{margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);display:flex;flex-direction:column;gap:6px}
+.fcwhat input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+.fcwhat .fcwrow{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:14px}
 .pcard{flex:none;height:34px;border-radius:999px;border:0;background:rgba(255,255,255,.25);color:inherit;font:inherit;font-size:14px;font-weight:700;padding:0 12px;cursor:pointer;white-space:nowrap}
 .penb{transform:scaleX(-1);flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:inherit;font-size:17px;line-height:1;padding:0;cursor:pointer}
 .hero .ibtn{width:18px;height:18px;font-size:11px;border-color:currentColor;color:inherit;opacity:.85;vertical-align:middle}
@@ -1492,9 +1497,10 @@ function nextLifePayoutDate(ev,after){
 
 /* «Предсказание»: сколько останется к ближайшей зарплате.
    Темп - по последним 2 неделям (дни с записями или отмеченные «без трат»), траты на жизнь за вычетом возвратов.
-   Редкие огромные покупки (больше 3 дневных планов) в темп не входят. Вторая цифра - если сократить необязательные траты:
-   всё, кроме продуктов, кафе, транспорта и такси, от четверти дневного плана. Свои планы (например, продукты по понедельникам)
-   добавляются отдельно, а прошлые траты этой категории в этот день недели из темпа убираются, чтобы не посчитать дважды. */
+   Редкие огромные покупки (больше 3 дневных планов) в темп не входят. Сценарий «А если тратить меньше?» —
+   ползунок дневных расходов (default = текущий средний темп) с динамическим прогнозом остатка.
+   Свои планы (например, продукты по понедельникам) и обязательные платежи считаются отдельно,
+   а прошлые траты этой категории в этот день недели из темпа убираются, чтобы не посчитать дважды. */
 var FCWD=['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
 function fcHero(h){return bankCardWrap(h.replace(/<\/div>$/,'<button type="button" class="fcb" data-a="fcOpen">🔮 Предсказание</button>'+owedChip()+'</div>'))+spNote()+perNote()}
 function bankCardWrap(h){return h+bankCard()}
@@ -1520,6 +1526,39 @@ function fcPace(){
         all+=v;if(EV[x.cat]||v<big)base+=v}
       else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]&&isLiveId(accOf(x))){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,hugeS:hugeS,huge:huge,pl:pl}}
+/* Список ожидаемых поступлений, учтённых в fcCalc/cashUntil (даты, названия, суммы; allSave → 0 ₽ на жизнь).
+   Граница nd не входит: cashUntil пропускает e.date>=nd. */
+function fcIncList(nd){
+  if(S.simple||!nd)return [];
+  try{
+    var ev=plannedItems(T,sourceForecastDays()),rows=[];
+    ev.forEach(function(e){
+      if(e.kind!=='in'||e.date<=T||e.date>=nd)return;
+      var lifeAmt=e.allSave?0:(+e.amt||0);
+      rows.push({date:e.date,name:e.name||'Поступление',amt:+e.amt||0,life:lifeAmt,allSave:!!e.allSave});
+    });
+    return rows.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
+  }catch(e){return []}
+}
+function fcWhatIfPace(def){
+  var v=sh&&sh.fcWhatIf!=null?+sh.fcWhatIf:def;
+  if(!Number.isFinite(v)||v<0)v=def;
+  return v;
+}
+function fcWhatIfInput(el){
+  if(!sh)sh={id:'fc',fc:1};sh.fcWhatIf=+el.value;
+  var out=document.getElementById('fc_wif_out'),left=document.getElementById('fc_wif_left'),paceEl=document.getElementById('fc_wif_pace');
+  if(paceEl)paceEl.textContent=money(sh.fcWhatIf);
+  if(sh.fcIrr){
+    var r=fcRun(sh.fcWhatIf),txt=r.date?(r.days+' '+plw(r.days,'день','дня','дней')+' — до '+dlabel(r.date)):'больше 3 месяцев';
+    if(out)out.textContent=txt;
+  }else{
+    var f=fcCalc();if(!f)return;
+    var leftV=f.avail-sh.fcWhatIf*f.dl-f.pc;
+    if(left)left.textContent=leftV>=0?'останется ~'+fcRound(leftV):'не хватит ~'+fcRound(-leftV);
+  }
+}
+try{window.fcWhatIfInput=fcWhatIfInput}catch(e){}
 /* нерегулярный доход: на сколько дней хватит денег при нынешнем темпе (с платежами по датам и своими планами) */
 
 /* «Мне должны»: заработано, но ещё не пришло (смены, часы). На баланс не влияет, пока не нажато «Пришло» */
@@ -1554,8 +1593,8 @@ function fcCalc(){
       var cf=cashUntil(ev,nd,nextPay,nextYm,{});due=cf.due;inc=cf.inc}
   }catch(e){}}
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
-  var avail=balance()-due+inc,pace=P.pace,paceB=P.paceB;
-  return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
+  var avail=balance()-due+inc,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
+  return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pace:pace,paceB:paceB,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
 function fcPlansHtml(prow,irr){
   var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||sh.fcForm));
   var rows=n?'<div class="list">'+prow.map(function(o){var c=CMAP[o.q.cat]||CMAP.other;return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':' · до зарплаты '+o.n+' раз'+(o.n>1&&o.n<5?'а':'')+' = '+money(o.c))+'</div></div><button type="button" class="btn ghost sm" style="flex:none" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>'}).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
@@ -1568,45 +1607,73 @@ function fcPlansHtml(prow,irr){
   return fcFold('Мои планы'+(irr?'':' до зарплаты'),n+' '+plw(n,'план','плана','планов'),body,open);
 }
 function fcHowHtml(lines){
-  return fcFold('Как считается',null,'<div>'+lines.map(function(x){return '<div class="fcsum"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
+  return fcFold('Как считается',null,'<div>'+lines.map(function(x){var cls=x[2]?'fcsum sub':'fcsum';return '<div class="'+cls+'"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
+}
+function fcWhatIfBlock(defPace,irr){
+  var pace=fcWhatIfPace(defPace),max=Math.max(Math.ceil(defPace*1.5/50)*50,Math.ceil(defPace/50)*50+500,500);
+  if(pace>max)max=Math.ceil(pace/50)*50;
+  var step=Math.max(10,Math.round(max/100/10)*10)||10;
+  if(irr){
+    var r=fcRun(pace),txt=r.date?(r.days+' '+plw(r.days,'день','дня','дней')+' — до '+dlabel(r.date)):'больше 3 месяцев';
+    return '<div class="fcwhat"><div class="fcwrow"><span>А если тратить меньше?</span><b id="fc_wif_pace">'+money(pace)+'</b></div>'+
+      '<input type="range" id="fc_wif" min="0" max="'+max+'" step="'+step+'" value="'+Math.round(pace)+'" oninput="fcWhatIfInput(this)">'+
+      '<div class="fcwrow"><span class="fine">Хватит</span><b id="fc_wif_out">'+txt+'</b></div></div>';
+  }
+  var f=fcCalc(),leftV=f?f.avail-pace*f.dl-f.pc:0;
+  return '<div class="fcwhat"><div class="fcwrow"><span>А если тратить меньше?</span><b id="fc_wif_pace">'+money(pace)+'</b></div>'+
+    '<input type="range" id="fc_wif" min="0" max="'+max+'" step="'+step+'" value="'+Math.round(pace)+'" oninput="fcWhatIfInput(this)">'+
+    '<div class="fcwrow"><span class="fine">К зарплате</span><b id="fc_wif_left">'+(leftV>=0?'останется ~'+fcRound(leftV):'не хватит ~'+fcRound(-leftV))+'</b></div></div>';
 }
 function fcIrrBody(){var P=fcPace();
   if(P.kn<5)return '<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
-  var r=fcRun(P.pace),rb=fcRun(P.paceB),dd=function(x){return x.date?x.days+' '+plw(x.days,'день','дня','дней')+' — до '+dlabel(x.date):'больше 3 месяцев'};
+  if(sh)sh.fcIrr=1;if(sh&&sh.fcWhatIf==null)sh.fcWhatIf=P.pace;
+  var r=fcRun(P.pace),dd=function(x){return x.date?x.days+' '+plw(x.days,'день','дня','дней')+' — до '+dlabel(x.date):'больше 3 месяцев'};
   var title=r.date?('Хватит примерно до '+dlabel(r.date)):('Хватит на 3+ месяца');
   var amt=r.date?(r.days+' '+plw(r.days,'день','дня','дней')):'3+ месяца';
   return '<div class="note '+(r.date&&r.days<14?'warn':'good')+'"><span class="fine">'+title+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+amt+'</b></div>'+
    '<div class="fcmeta" style="margin-top:8px"><div class="row"><div class="grow fine">Обычные траты в день</div><b>'+money(P.pace)+'</b></div>'+
-   '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+((S.fcPlans||[]).length?((S.fcPlans||[]).length+' '+plw((S.fcPlans||[]).length,'план','плана','планов')):'нет')+'</b></div></div>'+
-   (rb.days>r.days?'<div class="note info" style="margin-top:10px"><span>Если сократить необязательные траты — хватит на '+dd(rb)+'</span></div>':'')+
+   '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+((S.fcPlans||[]).length?((S.fcPlans||[]).length+' '+plw((S.fcPlans||[]).length,'план','плана','планов')):'нет')+'</b></div>'+
+   (!S.simple?'<div class="row"><div class="grow fine">Обязательные платежи</div><b>по датам</b></div>':'')+'</div>'+
+   fcWhatIfBlock(P.pace,true)+
    (owedSum()>0?'<div class="note info" style="margin-top:10px"><span>Если заплатят, что должны ('+money(owedSum())+') — хватит на '+dd(fcRun(P.pace,owedSum()))+'</span></div>':'')+
    (spOn()?'<p class="fine" style="margin:8px 0 0">Сам себе зарплата из «'+esc(accName(accById(S.selfPay.acc)))+'» уже учтена, пока в буфере есть деньги.</p>':'');
 }
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>',foot='<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>';
+  if(!sh)sh={id:'fc',fc:1};sh.fc=1;
   if(!f&&S.irreg){
+    sh.fcIrr=1;
     var howIrr=[['Свободные деньги сейчас',money(balance())],['− Обычные траты','по темпу последних 2 недель']];
-    if(!S.simple)howIrr.push(['− Платежи','по их датам']);
-    howIrr.push(['− Мои планы','по выбранным дням недели'],['Новые доходы','не учитываются заранее']);
+    if(!S.simple)howIrr.push(['− Обязательные платежи','по их датам']);
+    howIrr.push(['− Запланированные покупки','по выбранным дням недели'],['Новые доходы','не учитываются заранее']);
     openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+fcHowHtml(howIrr)+foot);return}
+  sh.fcIrr=0;
   if(!f&&hasIncomeSchedule()){openSheet(h+'<p>Нет ближайших запланированных поступлений. Проверь график доходов или включи режим нерегулярного дохода.</p><div class="btns"><button type="button" class="btn ghost" data-a="editIncomeCalendar">График доходов</button><button type="button" class="btn" data-a="close">Закрыть</button></div><button type="button" class="btn ghost" data-a="irrOn">Доход нерегулярный</button>');return}
   if(!f){openSheet(h+'<p>Чтобы предсказать, сколько останется к зарплате, нужны дни зарплаты.</p><div class="f"><label for="fc_pd">Дни зарплаты</label><input id="fc_pd" inputmode="numeric" placeholder="например: 10, 25"></div><div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="fcPd">Сохранить</button></div><button type="button" class="btn ghost" style="width:100%;margin-top:10px" data-a="irrOn">Доход нерегулярный (смены, почасовая)</button>');return}
   var dt=dlabel(f.nd),body;
   if(f.kn<5)body='<p>Пока мало записей: нужно хотя бы 5 дней за последние 2 недели. Записывай траты (или отмечай «Сегодня без трат»), и предсказание появится.</p>';
   else{
+    if(sh.fcWhatIf==null)sh.fcWhatIf=f.pace;
     var ok=f.left>=0,heroCls=ok?'good':(f.left>-lc(5000)?'warn':'bad');
     body='<div class="note '+heroCls+'"><span class="fine">К '+dt+'</span><b style="font-size:26px;line-height:1.15;margin-top:4px">'+(ok?'останется ~'+fcRound(f.left):'не хватит ~'+fcRound(-f.left))+'</b></div>'+
     '<div class="fcmeta" style="margin-top:8px"><div class="row"><div class="grow fine">Обычные траты в день</div><b>'+money(f.pace)+'</b></div>'+
-    '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+(f.pc>0?money(f.pc)+' · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'):'нет · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'))+'</b></div></div>'+
+    '<div class="row"><div class="grow fine">Запланированные покупки</div><b>'+(f.pc>0?money(f.pc)+' · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'):'нет · ещё '+f.dl+' '+plw(f.dl,'день','дня','дней'))+'</b></div>'+
+    '<div class="row"><div class="grow fine">Обязательные платежи</div><b>'+(f.due>0?money(f.due):'нет')+'</b></div></div>'+
     (f.left<0&&f.dl?(f.avail-f.pc>0?'<p class="fine" style="margin:8px 0 0">Чтобы дотянуть — до '+money((f.avail-f.pc)/f.dl)+' в день.</p>':'<p class="fine" style="margin:8px 0 0">Свободных денег уже не хватает на платежи до зарплаты.</p>'):'')+
-    (f.leftB-f.left>=lc(100)?'<div class="note info" style="margin-top:10px"><span>Если сократить необязательные траты — '+(f.leftB>=0?'останется ~'+fcRound(f.leftB):'не хватит ~'+fcRound(-f.leftB))+'</span></div>':'');
+    fcWhatIfBlock(f.pace,false);
   }
   var how=[['Свободные деньги сейчас',money(balance())]];
-  if(f.due>0)how.push(['− Платежи и раскладка',money(f.due)]);
-  if(f.inc>0)how.push(['+ Ожидаемые поступления',money(f.inc)]);
+  if(f.due>0)how.push(['− Обязательные платежи и раскладка',money(f.due)]);
+  if(f.incs&&f.incs.length){
+    how.push(['+ Ожидаемые поступления',money(f.inc)]);
+    f.incs.forEach(function(r){
+      var lifeTxt=r.allSave?'0 ₽ на жизнь':money(r.life);
+      how.push([dlabel(r.date)+' · '+esc(r.name),(r.allSave?money(r.amt)+' → ':'')+lifeTxt,1]);
+    });
+  }else if(f.inc>0)how.push(['+ Ожидаемые поступления',money(f.inc)]);
   if(f.kn>=5){
     how.push(['− Обычные траты ('+money(f.pace)+' × '+f.dl+')',money(f.pace*f.dl)]);
-    if(f.pc>0)how.push(['− Мои планы',money(f.pc)]);
+    if(f.pc>0)how.push(['− Запланированные покупки',money(f.pc)]);
     how.push(['Прогноз к '+dt,fcRound(f.left)]);
     how.push(['Крупные покупки от '+money(f.huge),'не в «обычный день»']);
   }
@@ -1792,14 +1859,25 @@ function dayLimitExact(d){return dayLimitKnown(d)&&!dayLimitApprox(d)}
 function monthEnvelope(ym){var a=ym.split('-'),n=dim(+a[0],+a[1]-1),s=0;for(var d=1;d<=n;d++)s+=dayLimitAt(ym+'-'+p2(d));return s}
 function daysEnvelope(from,n){var s=0;for(var i=0;i<n;i++)s+=dayLimitAt(iso(addDays(parse(from),i)));return s}
 function weekEnvelope(monIso){return daysEnvelope(monIso,7)}
-/* План достоверен только при точных (не ≈) снимках за все прошедшие дни периода. */
-function monthPlanKnown(ym){
+/* Покрытие месячного плана снимками дневных лимитов.
+   complete — все прошедшие дни известны (точные или ≈);
+   exact — все точные (для наград ★); approx — complete, но есть ≈;
+   incomplete — часть дней есть, но не все. */
+function monthPlanStatus(ym){
   var a=ym.split('-'),n=dim(+a[0],+a[1]-1),cur=T.slice(0,7);
-  if(ym>cur)return dayLimit()>0;
-  var end=ym===cur?Math.max(0,parseInt(T.slice(8),10)-1):n;
-  for(var d=1;d<=end;d++)if(!dayLimitExact(ym+'-'+p2(d)))return false;
-  return ym===cur?dayLimit()>0||end>0:end>0;
+  if(ym>cur){var ok=dayLimit()>0;return {complete:ok,exact:ok,approx:false,incomplete:false,known:0,need:0,approxN:0}}
+  var end=ym===cur?Math.max(0,parseInt(T.slice(8),10)-1):n,known=0,approxN=0;
+  for(var d=1;d<=end;d++){
+    var dd=ym+'-'+p2(d);
+    if(dayLimitKnown(dd)){known++;if(dayLimitApprox(dd))approxN++}
+  }
+  var complete=end>0?known===end:(ym===cur&&dayLimit()>0);
+  if(ym===cur&&end===0)complete=dayLimit()>0;
+  var exact=complete&&approxN===0&&(ym===cur?dayLimit()>0||end>0:end>0);
+  return {complete:complete,exact:exact,approx:complete&&approxN>0,incomplete:!complete&&known>0,known:known,need:end,approxN:approxN};
 }
+/* Для наград ★ — только точные снимки (≈ не засчитываем). */
+function monthPlanKnown(ym){return monthPlanStatus(ym).exact}
 function weekPlanKnown(monIso){
   for(var i=0;i<7;i++){var dd=iso(addDays(parse(monIso),i));if(dd<T&&!dayLimitExact(dd))return false}
   return true;
@@ -1901,7 +1979,7 @@ function planHistEvalDayLimit(src, day, state){
 /* 25.11 — переходная дата релизов с ошибочным расчётом цикла. Восстанавливаем
    только если снимок после исправления доказывает тот же цикл и неизменный бюджет.
    Это реконструкция, не точный исторический снимок. Не зависит от сумм/счетов пользователя. */
-var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=3;
+var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=5;
 function planHistCycleRepair(state,asOf){
   var src=planHistUnpack(state)||state,d=PLAN_HIST_REPAIR_DAY;
   if(!src||src.simple||src.irreg||!asOf||asOf<'2026-11-26'||asOf>T||!Array.isArray(src.accounts)||!Array.isArray(src.entries)||!(src.incomes||[]).length)return 0;
@@ -2863,7 +2941,7 @@ function monsterCard(me,net,dnum){
   if(S.nopet)return '';
   var PD=petDay(),hr=new Date().getHours(),pinf=planInfo(),lim=pinf.v,td=S.entries.filter(function(x){return x.date===PD}),tdl=life(td),tn=Math.max(0,lifeNet(td)),mood,msg;
   var avg=net/dnum;
-  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,envOk=monthPlanKnown(PD.slice(0,7)),rest=envOk?monthEnvelope(PD.slice(0,7))-net:null,perLeft=left>0&&rest!=null?rest/left:0;
+  var ns=(S.noSpend||[]).indexOf(PD)>=0,nsBtn='',ymA=PD.slice(0,7).split('-'),nd=dim(+ymA[0],+ymA[1]-1),left=nd-dnum,r=lim?avg/lim:0,over=avg-lim,envOk=monthPlanStatus(PD.slice(0,7)).complete,rest=envOk?monthEnvelope(PD.slice(0,7))-net:null,perLeft=left>0&&rest!=null?rest/left:0;
   function pk(arr){return arr[hsh(PD+mood+petKind())%arr.length]}
   function tail(){return left>0&&rest!=null?(rest>0&&perLeft>=lim*0.3?' Дальше - до '+money(perLeft)+' в день.':' До конца месяца - только нужное.'):''}
   var pp=hr<7?null:payPraise();
@@ -3398,38 +3476,41 @@ function reviewCard(){
     prev.forEach(function(m){var c=netByCat(life(ex0(m,cur?d:0)));Object.keys(c).forEach(function(kk){baseCat[kk]=(baseCat[kk]||0)+c[kk]/prev.length})});
   }
   var curCat=netByCat(life(ex0(ym))),tips=[];
-  /* 1. итог или прогноз: одна крупная цифра, полоска против плана, три коротких показателя; пояснения - под «i» */
-  var lim=dayLimit(),planM=monthPlanKnown(ym)?monthEnvelope(ym):0,dayAvg=n?Math.round(planM/n):0,ref0=cur?fc:spent;
-  var cls=planM>0?(ref0>planM*1.1?'warn':ref0<planM*0.95?'good':'info'):(base&&ref0>base*1.1?'warn':base&&ref0<base*0.95?'good':'info');
+  /* 1. итог или прогноз: одна крупная цифра, полоска против плана, три коротких показателя; пояснения - под «i».
+     Сравнение с планом и с прошлыми месяцами не смешиваем: chip — только к плану (если он полный) или отдельно «неполный». */
+  var lim=dayLimit(),mps=monthPlanStatus(ym),planM=mps.complete?monthEnvelope(ym):0,planApprox=!!mps.approx,planIncomplete=!!mps.incomplete,dayAvg=n&&planM?Math.round(planM/n):0,ref0=cur?fc:spent;
+  var cls=planM>0?(ref0>planM*1.1?'warn':ref0<planM*0.95?'good':'info'):'info';
   var chip='';
   if(planM>0){var dp=ref0-planM;chip=Math.abs(dp)<planM*0.03?'ровно в плане':dp>0?'на '+money(dp)+' больше плана':'на '+money(-dp)+' меньше плана'}
-  else if(base){var db=ref0-base;chip=Math.abs(db)<base*0.05?'как обычно':'на '+money(Math.abs(db))+(db>0?' больше':' меньше')+' обычного'}
+  else if(planIncomplete)chip='неполный план';
   var chipCol=cls==='warn'?'var(--out)':cls==='good'?'var(--in)':'var(--muted)';
   var scale=Math.max(planM||0,ref0,1)*1.05,bar='';
-  if(planM>0||cur){
+  if(planM>0||planIncomplete||cur){
     bar='<div style="position:relative;height:10px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:6px">'+
       (cur?'<i style="position:absolute;left:0;top:0;bottom:0;width:'+Math.min(100,fc/scale*100).toFixed(1)+'%;background:'+chipCol+';opacity:.35;border-radius:99px"></i>':'')+
       '<i style="position:absolute;left:0;top:0;bottom:0;width:'+Math.min(100,spent/scale*100).toFixed(1)+'%;background:'+chipCol+';border-radius:99px"></i>'+
       (planM>0?'<i style="position:absolute;top:-2px;bottom:-2px;width:2px;left:'+Math.min(99.5,planM/scale*100).toFixed(1)+'%;background:var(--warn)"></i>':'')+'</div>'+
-      '<div class="fine" style="display:flex;justify-content:space-between;font-size:12px"><span style="display:flex;gap:10px;align-items:center"><span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+'"></i>потрачено</span>'+(cur?'<span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+';opacity:.35"></i>прогноз</span>':'')+'</span>'+(planM>0?'<span style="color:var(--warn)">| план</span>':'')+'</div>';
+      '<div class="fine" style="display:flex;justify-content:space-between;font-size:12px"><span style="display:flex;gap:10px;align-items:center"><span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+'"></i>потрачено</span>'+(cur?'<span style="display:flex;gap:4px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:'+chipCol+';opacity:.35"></i>прогноз</span>':'')+'</span>'+(planM>0?'<span style="color:var(--warn)">| '+(planApprox?'≈ ':'')+'план</span>':planIncomplete?'<span style="color:var(--muted)">неполный план</span>':'')+'</div>';
   }
   function st(lbl,val,sub){return '<div style="display:flex;flex-direction:column;gap:1px;min-width:0"><span class="fine" style="font-size:12px">'+lbl+'</span><b style="font-size:15px">'+val+'</b>'+(sub?'<span class="fine" style="font-size:12px">'+sub+'</span>':'')+'</div>'}
   var stats=[];
   if(cur)stats.push(st('Потрачено',money(spent),d+' из '+n+' дн.'));
-  if(planM>0)stats.push(st('План',money(planM),dayAvg===lim?money(lim)+' в день':money(dayAvg)+' в день ср.'));
+  if(planM>0)stats.push(st(planApprox?'План ≈':'План',money(planM),dayAvg===lim?money(lim)+' в день':money(dayAvg)+' в день ср.'));
+  else if(planIncomplete)stats.push(st('План','неполный',mps.known+' из '+mps.need+' дн.'));
   if(base)stats.push(st('Обычно',money(base),'за '+prev.length+' мес.'));
-  if(!cur&&!planM&&!base)stats.push(st('Дней',String(n),''));
+  if(!cur&&!planM&&!planIncomplete&&!base)stats.push(st('Дней',String(n),''));
   var det=[];
   if(cur)det.push('Прогноз - сколько выйдет к концу месяца, если тратить так же, как сейчас. Крупные разовые траты'+(bigSum?' ('+money(bigSum)+')':'')+' в прогнозе не повторяются.');
-  if(planM>0)det.push('План на месяц - сумма дневных планов'+(dayAvg===lim?' ('+money(lim)+' × '+n+' дн.)':' (с учётом истории лимитов, сейчас '+money(lim)+' в день)')+'.');
-  if(base)det.push('«Обычно» - среднее за '+prev.length+' прошлых '+plw(prev.length,'месяц','месяца','месяцев')+(cur?', а сравнение по категориям - к этому же числу':'')+'.');
-  else det.push('Сравнение с обычным появится, когда накопится хотя бы один прошлый месяц с записями.');
+  if(planM>0)det.push('План на месяц - сумма дневных планов'+(planApprox?' (есть приблизительные ≈ дни)':'')+(dayAvg===lim?' ('+money(lim)+' × '+n+' дн.)':' (с учётом истории лимитов, сейчас '+money(lim)+' в день)')+'. Сравнение сверху — только с этим планом, не с прошлыми месяцами.');
+  if(planIncomplete)det.push('Неполный план: известны дневные лимиты только за '+mps.known+' из '+mps.need+' прошедших дней — сравнение прогноза с планом пока не показываем.');
+  if(base)det.push('«Обычно» - среднее за '+prev.length+' прошлых '+plw(prev.length,'месяц','месяца','месяцев')+' (отдельная строка, не смешивается со сравнением с планом)'+(cur?', а сравнение по категориям - к этому же числу':'')+'.');
+  else if(!planM)det.push('Сравнение с обычным появится, когда накопится хотя бы один прошлый месяц с записями.');
   if(outSum>0)det.push('Платежи, редкие траты и траты из копилок ('+money(outSum)+') сюда не входят.');
   det.push('Всё после вычета возвратов.');
   H+='<div class="note '+cls+'" style="gap:6px"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="fine" style="font-size:13px">'+(cur?'🔮 Прогноз на месяц':'🏁 Итог месяца')+'</span>'+tipBtn('rvtop')+'</div>'+
     '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:26px;line-height:1.1">'+(cur?'≈ ':'')+money(ref0)+'</b>'+(chip?'<span style="font-weight:700;font-size:14px;color:'+chipCol+'">'+chip+'</span>':'')+'</div>'+
     bar+tipBox('rvtop',det.join(' '))+
-    '<div style="display:grid;grid-template-columns:repeat('+stats.length+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
+    '<div style="display:grid;grid-template-columns:repeat('+Math.max(1,stats.length)+',1fr);gap:8px;margin-top:6px">'+stats.join('')+'</div></div>';
   (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
     var mg=MONTHS_G[+ym.slice(5,7)-1],cell=function(l,v){return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="fine" style="font-size:12px">'+l+'</span><b style="font-size:16px">'+money(v)+'</b></div>'};
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
@@ -3474,7 +3555,8 @@ function reviewCard(){
   /* 6. подсказки */
   if(cur&&planM>0&&left>0){var remP=planM-spent;
     var pdT=null;if(!S.simple&&(S.incomes||[]).length){try{pdT=perDay()}catch(e){}}
-    tips.push(remP>0?'До конца месяца по плану: '+money(remP)+(pdT&&pdT.nextIn?(pdT.val>0?'. До зарплаты можно до '+money(pdT.val)+' в день.':'. Но свободных денег до зарплаты уже не хватает.'):', это '+money(remP/left)+' в день.'):'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
+    tips.push(remP>0?'До конца месяца по '+(planApprox?'≈ ':'')+'плану: '+money(remP)+(pdT&&pdT.nextIn?(pdT.val>0?'. До зарплаты можно до '+money(pdT.val)+' в день.':'. Но свободных денег до зарплаты уже не хватает.'):', это '+money(remP/left)+' в день.'):'План на месяц уже выбран (сверху '+money(-remP)+'). До конца месяца лучше оставить только обязательное.')}
+  else if(cur&&planIncomplete)tips.push('Месячный план пока неполный: не хватает дневных лимитов за часть дней. Сравнение прогноза с планом появится, когда история закроется.')
   else if(cur&&base&&left>0){var rem=base-spent;
     tips.push(rem>0?'Чтобы уложиться в свой обычный месяц ('+money(base)+'), до конца месяца тратить не больше '+money(rem/left)+' в день.':'Уже потрачено больше, чем в обычный месяц ('+money(base)+')'+(bigSum?', в том числе из-за крупных покупок на '+money(bigSum):'')+'. До конца месяца лучше оставить только обязательное.')}
   var oddCat={};odd.forEach(function(x){oddCat[x.cat]=(oddCat[x.cat]||0)+nv(x)});var tu=up.filter(function(x){return x.c-(oddCat[x.k]||0)-x.b>=1000})[0];
@@ -3972,14 +4054,65 @@ function g2Saved(ym){return S.entries.filter(function(x){if(x.type!=='t'||x.demo
    g2From — с этой даты live-начисление идёт поверх пола (после восстановления из бэкапа). */
 function g2MinStars(L){L=Math.max(1,+L||1);return 40*(L-1)*(L-1)}
 function g2LevelOf(stars){return Math.floor(Math.sqrt(Math.max(0,+stars||0)/40))+1}
-function g2ProgressFromState(state){
+/* Дорефакторинговый пересчёт ★: лимит дня = снимок истории или текущий план (как dayLimitAt
+   до запрета backfill); без исключения ≈/unknown; месяц/неделя без требования exact-покрытия.
+   Только для восстановления пола из бэкапов — live-начисление по-прежнему через g2()/exact. */
+function g2LegacyDayLimit(d){
+  var h=S.planDayHistory||{};
+  if(d<T&&Object.prototype.hasOwnProperty.call(h,d))return +h[d]||0;
+  return dayLimit();
+}
+function g2LegacyStars(){
+  var lim=dayLimit(),PD=petDay(),ns={};(S.noSpend||[]).forEach(function(d){ns[d]=1});
+  var by={},first=null;
+  S.entries.forEach(function(x){if(!vis(x)||x.date>PD)return;(by[x.date]=by[x.date]||[]).push(x);if(!first||x.date<first)first=x.date});
+  (S.noSpend||[]).forEach(function(d){if(d<=PD&&(!first||d<first))first=d});
+  if(!(lim>0)||!first)return 0;
+  var LK=refLinks();function net(l){return lifeNetL(l,LK)}
+  var stars=0,n=diffDays(first,PD),run=0,mNet=0,mKnown=0,curM='',wNet=0,wKnown=0,wDays=0,curW='',ym0=PD.slice(0,7),mBudget=0,wBudget=0;
+  function closeMonth(m){if(!m||m===ym0)return;
+    if(mKnown>=15&&mNet<=mBudget)stars+=200;
+    var sp=g2SavePlan();if(sp>0&&g2Saved(m)>=sp)stars+=100}
+  function closeWeek(){if(wKnown>=4&&wDays===7&&wNet<=wBudget)stars+=50}
+  for(var i=0;i<n;i++){
+    var d=iso(addDays(parse(first),i)),l=by[d]||[],m=d.slice(0,7),dt=parse(d),wk=iso(addDays(dt,-((dt.getDay()+6)%7)));
+    if(m!==curM){closeMonth(curM);curM=m;mNet=0;mKnown=0;mBudget=0}
+    if(wk!==curW){if(curW)closeWeek();curW=wk;wNet=0;wKnown=0;wDays=0;wBudget=0}
+    var v=net(l),dl=g2LegacyDayLimit(d);mBudget+=dl;wBudget+=dl;
+    var st;if(ns[d]&&v<=0)st='nospend';else if(!l.length)st='unknown';else if(v<=0)st='nospend';else if(v<=dl)st='good';else st='over';
+    wDays++;
+    if(st!=='unknown'){mKnown++;wKnown++;mNet+=Math.max(0,v);wNet+=Math.max(0,v)}
+    if(st==='over'&&mNet<=mBudget)st='oneoff';
+    if(st==='good'){stars+=10;run++}
+    else if(st==='nospend'){stars+=20;run++}
+    else if(st==='over')run=0;
+    if((st==='good'||st==='nospend')&&run>0&&run%7===0)stars+=30;
+  }
+  closeMonth(curM===ym0?'':curM);
+  if(curW&&diffDays(curW,PD)>=7)closeWeek();
+  return stars;
+}
+function g2LegacyFromState(state,asOf){
+  var src=planHistUnpack(state)||state;
+  if(!src||typeof src!=='object'||!asOf||!/^\d{4}-\d{2}-\d{2}$/.test(asOf))return 0;
+  var oldS=S,oldT=T,oldPI=PI_C,oldOn=PI_ON;
+  try{
+    S=migrate(JSON.parse(JSON.stringify(src)));T=asOf;PI_C=null;PI_ON=0;S.demo=false;
+    return g2LegacyStars()||0;
+  }catch(e){return 0}
+  finally{S=oldS;T=oldT;PI_C=oldPI;PI_ON=oldOn}
+}
+function g2ProgressFromState(state,asOf){
   var src=planHistUnpack(state)||state;if(!src||typeof src!=='object')return null;
   var L=+src.g2L||0,stars=+src.g2Stars||0;
   // Старый бэкап только с g2L → минимум звёзд уровня. Явный g2Stars при g2From не раздуваем:
   // уровень мог вырасти из live поверх пола (иначе 6→7 удваивает live).
   if(L>0&&!(+src.g2Stars>0))stars=g2MinStars(L);
   else if(L>0&&!src.g2From)stars=Math.max(stars,g2MinStars(L));
+  // g2LegacyStars — только в planHistRestore (одноразовый подъём пола), не здесь:
+  // иначе sync/ydAdopt/миграции пересчитывают legacy повторно.
   if(!L&&stars>0)L=g2LevelOf(stars);
+  else if(stars>0)L=Math.max(L,g2LevelOf(stars));
   if(!L&&!stars)return null;
   return {L:L,stars:stars,from:src.g2From||null};
 }
@@ -3997,7 +4130,8 @@ function g2ProgressLift(p){
   if(p.from&&/^\d{4}-\d{2}-\d{2}$/.test(p.from)&&(!S.g2From||p.from>S.g2From)){S.g2From=p.from;ch=true}
   return ch;
 }
-/* Если пол из бэкапов выше текущего пересчёта — отсекаем live с сегодня, чтобы не потерять уровень и не дублировать старое. */
+/* Если пол из бэкапов выше текущего пересчёта — отсекаем live с сегодня, чтобы не потерять уровень и не дублировать старое.
+   Legacy-пересчёт сюда не входит: только одноразово в planHistRestore через g2LegacyRestore. */
 function g2ProgressSeal(){
   if(S.demo)return false;
   var prev=S.g2From;S.g2From=null;
@@ -4008,11 +4142,23 @@ function g2ProgressSeal(){
   if(!S.g2From)banked=Math.max(banked,g2MinStars(+S.g2L||0));
   else if(!banked)banked=g2MinStars(+S.g2L||0);
   if(live>banked){S.g2Stars=live;ch=true;banked=live}
-  if(banked>(+S.g2Stars||0)&&!S.g2From){S.g2Stars=banked;ch=true}
+  if(banked>(+S.g2Stars||0)){S.g2Stars=banked;ch=true}
   if(banked>live&&!S.g2From){S.g2From=T;ch=true}
   var L=Math.max(+S.g2L||0,g2LevelOf(Math.max(banked,+S.g2Stars||0)));
   if(L>(+S.g2L||0)){S.g2L=L;ch=true}
   return ch;
+}
+/* Одноразовый подъём пола ★ по дорефакторинговому g2 на снимках (только planHistRestore). */
+function g2LegacyRestore(sources){
+  if(S.demo||!sources||!sources.length)return false;
+  var max=0;
+  sources.forEach(function(s){
+    if(!s||!s.state)return;
+    var leg=g2LegacyFromState(s.state,s.asOf||planHistResolveAsOf(s.state,null,null))||0;
+    if(leg>max)max=leg;
+  });
+  if(!(max>0))return false;
+  return g2ProgressLift({L:g2LevelOf(max),stars:max,from:null});
 }
 function g2(){
   var lim=dayLimit(),PD=petDay(),ns={};(S.noSpend||[]).forEach(function(d){ns[d]=1});
@@ -4251,19 +4397,23 @@ function outCard(me){
       return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(x.note||c.name)+'</div><div class="s">'+dlabel(x.date)+(a?' · из «'+esc(accName(a))+'»':'')+' · '+esc(c.name)+'</div></div><span class="amt out">−'+money(x.amt)+'</span></button>'}).join('')+'</div>')}
 /* полный режим: траты на жизнь против плана на месяц; платежи, траты из копилок и доходы - отдельно */
 function lifeCard(me,n){
-  var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),planM=monthPlanKnown(vym)?monthEnvelope(vym):0,lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
+  var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),mps=monthPlanStatus(vym),planM=mps.complete?monthEnvelope(vym):0,lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
   var incR=me.filter(function(x){return x.type==='i'&&x.cat!=='refund'&&!x.skip}).reduce(function(a,x){return a+x.amt},0);
   var head,note,bar='';
   if(planM>0){
-    var r=lnet/planM,cls=r>1.1?'bad':r>1?'warn':'good';
-    head='<b>'+money(lnet)+' из '+money(planM)+'</b>';
+    var r=lnet/planM,cls=r>1.1?'bad':r>1?'warn':'good',apx=mps.approx?'≈ ':'';
+    head='<b>'+money(lnet)+' из '+apx+money(planM)+'</b>';
     var pdN=null;if(cur&&!S.simple){try{pdN=perDay()}catch(e){}}
     // в полном режиме «сколько в день» берём то же, что на главной (до зарплаты), чтобы не было двух разных цифр
     var perTxt=pdN&&pdN.nextIn&&(S.incomes||[]).length?'. До зарплаты ('+pdN.nextIn.slice(8)+'.'+pdN.nextIn.slice(5,7)+') можно до '+money(pdN.val)+' в день, как на главной':', это '+money(rest/left)+' в день до конца месяца';
-    note=rest>=0?(cur&&left>0?'В плане. Осталось '+money(rest)+perTxt:'В плане. Осталось '+money(rest)):'Выше плана на '+money(-rest);
+    note=rest>=0?(cur&&left>0?'В плане'+(mps.approx?' ≈':'')+'. Осталось '+money(rest)+perTxt:'В плане'+(mps.approx?' ≈':'')+'. Осталось '+money(rest)):'Выше плана на '+money(-rest);
     bar='<div class="bar"><i style="width:'+Math.min(100,r*100)+'%;background:'+(r>1?'var(--out)':r>0.85?'var(--warn)':'var(--in)')+'"></i></div>';
-    return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Сравниваются с суммой дневных планов месяца'+(lim>0?' (сейчас '+money(lim)+' в день)':'')+'.')+
+    return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Сравниваются с суммой дневных планов месяца'+(lim>0?' (сейчас '+money(lim)+' в день)':'')+(mps.approx?' · есть приблизительные ≈ дни':'')+'.')+
       '<div class="note '+cls+'">'+head+'<span class="fine">'+note+'</span></div>'+bar+
+      '<div class="row"><div class="grow fine">Пришло за месяц</div><span class="amt in">'+money(incR)+'</span></div></div>'}
+  if(mps.incomplete){
+    return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Месячный план пока неполный — известны лимиты не за все дни.')+
+      '<div class="note info"><b>'+money(lnet)+'</b><span class="fine">Неполный план · '+mps.known+' из '+mps.need+' дн. с лимитом'+(dd?' · в день '+money(lnet/dd):'')+'</span></div>'+
       '<div class="row"><div class="grow fine">Пришло за месяц</div><span class="amt in">'+money(incR)+'</span></div></div>'}
   return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Задай план трат на день, и здесь появится сравнение с ним.')+
     '<div class="note info"><b>'+money(lnet)+'</b><span class="fine">'+(dd?'В день: '+money(lnet/dd):'')+'</span></div>'+
@@ -6083,7 +6233,7 @@ async function planHistRestore(){
   Object.keys(S.planDayHistoryApprox||{}).forEach(function(d){approx[d]=S.planDayHistoryApprox[d]});
   var added=0,approxN=0,cloudOk=false,restoredFlag=!!S.planHistRestored,repair=+(S.planDayHistoryRepair||{})[PLAN_HIST_REPAIR_DAY]||planHistCycleRepair(S,T);
   var sources=[],progLift=false;
-  function noteSrc(state,asOf){if(state)sources.push({state:state,asOf:asOf||null});var p=g2ProgressFromState(state);if(p&&g2ProgressLift(p))progLift=true}
+  function noteSrc(state,asOf){if(state)sources.push({state:state,asOf:asOf||null});var p=g2ProgressFromState(state,asOf);if(p&&g2ProgressLift(p))progLift=true}
   function acc(r){if(!r)return;added+=r.n||0;approxN+=r.a||0}
   try{
     if(needLocal){
@@ -6121,6 +6271,8 @@ async function planHistRestore(){
     if(needLocal||needCloud)acc(planHistFillGaps(h,approx,sources));
     planHistMergeIntoS(h,approx);
     if(repair&&planHistApplyCycleRepair(repair)){added++;approxN++}
+    // Legacy ★ только здесь (один проход ревизии), не в sync/seal/FromState
+    if((needLocal||needCloud)&&sources.length){if(g2LegacyRestore(sources))progLift=true}
     if(progLift||needLocal){if(g2ProgressSeal())progLift=true}
     if(restoredFlag){S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV}
     if(added>0||progLift){

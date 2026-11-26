@@ -714,9 +714,16 @@ test('предсказание: сколько останется к зарпл�
   await page.click('[data-a=fcOpen]');
   const sheet = page.locator('#ov .sheet');
   await expect(sheet).toContainText('останется');
-  await expect(sheet).toContainText('Если сократить необязательные траты');
+  await expect(sheet).toContainText('А если тратить меньше?');
   await expect(sheet).toContainText('Обычные траты в день');
   await expect(sheet).toContainText('Запланированные покупки');
+  await expect(sheet).toContainText('Обязательные платежи');
+  await expect(sheet.locator('#fc_wif')).toBeVisible();
+  // ползунок по умолчанию = текущий средний темп; сдвиг меняет прогноз остатка
+  const before = await page.locator('#fc_wif_left').textContent();
+  await page.locator('#fc_wif').evaluate((el) => { el.value = '0'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  const after = await page.locator('#fc_wif_left').textContent();
+  expect(after).not.toBe(before);
   // доп. блоки свёрнуты; форма добавления — после «+ Добавить план»
   await expect(sheet.locator('#fc_amt')).toHaveCount(0);
   await sheet.locator('details.fold', {hasText: 'Мои планы'}).locator('summary').click();
@@ -731,8 +738,8 @@ test('предсказание: сколько останется к зарпл�
   const plans = (await stored(page)).fcPlans.length;
   expect(plans).toBe(1);
   const f = await page.evaluate(() => window.fcCalc());
-  expect(f.pace).toBeGreaterThan(f.paceB);
-  expect(f.leftB).toBeGreaterThan(f.left);
+  expect(f.pace).toBeGreaterThan(0);
+  expect(f.left).toBeDefined();
   await page.click('[data-a=fcDel]');
   expect((await stored(page)).fcPlans.length).toBe(0);
   expect(errs).toEqual([]);

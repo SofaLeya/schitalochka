@@ -221,6 +221,7 @@ html.bigtext{zoom:1.14}
 .ibtn::after{content:'';position:absolute;inset:-9px}
 .ibtn[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tipbox{background:var(--surface2);border-radius:12px;padding:10px 12px;line-height:1.4}
+#tip_rvbal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;color:var(--ink)}
 .tiprow{display:flex;align-items:center;gap:8px}
 .bigsum{font-size:30px;font-weight:800;letter-spacing:-.02em}
 .card.game{flex-direction:row;align-items:center;text-align:left;width:100%;gap:14px}
@@ -3180,8 +3181,9 @@ function reviewCard(){
   (function(){var b0=balanceBefore(ym+'-01'),b1=cur?balance():balanceBefore(nextYM(ym,1)+'-01'),dd=b1-b0;
     var mg=MONTHS_G[+ym.slice(5,7)-1],cell=function(l,v){return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="fine" style="font-size:12px">'+l+'</span><b style="font-size:16px">'+money(v)+'</b></div>'};
     H+='<div style="background:var(--surface2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:4px">'+
-      '<div id="rvbal_header" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px"><div style="display:flex;align-items:center;gap:6px;flex:1 1 154px;min-width:0;padding-right:10px"><b style="min-width:0;white-space:normal;overflow-wrap:anywhere">💳 Свободные деньги</b>'+tipBtn('rvbal')+'</div><span style="margin-left:auto;max-width:100%;overflow-wrap:anywhere;text-align:right;line-height:1.15"><b style="font-size:16px;color:'+(dd>=0?'var(--in)':'inherit')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b><br><span class="fine" style="font-size:11.5px">за месяц</span></span></div>'+
-      tipBox('rvbal','Как изменились свободные деньги за месяц с учётом доходов, трат и переводов. Остатки за прошлые даты считаются по истории; пропущенные операции искажают расчёт.')+
+      '<div id="rvbal_header" style="display:flex;align-items:center;min-width:0;padding-right:10px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><b style="min-width:0;white-space:normal;overflow-wrap:anywhere">💳 Свободные деньги</b>'+tipBtn('rvbal')+'</div></div>'+
+      tipBox('rvbal','Разница между остатками в начале месяца и на выбранную дату. Если в истории не хватает операций, расчёт может быть неточным.')+
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="fine">За месяц</span><b style="max-width:100%;overflow-wrap:anywhere;font-size:16px;color:'+(dd>=0?'var(--in)':'inherit')+'">'+(dd>=0?'+':'−')+money(Math.abs(dd))+'</b></div>'+
       '<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px">'+cell('на 1 '+mg,b0)+'<span class="fine" style="font-size:18px;padding-bottom:2px">→</span>'+cell(cur?'сейчас':'на конец месяца',b1)+'</div>'+(function(){var ds=incomeCalendarMonth(ym).filter(function(d){return d<=T});
         if(!hasIncomeSchedule()&&!payDays().length&&!S.irreg)return '<span class="fine" style="font-size:12px">Чтобы видеть остаток перед поступлениями, укажи график поступлений в настройках.</span>';
         if(!ds.length)return '';

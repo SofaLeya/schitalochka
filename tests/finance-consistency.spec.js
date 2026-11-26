@@ -91,12 +91,12 @@ test('refund and editing or deleting a purchase reconstruct the original balance
  });expect(r).toEqual({purchase:{balance:8500,spent:1500},refund:{balance:9000,spent:1000},edit:{balance:9300,spent:700},deleteRefund:{balance:8800,spent:1200},deletePurchase:{balance:10000,spent:0}});
 });
 
-test('mode switch: planOut categories do not hide ordinary spends (257 vs 1756 regression)',async({page})=>{
+test('mode switch: legacy planOut does not hide ordinary spends (257 vs 1756 regression)',async({page})=>{
  const r=await probe(page,()=>{
-  // Repro: with planCalc+planOut(FIXCATS), simple used to drop subs → 257; full kept them → 1756
+  // Legacy S.planOut must be ignored for fact; keep field for data compatibility
   T='2026-11-25';S.demo=false;S.irreg=false;S.rare=[];S.rules=[];S.recur=[];
   S.planCalc={inc:90000,fixed:15000,save:5000,irr:3000};
-  S.planOut=FIXCATS.concat(IRRCATS);
+  S.planOut=['rent','kom','conn','subs','debt','tax','cloth','beauty','health','gift','tech','trip','edu'];
   S.dayLimit=undefined;
   S.accounts=[{id:'main',type:'main',start:30000}];
   S.entries=[
@@ -153,7 +153,8 @@ test('mode switch: planOut categories do not hide ordinary spends (257 vs 1756 r
 test('mode switch keeps past planDayHistory; rid and rare stay out of life in both modes',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-24';S.demo=false;S.simple=true;S.irreg=false;S.incomes=[];
-  S.planCalc={inc:60000,fixed:10000,save:0,irr:2000};S.planOut=FIXCATS.concat(IRRCATS);
+  S.planCalc={inc:60000,fixed:10000,save:0,irr:2000};
+  S.planOut=['rent','kom','conn','subs','debt','tax','cloth','beauty','health','gift','tech','trip','edu'];
   S.planDayHistory={};rememberDayLimit();
   var limSimple=dayLimit(),hist24=S.planDayHistory['2026-11-24'];
   T='2026-11-25';
@@ -171,11 +172,13 @@ test('mode switch keeps past planDayHistory; rid and rare stay out of life in bo
   var fullDay=dayNet(T).v,fullLife=life(S.entries).map(function(x){return x.id}).sort();
   rememberDayLimit();
   var limFull=dayLimit(),hist25=S.planDayHistory['2026-11-25'],hist24after=S.planDayHistory['2026-11-24'];
+  var legacyOut=S.planOut&&S.planOut.slice();
   return {
    limSimple:limSimple,hist24:hist24,hist24after:hist24after,
    limFull:limFull,hist25:hist25,
    simpleDay:simpleDay,fullDay:fullDay,simpleLife:simpleLife,fullLife:fullLife,
-   at24:dayLimitAt('2026-11-24')
+   at24:dayLimitAt('2026-11-24'),legacyOut:legacyOut,
+   hasPlanOutDefault:typeof planOutDefault,hasPlanOutSet:typeof planOutSet,hasPcCats:typeof pcCatsHtml
   };
  });
  expect(r.hist24).toBe(r.limSimple);
@@ -186,4 +189,8 @@ test('mode switch keeps past planDayHistory; rid and rare stay out of life in bo
  expect(r.fullDay).toBe(400);
  expect(r.simpleLife).toEqual(['cafe']);
  expect(r.fullLife).toEqual(['cafe']);
+ expect(r.legacyOut).toContain('subs'); // stored field kept for compatibility
+ expect(r.hasPlanOutDefault).toBe('undefined');
+ expect(r.hasPlanOutSet).toBe('undefined');
+ expect(r.hasPcCats).toBe('undefined');
 });

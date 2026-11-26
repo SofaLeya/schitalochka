@@ -4404,7 +4404,11 @@ function entrySheet(){
    '<div class="btns stickb"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
    (sh.id&&!sh.confirm?'<button type="button" class="btn ghost" data-a="repeatEntry">Повторить сегодня</button>'+(sh.d.type==='e'?'<button type="button" class="btn ghost" data-a="tplFrom">Сделать регулярной</button>':''):'')+(sh.id?(sh.confirm?'<div class="btns"><button type="button" class="btn danger" data-a="delEntry">Точно удалить</button><button type="button" class="btn ghost" data-a="noDel">Не удалять</button></div>':'<button type="button" class="btn danger" data-a="askDel">Удалить запись</button>'):'')+
    '</form>');
-  if(!sh.id&&!d.amt)setTimeout(function(){var e=document.getElementById('f_amt');if(e)e.focus()},50);
+  if(!sh.id&&!d.amt){var initialAmt=document.getElementById('f_amt');setTimeout(function(){
+    // Не перехватываем ввод в другом поле и не фокусируем уже заменённую форму.
+    if(!initialAmt||!initialAmt.isConnected||document.getElementById('f_amt')!==initialAmt||initialAmt.value)return;
+    if(document.activeElement===document.body||document.activeElement===initialAmt)initialAmt.focus();
+  },50)}
   setTimeout(partsLive,0);setTimeout(fxHint,0);
 }
 function accCur(a){return isFx(a)?a.cur:baseCur()}

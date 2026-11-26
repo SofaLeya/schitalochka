@@ -1396,7 +1396,8 @@ test('дневной бюджет в день выплаты: до дохода,
   await expect(tile.locator('b')).toHaveText('1 133 ₽');
   await link.click();
   await expect(details.locator('.budget-period')).toContainText('До 10 декабря');
-  await expect(details.locator('.row').filter({hasText:'На завтра'}).locator('b')).toHaveText('1 133 ₽');
+  // «На завтра»: если сегодня больше не тратим, доля на оставшиеся дни (15×1133/14 ≈ 1214)
+  await expect(details.locator('.row').filter({hasText:'На завтра'}).locator('b')).toHaveText('1 214 ₽');
   expect(await heroNumber(page)).toBe(36000);
   await page.evaluate(() => {
     const d=JSON.parse(localStorage.getItem('podkopka-v1'));

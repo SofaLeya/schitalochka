@@ -299,7 +299,7 @@ test('failed daily download does not mark phrCloud complete',async({page})=>{
  expect(r.pending).toBe(true);
  expect(r.at22).toBe(900);
  expect(r.at23).toBe(1600);
- expect(r.at24).toBe(false);
+ // 24-е могло заполниться ≈ из соседнего снимка (fillGaps), но phrCloud всё равно не ставим
 });
 
 test('restored history survives ydAdopt and phrBusy blocks ydSync',async({page})=>{
@@ -404,9 +404,133 @@ test('migration reopens completed restore and repairs bad transition-day limit i
  expect(r.v).toBeCloseTo(r.candidate,5);
  expect(r.after).toBeCloseTo(r.candidate,5);
  expect(r.approx).toBe(true);
- expect(r.rev).toBe(2);
+ expect(r.rev).toBe(3);
  expect(r.old).toBe(1200);
  expect(r.afterSync).toBeCloseTo(r.candidate,5);
  expect(r.approxSync).toBe(true);
  expect(r.same).toBe(true);
+});
+
+test('fillGaps restores missing days between backups across full operation history as approx',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-26';
+  // Два снимка с дырой 21–22; операции с planFrom — заполняем всю историю ≈.
+  var early={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-20T12:00:00Z'),data:{
+   simple:true,dayLimit:1600,dlForm:undefined,planFrom:'2026-11-18',planCalc:null,g2L:5,
+   accounts:[{id:'main',type:'main',start:20000}],
+   entries:[{id:'e1',type:'e',cat:'cafe',amt:100,date:'2026-11-18',acc:'main'},{id:'e2',type:'e',cat:'cafe',amt:100,date:'2026-11-19',acc:'main'}],
+   incomes:[],rules:[],recur:[]
+  }};
+  var late={v:1,app:'schitalochka',savedAt:Date.parse('2026-11-23T12:00:00Z'),data:{
+   simple:true,dayLimit:1800,dlForm:undefined,planFrom:'2026-11-18',planCalc:null,g2L:6,
+   accounts:[{id:'main',type:'main',start:20000}],
+   entries:early.data.entries.concat([
+    {id:'e3',type:'e',cat:'cafe',amt:100,date:'2026-11-21',acc:'main'},
+    {id:'e4',type:'e',cat:'cafe',amt:100,date:'2026-11-22',acc:'main'}
+   ]),
+   incomes:[],rules:[],recur:[]
+  }};
+  S=migrate(JSON.parse(JSON.stringify(late.data)));S.demo=false;S.dayLimit=2000;S.dlForm=DL_FORM;
+  S.planDayHistory={};S.planDayHistoryApprox={};S.g2L=3;delete S.g2Stars;delete S.g2From;
+  var h={},a={},sources=[];
+  function take(pack,day){
+   var asOf=planHistResolveAsOf(pack,day,null);
+   planHistCollectFromState(h,a,pack,asOf);
+   sources.push({state:pack,asOf:asOf});
+   g2ProgressLift(g2ProgressFromState(pack));
+  }
+  take(early,'2026-11-20');take(late,'2026-11-23');
+  var filled=planHistFillGaps(h,a,sources);
+  planHistMergeIntoS(h,a);
+  g2ProgressSeal();
+  var g=g2();
+  return {
+   at18:h['2026-11-18'],at19:h['2026-11-19'],at20:h['2026-11-20'],at21:h['2026-11-21'],at22:h['2026-11-22'],at23:h['2026-11-23'],
+   approx18:!!a['2026-11-18'],approx21:!!a['2026-11-21'],approx23:!!a['2026-11-23'],
+   filled:filled.n,g2L:S.g2L,g2Stars:S.g2Stars,g2From:S.g2From,level:g.L,stars:g.stars,
+   min6:g2MinStars(6)
+  };
+ });
+ expect(r.at20).toBe(1600);
+ expect(r.at23).toBe(1800);
+ expect(r.at18).toBe(1600); // до первого бэкапа
+ expect(r.at21).toBeGreaterThan(0); // дыра между бэкапами
+ expect(r.at22).toBeGreaterThan(0);
+ expect(r.approx18).toBe(true);
+ expect(r.approx21).toBe(true);
+ expect(r.approx23).toBe(true);
+ expect(r.filled).toBeGreaterThan(0);
+ expect(r.g2L).toBe(6); // из бэкапа, не 3
+ expect(r.g2Stars).toBe(r.min6);
+ expect(r.g2From).toBe('2026-11-26');
+ expect(r.level).toBe(6);
+ expect(r.stars).toBeGreaterThanOrEqual(r.min6);
+});
+
+test('game progress floor survives limit/mode change and sync without double award',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-26';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];S.rules=[];
+  S.dayLimit=1000;S.dlForm=DL_FORM;S.noSpend=[];
+  S.planDayHistory={'2026-11-24':1000,'2026-11-25':1000};
+  S.planDayHistoryApprox={};
+  S.accounts=[{id:'main',type:'main',start:10000}];
+  S.entries=[
+   {id:'a',type:'e',cat:'cafe',amt:800,date:'2026-11-24',acc:'main'},
+   {id:'b',type:'e',cat:'cafe',amt:900,date:'2026-11-25',acc:'main'}
+  ];
+  delete S.g2From;delete S.g2Stars;S.g2L=1;
+  var before=g2();
+  // смена лимита и режима не забирает пол
+  S.g2Stars=1000;S.g2L=6;S.g2From='2026-11-26';
+  S.dayLimit=100;S.simple=false;S.incomes=[{id:'i',amt:90000,day:10}];
+  var afterChange=g2();
+  // sync/adopt с меньшим прогрессом — max
+  var keep={L:S.g2L,stars:S.g2Stars,from:S.g2From};
+  g2ProgressLift({L:3,stars:160,from:null});
+  g2ProgressLift(keep);
+  ydAdopt({data:{
+   entries:S.entries.slice(),accounts:S.accounts.slice(),simple:true,dayLimit:1000,dlForm:DL_FORM,
+   planDayHistory:S.planDayHistory,planDayHistoryApprox:{},g2L:4,g2Stars:400
+  }},'m');
+  var afterSync={L:S.g2L,stars:S.g2Stars,from:S.g2From};
+  var again=g2();
+  return {
+   beforeStars:before.stars,afterStars:afterChange.stars,afterL:afterChange.L,
+   afterSync:afterSync,againStars:again.stars,againL:again.L,min6:g2MinStars(6)
+  };
+ });
+ expect(r.beforeStars).toBe(20);
+ expect(r.afterL).toBe(6);
+ expect(r.afterStars).toBeGreaterThanOrEqual(r.min6);
+ expect(r.afterSync.L).toBe(6); // не откатилось к 4
+ expect(r.afterSync.stars).toBeGreaterThanOrEqual(r.min6);
+ expect(r.againL).toBe(6);
+ expect(r.againStars).toBe(r.afterStars); // без повторного начисления
+});
+
+test('regression: backup g2L=6 restores level after update dropped it to 3',async({page})=>{
+ const r=await probe(page,async()=>{
+  T='2026-11-26';S.demo=false;S.simple=false;S.irreg=false;S.planCalc={inc:119330,fixed:49160,save:20000,irr:0};
+  S.dlForm=DL_FORM;S.planFrom='2026-10-30';S.dayLimit=0;
+  S.g2L=3;delete S.g2Stars;delete S.g2From;
+  S.planDayHistory={'2026-11-26':1778};S.planDayHistoryApprox={};S.planHistRestored=1;delete S.planHistRestoreRev;
+  S.accounts=[{id:'main',type:'main',start:10000},{id:'save',type:'save',start:0}];
+  S.incomes=[{id:'i',amt:90000,day:10}];S.recur=[];S.rules=[{id:'u',amt:10000,day:10,acc:'save'}];
+  S.entries=[{id:'e',type:'e',cat:'cafe',amt:500,date:'2026-11-20',acc:'main'}];
+  SNAPS=[{d:'2026-11-23',t:Date.parse('2026-11-23T12:00:00Z'),why:'day',n:1,raw:JSON.stringify({
+   simple:false,planCalc:{inc:119330,fixed:49160,save:20000,irr:0},planFrom:'2026-10-30',g2L:6,
+   accounts:S.accounts,entries:S.entries,incomes:[{id:'i',amt:90000,day:10}],recur:[],rules:S.rules
+  })}];
+  YD.st='off';try{localStorage.removeItem(YD.key)}catch(e){}
+  await planHistRestore();
+  var g=g2();
+  return {L:S.g2L,stars:S.g2Stars,from:S.g2From,rev:S.planHistRestoreRev,gL:g.L,gStars:g.stars,min6:g2MinStars(6),at20:dayLimitAt('2026-11-20'),approx20:dayLimitApprox('2026-11-20')};
+ });
+ expect(r.L).toBe(6);
+ expect(r.stars).toBe(r.min6);
+ expect(r.gL).toBe(6);
+ expect(r.gStars).toBeGreaterThanOrEqual(r.min6);
+ expect(r.rev).toBe(3);
+ expect(r.at20).toBeGreaterThan(0);
+ expect(r.approx20).toBe(true);
 });

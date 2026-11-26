@@ -1844,8 +1844,12 @@ function planHistFormOf(state, asOf){
 function planHistEraStable(state,day){
   var src=planHistUnpack(state)||state;
   if(!src||typeof src!=='object')return false;
-  // Проверенная версия до перехода на расчёт по выплатам (19–24 ноября).
-  if(!src.simple&&(src.incomes||[]).length)return day>='2026-11-19'&&day<='2026-11-24'&&!(src.incomes||[]).some(function(r){return r.source||r.sourceParent||r.payroll})&&!src.payAllSave;
+  // Месячная формула (до cycleDayPlan) стабильна для любого дня ≤ PRE_UNTIL,
+  // пока нет payroll-источников и payAllSave (они появились вместе со сменой формул).
+  if(!src.simple&&(src.incomes||[]).length){
+    if((src.incomes||[]).some(function(r){return r.source||r.sourceParent||r.payroll})||src.payAllSave)return false;
+    return !day||!(day>DL_FORM_PRE_UNTIL);
+  }
   return true;
 }
 function planHistCanEval(state, asOf){
@@ -1897,7 +1901,7 @@ function planHistEvalDayLimit(src, day, state){
 /* 25.11 — переходная дата релизов с ошибочным расчётом цикла. Восстанавливаем
    только если снимок после исправления доказывает тот же цикл и неизменный бюджет.
    Это реконструкция, не точный исторический снимок. Не зависит от сумм/счетов пользователя. */
-var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=2;
+var PLAN_HIST_REPAIR_DAY='2026-11-25',PLAN_HIST_RESTORE_REV=3;
 function planHistCycleRepair(state,asOf){
   var src=planHistUnpack(state)||state,d=PLAN_HIST_REPAIR_DAY;
   if(!src||src.simple||src.irreg||!asOf||asOf<'2026-11-26'||asOf>T||!Array.isArray(src.accounts)||!Array.isArray(src.entries)||!(src.incomes||[]).length)return 0;
@@ -1936,7 +1940,10 @@ function planHistPut(h,approx,d,v,isApprox){
 }
 function planHistMergeIntoS(hist,approxMap){
   var h=S.planDayHistory||(S.planDayHistory={}),a=S.planDayHistoryApprox||(S.planDayHistoryApprox={});
-  Object.keys(hist||{}).forEach(function(d){planHistPut(h,a,d,+hist[d],!!(approxMap&&approxMap[d]))});
+  Object.keys(hist||{}).forEach(function(d){
+    var v=+hist[d],isAp=!!(approxMap&&approxMap[d]);
+    if(!planHistPut(h,a,d,v,isAp)&&isAp&&a[d]&&h[d]!==v)h[d]=v; // обновить ≈ после fillGaps→asOf снимка за день
+  });
   planHistReapplyRepair();
 }
 function planHistCollectFromState(h,approx,state,asOf){
@@ -1951,9 +1958,58 @@ function planHistCollectFromState(h,approx,state,asOf){
     if(!pa[d])return;
     if(planHistPut(h,approx,d,+ph[d],true)){n++;a++}
   });
-  if(asOf&&asOf<T&&!Object.prototype.hasOwnProperty.call(h,asOf)&&planHistCanEval(state,asOf)){
+  if(asOf&&asOf<T&&planHistCanEval(state,asOf)){
     var v=planHistEvalDayLimit(src,asOf,state);
-    if(v>0&&planHistPut(h,approx,asOf,v,true)){n++;a++}
+    if(v>0){
+      if(!Object.prototype.hasOwnProperty.call(h,asOf)){
+        if(planHistPut(h,approx,asOf,v,true)){n++;a++}
+      }else if(approx[asOf]&&h[asOf]!==v){
+        // снимок за этот день важнее ≈ из заполнения дыр чужим asOf
+        h[asOf]=v;n++;a++;
+      }
+    }
+  }
+  return {n:n,a:a};
+}
+/* Начало диапазона восстановления: с даты плана или первой операции. */
+function planHistRangeStart(src){
+  src=planHistUnpack(src)||src||S;
+  var from=src&&src.planFrom&&/^\d{4}-\d{2}-\d{2}$/.test(src.planFrom)?src.planFrom:null,first=null;
+  (src&&src.entries||[]).forEach(function(e){if(e&&e.date&&(!first||e.date<first))first=e.date});
+  (src&&src.noSpend||[]).forEach(function(d){if(d&&(!first||d<first))first=d});
+  if(from&&first)return from<first?from:first;
+  return from||first||null;
+}
+/* Ближайший снимок для дня: сначала asOf≥d, иначе ближайший раньше, иначе текущие данные. */
+function planHistPickSource(sources,d){
+  var best=null,bestDist=1e9,i,s,dist;
+  for(i=0;i<(sources||[]).length;i++){
+    s=sources[i];if(!s||!s.state)continue;
+    var asOf=s.asOf||planHistSnapDay(s.state,null);
+    if(!asOf||!planHistCanEval(s.state,asOf))continue;
+    if(asOf<d)dist=diffDays(asOf,d)+10000; // хуже, чем снимок в день или позже
+    else dist=diffDays(d,asOf);
+    if(dist<bestDist){bestDist=dist;best=s}
+  }
+  if(best)return best;
+  if(planHistCanEval(S,d)||planHistCanEval(S,T))return {state:S,asOf:d};
+  return null;
+}
+/* Пропуски между бэкапами и до первого снимка: пересчёт ≈ по исторической формуле. */
+function planHistFillGaps(h,approx,sources){
+  var start=planHistRangeStart(S),n=0,a=0;
+  if(!start||!(start<T))return {n:0,a:0};
+  var span=diffDays(start,T);
+  for(var i=0;i<span;i++){
+    var d=iso(addDays(parse(start),i));
+    if(Object.prototype.hasOwnProperty.call(h,d))continue;
+    var pick=planHistPickSource(sources,d);if(!pick)continue;
+    var src=planHistUnpack(pick.state)||pick.state;
+    // canEval по дате снимка (эра формул), сам лимит — на день d
+    var formAsOf=pick.asOf||planHistSnapDay(pick.state,d)||d;
+    if(!planHistCanEval(pick.state,formAsOf))continue;
+    var v=planHistEvalDayLimit(src,d,pick.state);
+    if(v>0&&planHistPut(h,approx,d,v,true)){n++;a++}
   }
   return {n:n,a:a};
 }
@@ -3911,19 +3967,58 @@ function g2Pay(a){return !a||/плат|кварт|аренд|коммун|обя
 function g2RulesSave(){var r=0;(S.rules||[]).forEach(function(x){var a=accById(x.acc);if(a&&a.type==='save'&&!g2Pay(a)&&ruleOn(x))r+=+x.amt||0});return r}
 function g2SavePlan(){if(!S.simple&&(S.rules||[]).length){var rr=g2RulesSave();if(rr>0)return rr}var c=S.planCalc;if(c&&+c.save>0)return +c.save;return g2RulesSave()}
 function g2Saved(ym){return S.entries.filter(function(x){if(x.type!=='t'||x.demo||x.date.slice(0,7)!==ym)return false;var ta=accById(x.to);return ta&&ta.type==='save'&&!g2Pay(ta)}).reduce(function(a,x){return a+x.amt},0)}
+/* Накопленные награды отделены от пересчёта финансовой статистики.
+   g2Stars — пол звёзд (не уменьшается при смене лимитов/режима/обновлении).
+   g2From — с этой даты live-начисление идёт поверх пола (после восстановления из бэкапа). */
+function g2MinStars(L){L=Math.max(1,+L||1);return 40*(L-1)*(L-1)}
+function g2LevelOf(stars){return Math.floor(Math.sqrt(Math.max(0,+stars||0)/40))+1}
+function g2ProgressFromState(state){
+  var src=planHistUnpack(state)||state;if(!src||typeof src!=='object')return null;
+  var L=+src.g2L||0,stars=+src.g2Stars||0;
+  if(L>0)stars=Math.max(stars,g2MinStars(L));
+  if(!L&&stars>0)L=g2LevelOf(stars);
+  if(!L&&!stars)return null;
+  return {L:L,stars:stars,from:src.g2From||null};
+}
+function g2ProgressLift(p){
+  if(!p||S.demo)return false;
+  var ch=false,stars=Math.max(+S.g2Stars||0,+p.stars||0,g2MinStars(+S.g2L||0),g2MinStars(+p.L||0));
+  var L=Math.max(+S.g2L||0,+p.L||0,g2LevelOf(stars));
+  if(stars>(+S.g2Stars||0)){S.g2Stars=stars;ch=true}
+  if(L>(+S.g2L||0)){S.g2L=L;ch=true}
+  // g2From с другого устройства не сдвигаем назад — иначе старые дни зачтутся повторно
+  if(p.from&&/^\d{4}-\d{2}-\d{2}$/.test(p.from)&&(!S.g2From||p.from>S.g2From)){S.g2From=p.from;ch=true}
+  return ch;
+}
+/* Если пол из бэкапов выше текущего пересчёта — отсекаем live с сегодня, чтобы не потерять уровень и не дублировать старое. */
+function g2ProgressSeal(){
+  if(S.demo)return false;
+  var prev=S.g2From;S.g2From=null;
+  var live=0;
+  try{live=+(g2().live||0)}catch(e){live=0}
+  finally{S.g2From=prev}
+  var banked=Math.max(+S.g2Stars||0,g2MinStars(+S.g2L||0)),ch=false;
+  if(live>banked){S.g2Stars=live;ch=true;banked=live}
+  if(banked>live&&!S.g2From){S.g2From=T;ch=true}
+  var L=Math.max(+S.g2L||0,g2LevelOf(banked));
+  if(L>(+S.g2L||0)){S.g2L=L;ch=true}
+  return ch;
+}
 function g2(){
   var lim=dayLimit(),PD=petDay(),ns={};(S.noSpend||[]).forEach(function(d){ns[d]=1});
   var by={},first=null;
   S.entries.forEach(function(x){if(!vis(x)||x.date>PD)return;(by[x.date]=by[x.date]||[]).push(x);if(!first||x.date<first)first=x.date});
   (S.noSpend||[]).forEach(function(d){if(d<=PD&&(!first||d<first))first=d});
-  var g={lim:lim,stars:0,streak:0,best:0,good:0,nospend:0,days:[],saved:0,weeks:0,months:0,savedMonths:0};
+  var g={lim:lim,stars:0,streak:0,best:0,good:0,nospend:0,days:[],saved:0,weeks:0,months:0,savedMonths:0,live:0};
   if(!lim||!first)return g2fin(g);
   var LK=refLinks();function net(l){return lifeNetL(l,LK)}
+  var cut=S.g2From&&/^\d{4}-\d{2}-\d{2}$/.test(S.g2From)?S.g2From:null;
   var n=diffDays(first,PD),run=0,mNet=0,mDays=0,mKnown=0,curM='',wNet=0,wKnown=0,wDays=0,curW='',ym0=PD.slice(0,7),mBudget=0,wBudget=0;
+  function award(pts){g.live+=pts}
   function closeMonth(m){if(!m||m===ym0)return;var a=m.split('-'),dd=dim(+a[0],+a[1]-1);
-    if(monthPlanKnown(m)&&mKnown>=15&&mNet<=mBudget){g.stars+=200;g.months++}
-    var sp=g2SavePlan();if(sp>0&&g2Saved(m)>=sp){g.stars+=100;g.savedMonths++}}
-  function closeWeek(){if(weekPlanKnown(curW)&&wKnown>=4&&wDays===7&&wNet<=wBudget){g.stars+=50;g.weeks++}}
+    if(monthPlanKnown(m)&&mKnown>=15&&mNet<=mBudget){if(!cut||(m+'-01')>=cut){award(200);g.months++}}
+    var sp=g2SavePlan();if(sp>0&&g2Saved(m)>=sp){if(!cut||(m+'-01')>=cut){award(100);g.savedMonths++}}}
+  function closeWeek(){if(weekPlanKnown(curW)&&wKnown>=4&&wDays===7&&wNet<=wBudget){if(!cut||curW>=cut){award(50);g.weeks++}}}
   for(var i=0;i<n;i++){ // только завершённые дни, сегодняшний ещё идёт
     var d=iso(addDays(parse(first),i)),l=by[d]||[],m=d.slice(0,7),dt=parse(d),wk=iso(addDays(dt,-((dt.getDay()+6)%7)));
     if(m!==curM){closeMonth(curM);curM=m;mNet=0;mDays=0;mKnown=0;mBudget=0}
@@ -3933,10 +4028,11 @@ function g2(){
     mDays++;wDays++;
     if(st!=='unknown'){mKnown++;wKnown++;mNet+=Math.max(0,v);wNet+=Math.max(0,v)}
     if(st==='over'&&mNet<=mBudget)st='oneoff';
-    if(st==='good'){g.stars+=10;g.good++;run++}
-    else if(st==='nospend'){g.stars+=20;g.nospend++;run++}
+    var score=!cut||d>=cut;
+    if(st==='good'){if(score)award(10);g.good++;run++}
+    else if(st==='nospend'){if(score)award(20);g.nospend++;run++}
     else if(st==='over')run=0;
-    if((st==='good'||st==='nospend')&&run>0&&run%7===0)g.stars+=30;
+    if(score&&(st==='good'||st==='nospend')&&run>0&&run%7===0)award(30);
     if(run>g.best)g.best=run;
     if(m===ym0){g.saved+=(!exact||st==='unknown'||st==='nolim')?0:dl-Math.max(0,v)}
     g.days.push({d:d,st:st});
@@ -3947,7 +4043,10 @@ function g2(){
   return g2fin(g);
 }
 function g2fin(g){
-  g.L=Math.floor(Math.sqrt(g.stars/40))+1;g.fl=40*(g.L-1)*(g.L-1);g.nx=40*g.L*g.L;
+  var live=+g.live||0,banked=Math.max(+S.g2Stars||0,g2MinStars(+S.g2L||0));
+  g.stars=S.g2From?banked+live:Math.max(live,banked);
+  g.L=Math.max(g2LevelOf(g.stars),+S.g2L||0);
+  g.fl=40*(g.L-1)*(g.L-1);g.nx=40*g.L*g.L;
   g.title=G2TITLES[Math.min(g.L-1,G2TITLES.length-1)];
   return g;
 }
@@ -3969,8 +4068,14 @@ function progCard(){
   var g=g2(),pct=Math.round((g.stars-g.fl)/(g.nx-g.fl)*100),goals=g2Goals(g);
   var bar=function(x){var p=Math.max(0,Math.min(100,x.v/x.of*100)),bad=x.rev&&x.v>x.of,col=bad?'var(--out)':x.rev?(p>85?'var(--warn)':'var(--in)'):'var(--accent)';
     return '<div class="pgoal"><div class="row"><div class="grow t" style="font-size:14px">'+esc(x.t)+'</div>'+(x.reward?'<span class="prew">'+x.reward+' ★</span>':'')+'</div><div class="bar"><i style="width:'+p+'%;background:'+col+'"></i></div><span class="fine">'+x.hint+'</span></div>'};
-  if(!S.demo&&S.g2L&&g.L>S.g2L)setTimeout(function(){toast('Новый уровень: '+g.L+' · '+g.title)},300);
-  if(!S.demo&&S.g2L!==g.L){S.g2L=g.L;saveLocal()}
+  if(!S.demo){
+    var lift=false;
+    if(g.L>(+S.g2L||0)){setTimeout(function(){toast('Новый уровень: '+g.L+' · '+g.title)},300);S.g2L=g.L;lift=true}
+    // пол звёзд только растёт: смена лимитов/режима/пересчёт истории не забирает награды
+    if(!S.g2From&&g.stars>(+S.g2Stars||0)){S.g2Stars=g.stars;lift=true}
+    else if(S.g2From&&(+S.g2Stars||0)<g2MinStars(g.L)){S.g2Stars=g2MinStars(g.L);lift=true}
+    if(lift)saveLocal();
+  }
   if(uiFold('prog'))return '<div class="card prog">'+fhead('prog','🏆 Прогресс','Уровень '+g.L+' · до '+(g.L+1)+'-го ещё '+Math.max(1,g.nx-g.stars)+' ★')+'</div>';
   return '<div class="card prog">'+fhead('prog','🏆 Прогресс',null)+
    '<div class="row"><div class="grow"><b>Уровень '+g.L+' · '+g.title+'</b><div class="bar" style="margin-top:6px"><i style="width:'+pct+'%;background:var(--gold)"></i></div><span class="fine" style="display:block;margin-top:4px">До уровня '+(g.L+1)+' ещё '+Math.max(1,g.nx-g.stars)+' ★. Звёзды дают за день без трат (+20) и день в плане (+10).</span></div><span class="amt" style="color:var(--gold)">'+g.stars+' ★</span></div>'+
@@ -5961,28 +6066,30 @@ async function planHistRestore(){
   Object.keys(S.planDayHistory||{}).forEach(function(d){h[d]=S.planDayHistory[d]});
   Object.keys(S.planDayHistoryApprox||{}).forEach(function(d){approx[d]=S.planDayHistoryApprox[d]});
   var added=0,approxN=0,cloudOk=false,restoredFlag=!!S.planHistRestored,repair=+(S.planDayHistoryRepair||{})[PLAN_HIST_REPAIR_DAY]||planHistCycleRepair(S,T);
+  var sources=[],progLift=false;
+  function noteSrc(state,asOf){if(state)sources.push({state:state,asOf:asOf||null});var p=g2ProgressFromState(state);if(p&&g2ProgressLift(p))progLift=true}
   function acc(r){if(!r)return;added+=r.n||0;approxN+=r.a||0}
   try{
     if(needLocal){
       try{(snaps()||[]).forEach(function(sx){
         if(!sx||!sx.raw)return;
         var st;try{st=JSON.parse(sx.raw)}catch(e){return}
-        var asOf=planHistResolveAsOf(null,sx.d,sx.t);acc(planHistCollectFromState(h,approx,st,asOf));if(!repair)repair=planHistCycleRepair(st,asOf);
+        var asOf=planHistResolveAsOf(null,sx.d,sx.t);acc(planHistCollectFromState(h,approx,st,asOf));if(!repair)repair=planHistCycleRepair(st,asOf);noteSrc(st,asOf);
       })}catch(e){}
-      try{var base=ydBase();if(base)acc(planHistCollectFromState(h,approx,base,null))}catch(e){}
+      try{var base=ydBase();if(base){acc(planHistCollectFromState(h,approx,base,null));noteSrc(base,planHistResolveAsOf(base,null,null))}}catch(e){}
       restoredFlag=1;
     }
     if(needCloud&&ydOn()&&!gdExpired()&&YD.st!=='err'&&YD.st!=='exp'){
       try{
         var cloudFail=false;
         var main=await ydDownload();
-        if(main){var md=planHistResolveAsOf(main,null,null);acc(planHistCollectFromState(h,approx,main,md));if(!repair)repair=planHistCycleRepair(main,md)}
+        if(main){var md=planHistResolveAsOf(main,null,null);acc(planHistCollectFromState(h,approx,main,md));if(!repair)repair=planHistCycleRepair(main,md);noteSrc(main,md)}
         var list=await ydListDailies();
         for(var i=0;i<(list||[]).length;i++){
           var it=list[i];if(!it||!it.path)continue;
           try{
             var pack=await ydDownloadPath(it.path);
-            if(pack){var pd=planHistResolveAsOf(pack,it.day,null);acc(planHistCollectFromState(h,approx,pack,pd));if(!repair)repair=planHistCycleRepair(pack,pd)}else cloudFail=true;
+            if(pack){var pd=planHistResolveAsOf(pack,it.day,null);acc(planHistCollectFromState(h,approx,pack,pd));if(!repair)repair=planHistCycleRepair(pack,pd);noteSrc(pack,pd)}else cloudFail=true;
           }catch(e1){
             if(e1&&e1.code===401)throw e1;
             cloudFail=true; // одна копия не скачалась — phrCloud не ставим
@@ -5994,14 +6101,17 @@ async function planHistRestore(){
         // сеть/auth: phrCloud не ставим — повторим при следующем подключении/синке
       }
     }
+    // Пропущенные даты между бэкапами и до первого снимка — ≈ по историческим формулам
+    if(needLocal||needCloud)acc(planHistFillGaps(h,approx,sources));
     planHistMergeIntoS(h,approx);
     if(repair&&planHistApplyCycleRepair(repair)){added++;approxN++}
+    if(progLift||needLocal){if(g2ProgressSeal())progLift=true}
     if(restoredFlag){S.planHistRestored=1;S.planHistRestoreRev=PLAN_HIST_RESTORE_REV}
-    if(added>0){
+    if(added>0||progLift){
       // saveLocal, не save(): иначе ydChanged→ydSync во время phrBusy
       try{saveLocal()}catch(e){}
       YD.phrNeedSync=true;
-      try{toast('Восстановлен дневной план за '+added+' '+plw(added,'день','дня','дней')+(approxN?' (≈ приблизительные)':''))}catch(e){}
+      if(added>0){try{toast('Восстановлен дневной план за '+added+' '+plw(added,'день','дня','дней')+(approxN?' (≈ приблизительные)':''))}catch(e){}}
       try{render()}catch(e){}
     }else if(needLocal||cloudOk){try{saveLocal()}catch(e){}}
   }finally{
@@ -6050,12 +6160,14 @@ function ydPack(d){
 function ydEmpty(){return S.demo||!realCount()}
 function ydAdopt(r,mod){
   var keepH=S.planDayHistory,keepA=S.planDayHistoryApprox,keepR=S.planHistRestored,keepRev=S.planHistRestoreRev,keepF=S.dlForm,keepRepair=S.planDayHistoryRepair;
+  var keepG2={L:S.g2L,stars:S.g2Stars,from:S.g2From};
   snapTake('pre',true);S=migrate(r.data);S.demo=false;
   if(keepH)planHistMergeIntoS(keepH,keepA);
   if(keepRepair)planHistApplyCycleRepair(+keepRepair[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
   if(keepR)S.planHistRestored=1;
   if(keepRev!=null)S.planHistRestoreRev=keepRev;
   if(keepF!=null&&S.dlForm==null)S.dlForm=keepF;
+  g2ProgressLift(keepG2);g2ProgressLift(g2ProgressFromState(r.data));
   ensureDlForm();
   saveLocal();syncCats();ydSet({mod:mod,sent:ydGet().chg||0});ydBaseSet(r.data);
   if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
@@ -6081,11 +6193,13 @@ async function ydSync(){
         else{
           if(!m3eq(merged,mine)){
             var keepH2=S.planDayHistory,keepA2=S.planDayHistoryApprox,keepR2=S.planHistRestored,keepRev2=S.planHistRestoreRev,keepRepair2=S.planDayHistoryRepair;
+            var keepG22={L:S.g2L,stars:S.g2Stars,from:S.g2From};
             snapTake('pre',true);S=migrate(merged);S.demo=false;
             if(keepH2)planHistMergeIntoS(keepH2,keepA2);
             if(keepRepair2)planHistApplyCycleRepair(+keepRepair2[PLAN_HIST_REPAIR_DAY]);planHistReapplyRepair();
             if(keepR2)S.planHistRestored=1;
             if(keepRev2!=null)S.planHistRestoreRev=keepRev2;
+            g2ProgressLift(keepG22);g2ProgressLift(g2ProgressFromState(merged));g2ProgressLift(g2ProgressFromState(r.data));
             ensureDlForm();saveLocal();syncCats();
             if(document.getElementById('ov')&&!document.getElementById('ov').hidden&&!document.getElementById('yd_box')){try{closeSheet()}catch(e){}}render()}
           ydSet({mod:meta.modified,chg:Date.now()});ydBaseSet(r.data);

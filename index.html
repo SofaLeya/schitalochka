@@ -5636,12 +5636,14 @@ document.addEventListener('click',function(ev){
   else if(a==='delPlan'){var _sn=JSON.stringify(S);if(sh.k==='x')S.rare=rareList().filter(function(e){return e.id!==sh.id});else if(sh.k==='r')S.recur=S.recur.filter(function(e){return e.id!==sh.id});else S.incomes=S.incomes.filter(function(e){return e.id!==sh.id&&e.sourceParent!==sh.id});save();closeSheet();render();undoSnap(_sn,'Удалено')}
   else if(a==='toggle'){
     var ym=/^\d{4}-\d\d$/.test(v||'')?v:T.slice(0,7),isR=k==='r',item=(isR?S.recur:incomeRows(ym)).filter(function(e){return e.id===id})[0];if(!item)return;
-    var f=isR?'rid':'iid',period=isR?ym:(item.sourceYM||ym),curM=ym===T.slice(0,7),eDate=isR?(curM?T:itemDate(k,item,ym)):(item.scheduled||(curM?T:itemDate(k,item,ym)));
+    var f=isR?'rid':'iid',period=isR?ym:(item.sourceYM||ym),curM=ym===T.slice(0,7);
+    /* Income «Пришло»: cash date = actual receipt day (today), not scheduled payday. Period stays in payYm. */
+    var eDate=isR?(curM?T:itemDate(k,item,ym)):T;
     var incomeDone=!isR&&(doneFor(f,id,ym)||doneFor(f,id,period)||incomeReceived(item,period).length>0);
     if(isR?doneFor(f,id,ym):incomeDone){
       S.entries=S.entries.filter(function(e){
         if(e[f]!==id)return true;
-        if(!isR&&(e.payYm===period||incomeIidMatch(e.iid,item)&&((item.scheduled&&e.date===item.scheduled)||e.date.slice(0,7)===ym||e.date.slice(0,7)===period)))return false;
+        if(!isR&&(e.payYm===period||incomeIidMatch(e.iid,item)&&(e.date===T||(item.scheduled&&e.date===item.scheduled)||e.date.slice(0,7)===ym||e.date.slice(0,7)===period)))return false;
         if(isR&&e.date.slice(0,7)===ym)return false;
         return true;
       });save();render();return}
@@ -5659,7 +5661,8 @@ document.addEventListener('click',function(ev){
     var addNew=function(){
       uiAsk(isR?'Сколько заплатили: «'+item.name+'»?':'Сколько пришло: «'+item.name+'»?'+(!isR&&perIncAdj(item,period)>0?' (из-за отпуска/больничного примерно на '+money(perIncAdj(item,period))+' меньше)':''),{input:true,num:true,def:String(isR?item.amt:Math.max(0,expected-perIncAdj(item,period))),yes:'Записать'}).then(function(val){
         if(val===null)return;var am=num(val);if(!(am>0)){toast('Сумма должна быть больше нуля',true);return}
-        var en0={id:uid(),type:isR?'e':'i',amt:am,cat:isR?item.cat:(item.sourceOccurrence&&sourceOwner(item.id)&&sourceOwner(item.id).source.kind!=='tk'?'side':'salary'),date:eDate,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en0.acc=item.acc;en0[f]=id;if(!isR)en0.payYm=period;
+        var own=!isR&&sourceOwner(item.id),side=!isR&&item.sourceOccurrence&&own&&own.source&&own.source.kind!=='tk';
+        var en0={id:uid(),type:isR?'e':'i',amt:am,cat:isR?item.cat:(side?'side':'salary'),date:eDate,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en0.acc=item.acc;en0[f]=id;if(!isR)en0.payYm=period;
         S.entries.push(en0);save();render();after(am)})};
     var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&(e.date.slice(0,7)===ym||(!isR&&item.scheduled&&e.date===item.scheduled))&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)&&Math.abs(e.amt-expected)<=Math.max(1,expected*0.3)});
     if(!cands.length){addNew();return}

@@ -271,3 +271,39 @@ test('D3b grouped pending refund counted once; excluded and future purchases do 
  expect(r.pending).toBeCloseTo(600,5);
  expect(r.avail).toBeCloseTo(r.bal+600,5);
 });
+
+test('D3c two forecast scenarios share available cash and plans; large purchases affect only second scenario',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.cur='RUB';S.payDays=[10];S.incomes=[];S.rare=[];S.noSpend=[];S.fcPlans=[];
+  S.accounts=[{id:'main',type:'main',start:50000}];S.entries=[];
+  for(let i=1;i<=14;i++)S.entries.push({id:'e'+i,type:'e',acc:'main',cat:'cafe',amt:1000,date:iso(addDays(parse(T),-i))});
+  S.entries.push({id:'gift',type:'e',acc:'main',cat:'gift',amt:2800,date:'2026-11-22'},{id:'tech',type:'e',acc:'main',cat:'tech',amt:7000,date:'2026-11-23'});
+  const f=fcCalc(),bal=balance();sh={id:'fc',fc:1};fcSheet();
+  const html=document.getElementById('ov').innerHTML;
+  return {bal,avail:f.avail,usual:f.usualPace,withLarge:f.withLargePace,days:f.dl,usualLeft:f.usualLeft,withLargeLeft:f.withLargeLeft,oldPace:fcPace().pace,slider:sh.fcWhatIf,ui:html.includes('Без крупных покупок')&&html.includes('Если продолжишь делать крупные покупки')&&html.includes('fcstars')};
+ });
+ expect(r.bal).toBe(26200);
+ expect(r.avail).toBe(r.bal);
+ expect(r.usual).toBe(1000);
+ expect(r.withLarge).toBe(1700);
+ expect(r.oldPace).toBe(1200);
+ expect(r.usualLeft).toBe(r.bal-1000*r.days);
+ expect(r.withLargeLeft).toBe(r.bal-1700*r.days);
+ expect(r.slider).toBe(1000);
+ expect(r.ui).toBe(true);
+});
+
+test('D3d no large purchases gives equal predictions; planned groceries are not duplicated',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.dayLimit=2000;S.cur='RUB';S.payDays=[10];S.incomes=[];S.rare=[];S.noSpend=[];S.fcPlans=[{id:'p',cat:'prod',amt:4000,wd:1,half:true}];
+  S.accounts=[{id:'main',type:'main',start:50000}];S.entries=[];
+  for(let i=1;i<=14;i++)S.entries.push({id:'e'+i,type:'e',acc:'main',cat:'cafe',amt:500,date:iso(addDays(parse(T),-i))});
+  S.entries.push({id:'food',type:'e',acc:'main',cat:'prod',amt:4000,date:'2026-11-23'});
+  const f=fcCalc();return {pace:f.usualPace,withLarge:f.withLargePace,pc:f.pc,left:f.usualLeft,other:f.withLargeLeft,avail:f.avail,days:f.dl};
+ });
+ expect(r.pace).toBe(500);
+ expect(r.withLarge).toBe(500);
+ expect(r.pc).toBe(4000);
+ expect(r.left).toBe(r.avail-500*r.days-4000);
+ expect(r.other).toBe(r.left);
+});

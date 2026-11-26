@@ -1,0 +1,31 @@
+name: RuStore — фиолетовые скриншоты
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rustore-screenshots.yml'
+      - '.github/scripts/rustore-screenshots.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Подготовить браузер
+        run: |
+          if [ -x /usr/bin/google-chrome ]; then echo "CHROME_PATH=/usr/bin/google-chrome" >> "$GITHUB_ENV"
+          else npx playwright install --with-deps chromium; fi
+      - name: Снять реальные экраны приложения
+        run: node .github/scripts/rustore-screenshots.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rustore-screenshots-violet
+          path: rustore-screenshots/*.jpg
+          if-no-files-found: error
+          retention-days: 30

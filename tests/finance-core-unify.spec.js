@@ -69,29 +69,31 @@ test('reviewCard and lifeCard month plan use monthEnvelope',async({page})=>{
  expect(r.review).not.toMatch(/60[\s\u00a0\u202f]000/);
 });
 
-test('dayLimitAt carries last known limit across skipped days',async({page})=>{
+test('dayLimitAt does not backfill gaps; unknown past is 0',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-25';S.demo=false;S.simple=true;S.irreg=false;S.planCalc=null;S.incomes=[];
   S.dayLimit=3000;S.planDayHistory={'2026-11-01':1000,'2026-11-10':1000,'2026-11-20':1500};
-  // gaps: 2–9 ←1000, 11–19 ←1000, 21–24 ←1500; today/future ←3000
   return {
    d5:dayLimitAt('2026-11-05'),d15:dayLimitAt('2026-11-15'),d22:dayLimitAt('2026-11-22'),
    d20:dayLimitAt('2026-11-20'),d25:dayLimitAt('2026-11-25'),d30:dayLimitAt('2026-11-30'),
-   env:monthEnvelope('2026-11'),
-   // leading gap before first snapshot: use earliest later history
-   lead:dayLimitAt('2026-10-31')
+   known5:dayLimitKnown('2026-11-05'),known20:dayLimitKnown('2026-11-20'),
+   env:monthEnvelope('2026-11'),planOk:monthPlanKnown('2026-11'),
+   lead:dayLimitAt('2026-10-31'),leadKnown:dayLimitKnown('2026-10-31')
   };
  });
- expect(r.d5).toBe(1000);
- expect(r.d15).toBe(1000);
- expect(r.d22).toBe(1500);
+ expect(r.d5).toBe(0);
+ expect(r.d15).toBe(0);
+ expect(r.d22).toBe(0);
+ expect(r.known5).toBe(false);
  expect(r.d20).toBe(1500);
+ expect(r.known20).toBe(true);
  expect(r.d25).toBe(3000);
  expect(r.d30).toBe(3000);
- // 1–10:1000 (10d), 11–19:1000 (9d), 20–24:1500 (5d), 25–30:3000 (6d)
- expect(r.env).toBe(10*1000+9*1000+5*1500+6*3000);
- expect(r.env).toBe(10000+9000+7500+18000); // 44500
- expect(r.lead).toBe(1000); // before first snapshot → earliest history still before T
+ // only known snapshots + today/future current: 1000+1000+1500 + 6×3000
+ expect(r.env).toBe(1000+1000+1500+6*3000);
+ expect(r.planOk).toBe(false);
+ expect(r.lead).toBe(0);
+ expect(r.leadKnown).toBe(false);
 });
 
 test('remaining today and tomorrow: simple vs full share helpers',async({page})=>{

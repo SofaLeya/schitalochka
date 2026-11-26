@@ -1408,3 +1408,28 @@ test('дневной бюджет в день выплаты: до дохода,
   expect(await heroNumber(page)).toBe(18000);
   expect(errs).toEqual([]);
 });
+
+
+test('анализ: заголовок свободных денег не обрезан, подсказка рядом с кнопкой', async ({ page }) => {
+  await start(page);
+  await addExpense(page, 450, 'Продукты');
+  await page.click('[data-a=tab][data-v=an]');
+  const header = page.locator('#rvbal_header');
+  const title = header.locator('div > b').first();
+  const button = header.locator('[data-a=tip][data-v=rvbal]');
+  const tip = page.locator('#tip_rvbal');
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 740 });
+    await expect(title).toHaveText('💳 Свободные деньги');
+    expect(await title.evaluate(e => getComputedStyle(e).textOverflow)).not.toBe('ellipsis');
+    expect(await header.evaluate(e => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(1);
+    await expect(tip).toBeHidden();
+    await button.click();
+    await expect(tip).toBeVisible();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(await tip.evaluate(e => e.previousElementSibling.id)).toBe('rvbal_header');
+    expect((await tip.innerText()).length).toBeLessThan(180);
+    await button.click();
+    await expect(tip).toBeHidden();
+  }
+});

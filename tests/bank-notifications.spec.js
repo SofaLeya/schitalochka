@@ -102,3 +102,46 @@ test('bankParse unchanged for classic bank SMS-like texts',async({page})=>{
  expect(r.b3).toBeNull();
  expect(r.b4).toMatchObject({amt:300,type:'i',refund:true});
 });
+
+test('bankParse reads ruble codes and distinguishes transfer directions',async({page})=>{
+ const r=await probe(page,()=>[
+  'Списание со счёта 4*7854. Perevod на 570.00 RUR',
+  'Spisanie. Perevod 570.00 RUR ot Анна',
+  'Perevod ot Анна на 1\u202f200,50 rur. Balans 9 000 RUR',
+  'Перевод на сумму 570.00 RUR от Анны',
+  'Входящий Perevod 570.00 RUR',
+  'Исходящий Perevod 570.00 RUR от владельца счёта',
+  'Perevod +570.00 RUR',
+  'Perevod -570.00 RUR',
+  'Perevod na 570.00 RUR',
+  'Zachislenie 570.00 RUR',
+  'Pokupka 570.00 RUB',
+  'Vozvrat 570.00 RUR'
+ ].map(window.bankParse));
+ const expected=[
+  [570,'e'],[570,'e'],[1200.50,'i'],[570,'i'],[570,'i'],[570,'e'],
+  [570,'i'],[570,'e'],[570,'e'],[570,'i'],[570,'e'],[570,'i',true]
+ ];
+ expect(r).toEqual(expected.map(([amt,type,refund=false])=>expect.objectContaining({amt,type,refund})));
+});
+
+test('bankIngest suggests the Alfa expense once and rejects similar non-transactions',async({page})=>{
+ const r=await probe(page,()=>{
+  S.demo=false;S.bankQ=[];
+  const t=Date.parse('2026-11-25T12:00:00');
+  const alfa={pkg:'ru.alfabank.mobile.android',title:'Альфа-Банк',text:'Списание со счёта 4*7854. Perevod на 570.00 RUR',t};
+  const noise=[
+   'Код для перевода 570.00 RUR: 1234',
+   'Perevod отклонён: 570.00 RUR',
+   'Списание со счёта 4*7854. Баланс 570.00 RUR',
+   'Лимит на перевод 570.00 RUR',
+   'Perevod 570.00 RURXYZ',
+   'Megaperevod 570.00 RUR'
+  ];
+  const added=bankIngest([{...alfa,pkg:'org.telegram.messenger'},...noise.map(text=>({...alfa,text})),alfa,{...alfa,t:t+1000}]);
+  return {parsedNoise:noise.map(bankParse),added,queue:S.bankQ};
+ });
+ expect(r.parsedNoise).toEqual(Array(6).fill(null));
+ expect(r.added).toBe(1);
+ expect(r.queue).toEqual([expect.objectContaining({amt:570,type:'e',pkg:'ru.alfabank.mobile.android'})]);
+});

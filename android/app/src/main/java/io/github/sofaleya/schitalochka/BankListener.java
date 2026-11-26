@@ -22,8 +22,22 @@ import java.util.regex.Pattern;
 public class BankListener extends NotificationListenerService {
 
     static final String PREFS = "bank";
-    private static final Pattern MONEY = Pattern.compile("\\d[\\d\\s\\u00a0]*(?:[.,]\\d{1,2})?\\s?(₽|руб|RUB|р\\.)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-    private static final Pattern WORD = Pattern.compile("(покупк|оплат|списан|зачисл|поступ|пополн|перевод|возврат|снятие|платёж|платеж)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final int IGNORE_CASE = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
+    private static final Pattern MONEY = Pattern.compile(
+            "\\d[\\d ]*(?:[.,]\\d{1,2})? *(?:₽|(?:руб(?:лей|ля|ль)?|RU[BR])(?![\\p{L}\\p{N}_])|р\\.)",
+            IGNORE_CASE);
+    private static final Pattern WORD = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])(?:покупк|оплат|списан|зачисл|поступ|пополн|возврат|вернули|"
+                    + "снятие|плат[её]ж|кэшбэк|(?:перевод|perevod|pokupka|oplata|spisanie|"
+                    + "zachislenie|postuplenie|popolnenie|vozvrat|snyatie|platezh|cashback)(?![\\p{L}\\p{N}_]))",
+            IGNORE_CASE);
+    private static final Pattern BALANCE = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])(?:баланс|доступно|остаток|balans|dostupno|ostatok)(?![\\p{L}\\p{N}_])",
+            IGNORE_CASE);
+    private static final Pattern NON_TRANSACTION = Pattern.compile(
+            "(?<![\\p{L}\\p{N}_])(?:код (?:для|подтверждения)|код из смс|"
+                    + "отклон[её]н[ао]?|не (?:выполнен[ао]?|прош[её]л|прошла|удалось)|"
+                    + "недостаточно средств|лимит на перевод)(?![\\p{L}\\p{N}_])", IGNORE_CASE);
     /* Точные packageName приложений банков (Сбер, Т-Банк, Альфа, ВТБ, ОТП и др.). */
     private static final String[] BANK_EXACT = {
             "ru.sberbankmobile",
@@ -101,12 +115,18 @@ public class BankListener extends NotificationListenerService {
             CharSequence big = ex.getCharSequence(Notification.EXTRA_BIG_TEXT);
             CharSequence txt = ex.getCharSequence(Notification.EXTRA_TEXT);
             String text = (big != null ? big : txt != null ? txt : "").toString();
-            String all = (title != null ? title + " " : "") + text;
             if (!isBankPackage(pkg)) {
                 diagnostic(this, pkg, title != null ? title.toString() : "", text, "Не банк (package)", sbn.getPostTime());
                 return;
             }
-            boolean money = MONEY.matcher(all).find(), word = WORD.matcher(all).find();
+            String operation = (title != null ? title + " " : "") + text;
+            operation = operation.replaceAll("[\\s\\u00a0\\u202f]+", " ");
+            if (NON_TRANSACTION.matcher(operation).find()) {
+                diagnostic(this, pkg, title != null ? title.toString() : "", text, "Не найден тип операции", sbn.getPostTime());
+                return;
+            }
+            operation = BALANCE.split(operation, 2)[0];
+            boolean money = MONEY.matcher(operation).find(), word = WORD.matcher(operation).find();
             diagnostic(this, pkg, title != null ? title.toString() : "", text, money && word ? "В очередь Android" : (!money ? "Не найдена сумма в рублях" : "Не найден тип операции"), sbn.getPostTime());
             if (!money || !word) return;
             add(this, pkg, title != null ? title.toString() : "", text, sbn.getPostTime());

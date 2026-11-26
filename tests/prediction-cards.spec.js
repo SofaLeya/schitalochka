@@ -101,6 +101,21 @@ for (const [width, theme, currency, value, amount] of cases) {
     for (const [index, card] of geometry.cards.entries()) {
       expect(card).toEqual({rect: initial[index], fits: true, artFits: true, textFits: true});
     }
+    const future=sheet.locator('.fc-future');
+    await future.locator('summary').click();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+    const plans=future.locator('.fc-plan-toggle');
+    await expect(plans).toHaveAttribute('aria-expanded','false');
+    await expect(future.locator('#fc-personal-plans')).toBeHidden();
+    await plans.click();
+    await expect(future.locator('#fc-personal-plans')).toBeVisible();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+    expect(await sheet.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+    await plans.click();
+    await expect(future.locator('#fc-personal-plans')).toBeHidden();
+    await future.locator('summary').click();
+    await expect(future).toHaveJSProperty('open',false);
+    for(const card of await cards.all())await expect(card).toHaveAttribute('aria-pressed','true');
   });
 }
 

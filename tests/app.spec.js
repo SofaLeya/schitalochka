@@ -1450,3 +1450,20 @@ test('анализ: заголовок свободных денег не обр
     await expect(tip).toBeHidden();
   }
 });
+
+
+test('автофокус новой операции не перехватывает ввод после перерисовки формы', async ({ page }) => {
+  await start(page);
+  // Open and immediately replace the entry form, then focus its note before either timer runs.
+  await page.evaluate(async () => {
+    document.querySelector('.tabs .plus').click();
+    document.querySelector('#ov [data-a=stype][data-v=t]').click();
+    const note = document.querySelector('#f_note');
+    note.focus();
+    await new Promise(resolve => setTimeout(resolve, 120));
+  });
+  await expect(page.locator('#f_note')).toBeFocused();
+  await page.keyboard.type('Test transfer');
+  await expect(page.locator('#f_note')).toHaveValue('Test transfer');
+  await expect(page.locator('#f_amt')).toHaveValue('');
+});

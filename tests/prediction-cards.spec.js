@@ -55,6 +55,9 @@ for (const [width, theme, currency, value, amount] of cases) {
     const sheet = page.locator('.sheet.fc-magic');
     const cards = sheet.locator('.fc-card');
     await expect(cards).toHaveCount(2);
+    await expect(cards.locator('.fc-back .fc-card-caption')).toHaveCount(2);
+    await expect(cards.locator('.fc-front .fc-card-caption')).toHaveCount(0);
+    await expect(cards.first().locator('.fc-back .fc-card-caption')).toHaveCSS('font-family', /Forecast Serif/);
     const initial = await cards.evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()));
     expect(initial[0].width).toBeCloseTo(initial[1].width, 1);
     expect(initial[0].height).toBeCloseTo(initial[1].height, 1);
@@ -85,7 +88,7 @@ for (const [width, theme, currency, value, amount] of cases) {
             rect: rect.toJSON(),
             fits: fits(rect, bounds),
             artFits: fits(card.querySelector('.fc-art').getBoundingClientRect(), rect),
-            textFits: [...card.querySelectorAll('.fc-front .fc-card-amount, .fc-front .fc-card-caption')].every(text => {
+            textFits: [...card.querySelectorAll('.fc-front .fc-card-amount')].every(text => {
               const range = document.createRange();
               range.selectNodeContents(text);
               return fits(range.getBoundingClientRect(), rect);

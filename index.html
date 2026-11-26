@@ -1761,9 +1761,11 @@ function homeTomorrowBudget(pd){
   if(pd.waitingToday)return null;
   // Завтра день выплаты → тот же смысл, что «Ждём доход» сегодня
   if(pd.nextIn===iso(addDays(parse(T),1)))return null;
-  // Как «На сегодня»: потолок — min(план, доступно в день), но не больше остатка на картах
-  var cap=lim>0?Math.min(lim,pd.val):pd.val;
-  return Math.max(0,Math.min(bal,cap));
+  // Если сегодня больше ничего не тратим: остаток периода (без возврата уже потраченного)
+  // делится на оставшиеся дни после сегодня. Текущий дневной план не потолок.
+  var daysLeft=pd.days-1;if(daysLeft<1)return null;
+  var tsp=Math.max(0,cashPlanSpent(T,T)),freeRest=pd.val*pd.days-tsp;
+  return Math.max(0,Math.min(bal,freeRest/daysLeft));
 }
 function planDefaults(){var c=S.planCalc||{};
   if(!S.simple&&(S.incomes||[]).length){var fp=fullPlan();return {inc:c.inc!=null?c.inc:(fp.inc||''),fixed:c.fixed!=null?c.fixed:(fp.fixed||''),save:c.save!=null?c.save:(fp.save||''),irr:c.irr!=null?c.irr:(fp.irr||'')} }

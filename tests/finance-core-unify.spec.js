@@ -236,7 +236,7 @@ test('На завтра: simple caps by balance and plan; low balance wins',asyn
  expect(r.tom).toBe(3000); // fresh day: min(7500, 3000)
 });
 
-test('На завтра: full mode — payday tomorrow is waiting; otherwise min(plan, perDay, balance)',async({page})=>{
+test('На завтра: full mode — payday tomorrow is waiting; no artificial dayLimit cap',async({page})=>{
  const r=await probe(page,()=>{
   T='2026-11-25';S.demo=false;S.simple=false;S.irreg=false;S.planCalc=null;S.rare=[];
   S.accounts=[{id:'main',type:'main',start:20000},{id:'save',type:'save',start:0}];
@@ -245,34 +245,67 @@ test('На завтра: full mode — payday tomorrow is waiting; otherwise min
   S.incomes=[{id:'pay',day:26,amt:50000}];S.entries=[];
   PI_C=null;PI_ON=0;
   var pdPay=perDay(),tomPay=homeTomorrowBudget(pdPay),leftPay=homeTodayLeft(pdPay,0);
-  // Payday in 10 days, plan from cycle after marking income today
-  S.incomes=[{id:'salary',day:25,amt:40000},{id:'next',day:5,amt:40000}];
-  S.rules=[{id:'r',day:25,acc:'save',amt:10000}];
-  S.entries=[
-   {id:'inc',type:'i',iid:'salary',date:T,amt:40000,acc:'main',cat:'salary'},
-   {id:'alloc',type:'t',date:T,amt:10000,from:'main',to:'save',rule:'r'}
-  ];
-  PI_C=null;
-  var pd=perDay(),lim=dayLimit(),bal=balance(),tom=homeTomorrowBudget(pd),left=homeTodayLeft(pd,0);
-  // Force plan below perDay to check min(lim, pd.val)
-  S.dayLimit=800;S.planCalc=null;S.simple=true;S.incomes=[]; // manual plan path
-  // Keep full mode numbers via pd object passed explicitly
-  var tomCapped=homeTomorrowBudget({val:2500,days:10,nextIn:'2026-12-05',due:0,inc:0,waitingToday:false});
-  S.accounts[0].start=500;S.entries=[]; // low balance
+  // Synthetic: plan 800 < perDay 2500, nothing spent → tomorrow redistributes, not capped by 800
+  S.dayLimit=800;S.simple=true;S.incomes=[];
+  S.accounts[0].start=50000;S.entries=[];
+  var tomUncapped=homeTomorrowBudget({val:2500,days:10,nextIn:'2026-12-05',due:0,inc:0,waitingToday:false});
+  S.accounts[0].start=500;S.entries=[];
   var tomBal=homeTomorrowBudget({val:2500,days:10,nextIn:'2026-12-05',due:0,inc:0,waitingToday:false});
   return {
-   nextPay:pdPay.nextIn,tomPay:tomPay,leftPay:leftPay,waitingPay:pdPay.waitingToday,
-   lim:lim,bal:bal,pdVal:pd.val,tom:tom,left:left,days:pd.days,nextIn:pd.nextIn,
-   tomCapped:tomCapped,tomBal:tomBal,detailsPay:homeBudgetDetails(pdPay,0,leftPay)
+   nextPay:pdPay.nextIn,tomPay:tomPay,leftPay:leftPay,
+   tomUncapped:tomUncapped,tomBal:tomBal,detailsPay:homeBudgetDetails(pdPay,0,leftPay)
   };
  });
  expect(r.nextPay).toBe('2026-11-26');
  expect(r.tomPay).toBeNull();
  expect(r.detailsPay).toMatch(/Ждём доход/);
- expect(r.tom).toBeCloseTo(Math.min(r.bal,r.lim,r.pdVal),6);
- expect(r.left).toBeCloseTo(Math.min(r.bal,r.lim>0?Math.min(r.lim,r.pdVal):r.pdVal),6);
- expect(r.tomCapped).toBe(800); // min(dayLimit 800, pd 2500, bal)
- expect(r.tomBal).toBe(500); // balance wins
+ // (2500*10 - 0) / 9 = 2777.77…, not limited by dayLimit 800
+ expect(r.tomUncapped).toBeCloseTo(2500*10/9,6);
+ expect(r.tomBal).toBe(500); // balance still caps
+});
+
+test('На завтра: saving today raises tomorrow; overspend today lowers it',async({page})=>{
+ const r=await probe(page,()=>{
+  T='2026-11-25';S.demo=false;S.simple=false;S.irreg=false;S.planCalc=null;S.rare=[];
+  S.accounts=[{id:'main',type:'main',start:30000},{id:'save',type:'save',start:0}];
+  S.incomes=[{id:'salary',day:25,amt:0},{id:'next',day:5,amt:45000}]; // next life payout Dec 5
+  S.rules=[];S.recur=[];S.entries=[];
+  // Fixed horizon: 10 days to nextIn, due=0, inc=0, free = balance
+  // Inject via overriding planned path: use explicit pd math against live balance/tsp
+  function tomFromState(){
+   var pd=perDay(),tsp=Math.max(0,cashPlanSpent(T,T)),bal=balance();
+   return {pd:pd,tsp:tsp,bal:bal,tom:homeTomorrowBudget(pd),expected:(pd.val*pd.days-tsp)/Math.max(1,pd.days-1)};
+  }
+  // Seed income so cycle/perDay have a clear nextIn after today
+  S.incomes=[{id:'next',day:5,amt:45000}];
+  S.entries=[];
+  PI_C=null;PI_ON=0;
+  // Force predictable perDay by stubbing planned items chain through real accounts
+  // Use Dec 5 income only; today Nov 25 → days = 10 (25→5 Dec)
+  var save0=tomFromState();
+  // Spend nothing more — already tsp=0; tomorrow should be free/(days-1) > pd.val
+  S.entries.push({id:'e1',type:'e',cat:'cafe',amt:900,date:T,acc:'main'});
+  PI_C=null;
+  var saveLite=tomFromState(); // spent 900, still under equal share → tomorrow still above equal if 900 < pd.val
+  S.entries.push({id:'e2',type:'e',cat:'cafe',amt:20000,date:T,acc:'main'});
+  PI_C=null;
+  var over=tomFromState();
+  return {save0:save0,saveLite:saveLite,over:over};
+ });
+ // Zero spend today: tomorrow = pd.val * days / (days-1) > pd.val
+ expect(r.save0.tsp).toBe(0);
+ expect(r.save0.pd.days).toBeGreaterThan(1);
+ expect(r.save0.tom).toBeCloseTo(r.save0.pd.val*r.save0.pd.days/(r.save0.pd.days-1),6);
+ expect(r.save0.tom).toBeGreaterThan(r.save0.pd.val);
+ // Light spend: freeRest = pd.val*days - 900, tomorrow still computed from that
+ expect(r.saveLite.tsp).toBe(900);
+ expect(r.saveLite.tom).toBeCloseTo((r.saveLite.pd.val*r.saveLite.pd.days-900)/(r.saveLite.pd.days-1),6);
+ expect(r.saveLite.tom).toBeCloseTo(r.saveLite.expected,6);
+ // Heavy overspend today → tomorrow strictly below the zero-spend tomorrow
+ expect(r.over.tsp).toBe(20900);
+ expect(r.over.tom).toBeCloseTo(r.over.expected,6);
+ expect(r.over.tom).toBeLessThan(r.save0.tom);
+ expect(r.over.tom).toBeLessThan(r.saveLite.tom);
 });
 
 test('refunds: actual vs expected stay consistent in both modes',async({page})=>{

@@ -15,22 +15,85 @@ import java.util.regex.Pattern;
 /**
  * Ловит уведомления банков о покупках и зачислениях и складывает их в очередь.
  * Работает только если человек сам дал доступ к уведомлениям в настройках Android.
- * Берём только уведомления, где есть сумма в рублях и слово вроде «покупка» или «зачисление»,
- * и не из мессенджеров. Всё хранится только на телефоне, приложение забирает очередь при открытии.
+ * Берём только уведомления из приложений известных банков (whitelist packageName),
+ * где есть сумма в рублях и слово вроде «покупка» или «зачисление».
+ * Всё хранится только на телефоне, приложение забирает очередь при открытии.
  */
 public class BankListener extends NotificationListenerService {
 
     static final String PREFS = "bank";
     private static final Pattern MONEY = Pattern.compile("\\d[\\d\\s\\u00a0]*(?:[.,]\\d{1,2})?\\s?(₽|руб|RUB|р\\.)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern WORD = Pattern.compile("(покупк|оплат|списан|зачисл|поступ|пополн|перевод|возврат|снятие|платёж|платеж)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-    private static final String[] SKIP = {"org.telegram", "com.whatsapp", "com.vkontakte", "ru.ok.", "com.viber", "com.discord", "ru.oneme", "com.google.android.gm", "ru.mail."};
+    /* Точные packageName приложений банков (Сбер, Т-Банк, Альфа, ВТБ, ОТП и др.). */
+    private static final String[] BANK_EXACT = {
+            "ru.sberbankmobile",
+            "ru.sberbank_sbbol",
+            "com.idamob.tinkoff.android",
+            "ru.alfabank.mobile.android",
+            "ru.vtb24.mobilebanking.android",
+            "ru.otpbank.mobile",
+            "ru.gazprombank.android.mobilebank.app",
+            "ru.raiffeisennews",
+            "com.openbank",
+            "ru.letobank.Prometheus",
+            "ru.sovcomcard.halva.v1",
+            "ru.mkb.mobile",
+            "ru.bankuralsib.mb.android",
+            "ru.bspb",
+            "ru.akbars.mobile",
+            "ru.mts.money",
+            "ru.unicredit.android",
+            "com.yandex.bank",
+            "ru.yoo.money",
+            "ru.rshb.dbo",
+            "ru.bcs.bcsbank",
+            "ru.finambank.app",
+            "ru.psbank",
+            "ru.rosbank.android",
+            "ru.ozon.fintech.finance",
+            "ru.tochka.bank",
+            "ru.modulbank.mobile"
+    };
+    /* Семейства приложений банка: новые packageName того же банка тоже проходят. */
+    private static final String[] BANK_PREFIX = {
+            "ru.sberbank",
+            "ru.alfabank.",
+            "ru.tinkoff.",
+            "com.idamob.tinkoff",
+            "ru.vtb",
+            "ru.gazprombank.",
+            "ru.otpbank.",
+            "ru.raiffeisen",
+            "ru.psbank",
+            "ru.rosbank.",
+            "ru.rshb.",
+            "ru.sovcombank",
+            "ru.sovcomcard.",
+            "ru.yoo.money",
+            "ru.yoomoney",
+            "com.yandex.bank",
+            "ru.ozon.fintech",
+            "ru.wb.",
+            "ru.tochka.",
+            "ru.modulbank",
+            "ru.ftc.faktura.",
+            "com.isimplelab.ibank.",
+            "com.bifit.mobile.citizen."
+    };
+
+    /** Разрешён ли packageName как банковское приложение. */
+    static boolean isBankPackage(String pkg) {
+        if (pkg == null || pkg.isEmpty()) return false;
+        for (String p : BANK_EXACT) if (pkg.equals(p)) return true;
+        for (String p : BANK_PREFIX) if (pkg.startsWith(p)) return true;
+        return false;
+    }
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         try {
             String pkg = sbn.getPackageName();
             if (pkg == null || pkg.equals(getPackageName())) return;
-            for (String s : SKIP) if (pkg.startsWith(s)) return;
             Notification n = sbn.getNotification();
             if (n == null || (n.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return;
             Bundle ex = n.extras;
@@ -39,6 +102,10 @@ public class BankListener extends NotificationListenerService {
             CharSequence txt = ex.getCharSequence(Notification.EXTRA_TEXT);
             String text = (big != null ? big : txt != null ? txt : "").toString();
             String all = (title != null ? title + " " : "") + text;
+            if (!isBankPackage(pkg)) {
+                diagnostic(this, pkg, title != null ? title.toString() : "", text, "Не банк (package)", sbn.getPostTime());
+                return;
+            }
             boolean money = MONEY.matcher(all).find(), word = WORD.matcher(all).find();
             diagnostic(this, pkg, title != null ? title.toString() : "", text, money && word ? "В очередь Android" : (!money ? "Не найдена сумма в рублях" : "Не найден тип операции"), sbn.getPostTime());
             if (!money || !word) return;

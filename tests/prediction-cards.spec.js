@@ -171,7 +171,8 @@ test('Что грядёт: фон, рамка, кнопка, облака и и�
     const colors=await future.evaluate(el=>{
       const css=getComputedStyle(el),select=s=>el.querySelector(s);
       return {
-        background:css.backgroundImage,
+        theme:document.documentElement.dataset.pet, background:css.backgroundImage,
+        source:getComputedStyle(document.querySelector('.fc-magic')).getPropertyValue('--fc-future-theme').trim(),
         border:css.borderTopColor,
         button:getComputedStyle(select('.fc-plan-toggle')).backgroundImage,
         icon:getComputedStyle(select('#fcBasket stop')).stopColor,
@@ -184,8 +185,15 @@ test('Что грядёт: фон, рамка, кнопка, облака и и�
     await expect(future.locator('.fc-plan-toggle')).toBeVisible();
     await expect(future.locator('.fc-future-summary')).toBeVisible();
   }
-  for(const key of ['background','border','button','icon','cloud']){
-    expect(new Set(palettes.map(p=>p[key])).size).toBeGreaterThanOrEqual(10);
+  console.log('Forecast theme colors:',JSON.stringify(palettes));
+  for(const key of ['source','background','border','button','icon','cloud']){
+    expect(new Set(palettes.map(p=>p[key])).size,'Distinct colors for '+key).toBeGreaterThanOrEqual(10);
+  }
+  for(const p of palettes){
+    expect(p.background,'Background for '+p.theme).not.toBe('none');
+    expect(p.button,'Button for '+p.theme).not.toBe('none');
+    expect(p.icon,'Icon for '+p.theme).not.toBe('rgb(0, 0, 0)');
+    expect(p.cloud,'Cloud for '+p.theme).not.toBe('rgb(0, 0, 0)');
   }
   expect(new Set(palettes.map(p=>p.gold)).size).toBe(1);
   for(const p of palettes)expect(p.art).toEqual(['assets/prediction/usual.png','assets/prediction/large.png']);

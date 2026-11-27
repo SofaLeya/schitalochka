@@ -101,6 +101,21 @@ for (const [width, theme, currency, value, amount] of cases) {
     for (const [index, card] of geometry.cards.entries()) {
       expect(card).toEqual({rect: initial[index], fits: true, artFits: true, textFits: true});
     }
+    const future=sheet.locator('.fc-future');
+    await future.locator('summary').click();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+    const plans=future.locator('.fc-plan-toggle');
+    await expect(plans).toHaveAttribute('aria-expanded','false');
+    await expect(future.locator('#fc-personal-plans')).toBeHidden();
+    await plans.click();
+    await expect(future.locator('#fc-personal-plans')).toBeVisible();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+    expect(await sheet.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+    await plans.click();
+    await expect(future.locator('#fc-personal-plans')).toBeHidden();
+    await future.locator('summary').click();
+    await expect(future).toHaveJSProperty('open',false);
+    for(const card of await cards.all())await expect(card).toHaveAttribute('aria-pressed','true');
   });
 }
 
@@ -135,4 +150,53 @@ test('шрифт и иллюстрации прогноза загружаютс
   } finally {
     await context.close();
   }
+});
+
+test('Что грядёт: фон, рамка, кнопка, облака и иконки подстраиваются под тему, золото и иллюстрации неизменны', async ({page}) => {
+  await page.setViewportSize({width:390,height:740});
+  await seedForecast(page,{theme:'fluff',value:20000});
+  const themes=['fluff','puff','slime','rat','mouse','frog','duck','cat','skel','skelf','straw','cher'];
+  const palettes=[];
+  for(const theme of themes){
+    await page.evaluate(theme=>{
+      const d=JSON.parse(localStorage.getItem('podkopka-v1'));
+      d.pet.theme=theme;
+      localStorage.setItem('podkopka-v1',JSON.stringify(d));
+    },theme);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-pet',theme);
+    await page.locator('[data-a=fcOpen]').click();
+    const future=page.locator('.fc-future');
+    await future.locator('summary').click();
+    const colors=await future.evaluate(el=>{
+      const css=getComputedStyle(el),select=s=>el.querySelector(s);
+      return {
+        theme:document.documentElement.dataset.pet, background:css.backgroundImage,
+        source:getComputedStyle(document.querySelector('.fc-magic')).getPropertyValue('--fc-future-theme').trim(),
+        border:css.borderTopColor,
+        button:getComputedStyle(select('.fc-plan-toggle')).backgroundImage,
+        icon:getComputedStyle(select('#fcBasket stop')).stopColor,
+        cloud:getComputedStyle(select('#fcClouds stop')).stopColor,
+        gold:getComputedStyle(select('.fc-future-title')).color,
+        headingFont:getComputedStyle(select('summary')).fontFamily,
+        art:[...document.querySelectorAll('.fc-art')].map(x=>x.getAttribute('src'))
+      };
+    });
+    palettes.push(colors);
+    await expect(future.locator('.fc-plan-toggle')).toBeVisible();
+    await expect(future.locator('.fc-future-summary')).toBeVisible();
+  }
+  console.log('Forecast theme colors:',JSON.stringify(palettes));
+  for(const key of ['source','background','border','button','icon','cloud']){
+    expect(new Set(palettes.map(p=>p[key])).size,'Distinct colors for '+key).toBeGreaterThanOrEqual(10);
+  }
+  for(const p of palettes){
+    expect(p.background,'Background for '+p.theme).not.toBe('none');
+    expect(p.headingFont,'Heading font for '+p.theme).toContain('Forecast Serif');
+    expect(p.button,'Button for '+p.theme).not.toBe('none');
+    expect(p.icon,'Icon for '+p.theme).not.toBe('rgb(0, 0, 0)');
+    expect(p.cloud,'Cloud for '+p.theme).not.toBe('rgb(0, 0, 0)');
+  }
+  expect(new Set(palettes.map(p=>p.gold)).size).toBe(1);
+  for(const p of palettes)expect(p.art).toEqual(['assets/prediction/usual.png','assets/prediction/large.png']);
 });

@@ -184,7 +184,7 @@ test('D3 prediction uses personal share; cash pace and actual balance stay uncha
     fcSheet();
     const sheet = document.querySelector('.sheet');
     const txt = sheet ? sheet.textContent : '';
-    return {pace, predictedPace:f.pace, pending:f.pending, avail:f.avail, bal, left:f.left, days:f.dl, lifeAvg: lifeSum / 14, cashAvg: (13 * 1000 + 2000) / 14, hasRefundNote: /ожидаемые возвраты/i.test(txt)};
+    return {pace, predictedPace:f.pace, pending:f.pending, avail:f.avail, bal, left:f.left, days:f.dl, lifeAvg: lifeSum / 14, cashAvg: (13 * 1000 + 2000) / 14, hasRefundNote: /ожидаемые возвраты/i.test(txt), hasBreakdown: !!sheet?.querySelector('.fcforecast-how')};
   });
   expect(r.pace).toBeCloseTo(r.cashAvg, 5);
   expect(r.predictedPace).toBeCloseTo(r.lifeAvg, 5);
@@ -192,7 +192,9 @@ test('D3 prediction uses personal share; cash pace and actual balance stay uncha
   expect(r.bal).toBe(35000);
   expect(r.avail).toBe(36000);
   expect(r.left).toBeCloseTo(36000-1000*r.days,5);
-  expect(r.hasRefundNote).toBe(true);
+  // The tarot forecast deliberately hides the detailed breakdown; the pending refund is still included in the forecast above.
+  expect(r.hasRefundNote).toBe(false);
+  expect(r.hasBreakdown).toBe(false);
 });
 
 test('D4 delete purchase with refunds: delete-all keeps free money; keep-refunds is explicit', async ({page}) => {

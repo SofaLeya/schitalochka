@@ -178,6 +178,7 @@ test('Что грядёт: фон, рамка, кнопка, облака и и�
         icon:getComputedStyle(select('#fcBasket stop')).stopColor,
         cloud:getComputedStyle(select('#fcClouds stop')).stopColor,
         gold:getComputedStyle(select('.fc-future-title')).color,
+        headingFont:getComputedStyle(select('summary')).fontFamily,
         art:[...document.querySelectorAll('.fc-art')].map(x=>x.getAttribute('src'))
       };
     });
@@ -191,6 +192,7 @@ test('Что грядёт: фон, рамка, кнопка, облака и и�
   }
   for(const p of palettes){
     expect(p.background,'Background for '+p.theme).not.toBe('none');
+    expect(p.headingFont,'Heading font for '+p.theme).toContain('Forecast Serif');
     expect(p.button,'Button for '+p.theme).not.toBe('none');
     expect(p.icon,'Icon for '+p.theme).not.toBe('rgb(0, 0, 0)');
     expect(p.cloud,'Cloud for '+p.theme).not.toBe('rgb(0, 0, 0)');

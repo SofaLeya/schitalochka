@@ -304,7 +304,7 @@ html.bigtext{zoom:1.14}
 .sheet.fc-magic details.fc-future{--future-hi:color-mix(in srgb,var(--fc-future-theme) 85%,#fff);--future-mid:color-mix(in srgb,var(--fc-future-theme) 58%,#24192d);--future-low:color-mix(in srgb,var(--fc-future-theme) 23%,#17121e);--future-base:color-mix(in srgb,var(--fc-future-theme) 11%,#151019);--future-glow:color-mix(in srgb,var(--fc-future-theme) 52%,transparent);--future-line:color-mix(in srgb,var(--future-hi) 24%,transparent);--future-muted:color-mix(in srgb,var(--future-hi) 48%,#e8e4ec);--future-border:color-mix(in srgb,var(--fc-future-theme) 65%,#24202b);--surface:var(--future-low);--surface2:var(--future-mid);--line:var(--future-line);--muted:var(--future-muted);--accent:var(--future-hi);position:relative;overflow:hidden;background:radial-gradient(ellipse at 15% 0%,color-mix(in srgb,var(--future-hi) 9%,transparent),transparent 42%),radial-gradient(ellipse at 90% 100%,color-mix(in srgb,var(--future-mid) 32%,transparent),transparent 48%),linear-gradient(155deg,var(--future-low),var(--future-base) 70%,var(--future-low));border-color:var(--future-border);padding:0 12px;border-radius:15px}
 .sheet.fc-magic details.fc-future>summary{align-items:center;padding:13px 0;flex-wrap:nowrap;gap:7px;color:var(--fc-gold);font:700 clamp(25px,7.2vw,34px)/1.05 Forecast Serif,Georgia,serif}
 .fc-future-title{display:flex;align-items:center;gap:10px;min-width:0}
-.fc-future-icon{width:clamp(34px,10vw,44px);height:44px;flex:none;color:var(--fc-gold);filter:drop-shadow(0 0 5px var(--future-glow))}
+.fc-future-icon{width:clamp(34px,10vw,44px);height:44px;flex:none;object-fit:contain;filter:drop-shadow(0 0 5px var(--future-glow))}
 .fc-future .fcfold{position:relative;padding-bottom:0!important;gap:5px!important}
 .fc-future-toolbar{display:flex;align-items:center;gap:9px;justify-content:space-between;margin:0 0 4px}
 .fc-future-rule{display:flex;flex:1;min-width:0;align-items:center;justify-content:center;gap:5px;color:var(--fc-gold);font-size:17px}
@@ -312,8 +312,7 @@ html.bigtext{zoom:1.14}
 .fc-future-rule:after{transform:rotate(180deg)}
 .fc-plan-toggle{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--future-border);border-radius:20px;background:linear-gradient(155deg,var(--future-mid),var(--future-low) 60%);box-shadow:inset 0 0 6px var(--future-glow),0 0 7px var(--future-glow);color:var(--fc-gold);padding:8px 9px;min-height:36px;font:600 clamp(11px,3.2vw,14px)/1.1 system-ui,sans-serif;white-space:nowrap;cursor:pointer}
 .fc-plan-toggle svg{width:16px;height:16px;flex:none}
-.fc-plan-toggle .fc-plan-chevron{display:inline-block;transition:transform .15s;font-size:17px;line-height:1}
-.fc-plan-toggle[aria-expanded=true] .fc-plan-chevron{transform:rotate(90deg)}
+.fc-plan-toggle .fc-plan-chevron{font-size:17px;line-height:1}
 .fc-plan-toggle:focus-visible{outline:2px solid var(--fc-gold);outline-offset:2px}
 .fc-future-summary{display:flex;flex-direction:column;gap:0}
 .fc-future-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--future-line);font-size:clamp(12px,3.55vw,16px);line-height:1.3}
@@ -321,15 +320,19 @@ html.bigtext{zoom:1.14}
 .fc-future-row>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
 .fc-future-row>b{white-space:nowrap;flex-shrink:0;font-size:clamp(12px,3.5vw,16px);font-variant-numeric:tabular-nums}
 .fc-future-note{display:block;font-size:.84em;color:var(--future-muted);line-height:1.3}
-.fc-future-symbol{display:grid;place-items:center;flex:none;width:clamp(34px,10vw,45px);height:43px;color:var(--fc-gold)}
-.fc-future-symbol svg{width:100%;height:100%;filter:drop-shadow(0 0 5px var(--future-glow))}
-.fc-personal-plans{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--future-line);padding:10px 0 0;margin:4px 0 0}
-.fc-personal-plans[hidden]{display:none}
-.fc-future .list .row{flex-wrap:nowrap}
-.fc-future .list .grow{min-width:0;overflow-wrap:anywhere}
-.fc-future .fcplan-amount{white-space:nowrap}
+.fc-future-symbol{flex:none;width:clamp(34px,10vw,45px);height:43px;object-fit:contain;filter:drop-shadow(0 0 5px var(--future-glow))}
 .fc-future-sky{display:block;pointer-events:none;width:calc(100% + 24px);max-width:none;height:38px;margin:2px -12px 0;flex:none}
-@media(prefers-reduced-motion:reduce){.fc-plan-toggle .fc-plan-chevron{transition:none}}
+#fc-plans-overlay{z-index:27;align-items:center;overflow:hidden;overscroll-behavior:contain}
+.sheet.fc-plans-panel{max-height:min(90%,calc(100% - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));padding-top:0;overflow-x:hidden;overscroll-behavior:contain}
+.fc-plans-header{position:sticky;top:0;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 0;background:var(--fc-night);border-bottom:1px solid var(--line)}
+.fc-plans-header h3{margin:0;color:var(--fc-gold);font:700 clamp(23px,7vw,32px)/1 Forecast Serif,Georgia,serif}
+.fc-plans-header .btn{flex:none;color:var(--fc-gold)}
+.fc-plans-panel{--ink:var(--fc-text);--muted:#dfccec;--line:#ffffff30;--surface:#271839;--surface2:#332245}
+.fc-plans-body{display:flex;flex-direction:column;gap:10px}
+.fc-plans-body .ibtn{align-self:flex-start}
+.fc-plans-body .list .row{flex-wrap:nowrap}
+.fc-plans-body .list .grow{min-width:0;overflow-wrap:anywhere}
+.fc-irregular{display:contents}
 
 .sheet.fc-magic .fc-close{margin-top:8px}
 .sheet.fc-magic .fc-close .btn{width:100%;font-size:clamp(15px,4.7vw,20px);background:var(--fc-accent);color:#190f26;border-radius:12px}
@@ -682,6 +685,7 @@ button.mbox{padding:0;border:0;background:none;-webkit-tap-highlight-color:trans
 <nav class="tabs" id="tabs"></nav>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="hr50" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="50"/></filter><filter id="hr110" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="110"/></filter><filter id="hr170" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="170"/></filter><filter id="hr230" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="230"/></filter><filter id="hr290" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix type="hueRotate" values="290"/></filter></defs></svg>
 <div id="ov" class="ov" hidden></div>
+<div id="fc-plans-overlay" class="ov" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
 <script src="tgbk.js"></script>
@@ -1796,39 +1800,43 @@ function fcCalc(){
   var dl=Math.max(0,diffDays(T,nd)-1),pc=0,prow=pl.map(function(q){var n=0;for(var j=1;j<=dl;j++)if(addDays(parse(T),j).getDay()===+q.wd)n++;var c=n*q.amt*(q.half?0.5:1);pc+=c;return {q:q,n:n,c:c}});
   var pending=fcPendingRefunds(),avail=balance()-due+inc+pending,pace=P.pace,paceB=P.paceB,incs=fcIncList(nd);
   return {nd:nd,dl:dl,kn:kn,avail:avail,due:due,inc:inc,incs:incs,pending:pending,pace:pace,paceB:paceB,usualPace:P.usualPace,withLargePace:P.withLargePace,usualLeft:avail-P.usualPace*dl-pc,withLargeLeft:avail-P.withLargePace*dl-pc,largeMin:P.largeMin,left:avail-pace*dl-pc,leftB:avail-paceB*dl-pc,pc:pc,prow:prow,hugeS:hugeS,huge:huge}}
-function fcPlansHtml(prow,irr,forecast){
-  var n=prow.length,form=sh&&sh.fcForm,open=!!(sh&&(sh.fcPlansOpen||form));
-  var editing=!irr&&form?prow.find(function(o){return o.q.id===sh.fcEdit}):null;
+function fcPlansHtml(prow,irr){
+  var form=sh.fcForm,editing=form?prow.find(function(o){return o.q.id===sh.fcEdit}):null;
   var q=editing?editing.q:{cat:'prod',amt:'',wd:1,half:false};
-  var rows=n?'<div class="list">'+prow.map(function(o){
+  var rows=prow.length?'<div class="list">'+prow.map(function(o){
     var c=CMAP[o.q.cat]||CMAP.other;
     return '<div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+' · '+money(o.q.amt)+'</div><div class="s">по '+FCWD[+o.q.wd]+(o.q.half?' · вернут половину':'')+(irr?'':'<br>'+o.n+' × <span class="fcplan-amount">'+money(o.q.amt*(o.q.half?0.5:1))+'</span> = <span class="fcplan-amount">'+money(o.c)+'</span>')+'</div></div>'+
-      (irr?'':'<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcFormShow" data-id="'+o.q.id+'" aria-label="Изменить план">✎</button>')+
-      '<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcDel" data-id="'+o.q.id+'" aria-label="Убрать">✕</button></div>';
+      '<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcFormShow" data-id="'+esc(o.q.id)+'" aria-label="Изменить план">✎</button>'+
+      '<button type="button" class="btn ghost sm" style="flex:none;padding:7px 10px" data-a="fcDel" data-id="'+esc(o.q.id)+'" aria-label="Убрать">✕</button></div>';
   }).join('')+'</div>':'<p class="fine" style="margin:0">Пока пусто — добавь регулярную покупку, например продукты по понедельникам.</p>';
   var formHtml=form
    ?'<div class="f" style="gap:10px"><div class="two"><div class="f"><label for="fc_cat">Категория</label><select id="fc_cat">'+opts(CATS,q.cat)+'</select></div><div class="f"><label for="fc_amt">Сумма, '+sym()+'</label><input id="fc_amt" inputmode="decimal" placeholder="4000" value="'+esc(String(q.amt))+'"></div></div>'+
     '<div class="f"><div class="f"><label for="fc_wd">Когда</label><select id="fc_wd">'+[1,2,3,4,5,6,0].map(function(w){return '<option value="'+w+'"'+(w===+q.wd?' selected':'')+'>по '+FCWD[w]+'</option>'}).join('')+'</select></div><label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="fc_half"'+(q.half?' checked':'')+'> вернут половину</label></div>'+
     '<div class="btns"><button type="button" class="btn ghost sm" data-a="fcFormHide">Отмена</button><button type="button" class="btn sm" data-a="fcAdd">Сохранить план</button></div></div>'
    :'<button type="button" class="btn ghost sm" data-a="fcFormShow">+ Добавить план</button>';
-  var body=tipBtn('fc_pl')+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+rows+formHtml;
-  if(irr)return fcFold('Мои планы',n+' '+plw(n,'план','плана','планов'),body,open);
-  var icon="<svg class=\"fc-future-icon\" aria-hidden=\"true\" viewBox=\"0 0 52 54\" fill=\"none\"><defs><linearGradient id=\"fcFutureCard\" x2=\"1\" y2=\"1\"><stop style=\"stop-color:var(--future-mid)\"/><stop offset=\"1\" style=\"stop-color:var(--future-base)\"/></linearGradient></defs><g stroke=\"#efc18c\" stroke-width=\"1.3\"><rect x=\"5\" y=\"9\" width=\"29\" height=\"38\" rx=\"4\" fill=\"url(#fcFutureCard)\" transform=\"rotate(-15 19 28)\"/><rect x=\"18\" y=\"9\" width=\"29\" height=\"38\" rx=\"4\" fill=\"url(#fcFutureCard)\" transform=\"rotate(13 32 28)\"/><rect x=\"12\" y=\"5\" width=\"29\" height=\"42\" rx=\"4\" fill=\"url(#fcFutureCard)\"/><rect x=\"15\" y=\"8\" width=\"23\" height=\"36\" rx=\"2\" stroke-opacity=\".55\"/></g><path d=\"M26 14Q27 25 37 26Q27 27 26 38Q25 27 15 26Q25 25 26 14\" fill=\"#ffdb9e\"/><g fill=\"#ffe1ae\"><circle cx=\"18\" cy=\"12\" r=\"1.1\"/><circle cx=\"35\" cy=\"40\" r=\"1.1\"/><path d=\"M4 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"/></g></svg>";
-  var rule='<div class="fc-future-rule" aria-hidden="true">✦</div>';
-  var symbols={"basket":"<svg viewBox=\"0 0 48 48\" fill=\"none\"><defs><linearGradient id=\"fcBasket\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop style=\"stop-color:var(--future-hi)\"/><stop offset=\".52\" style=\"stop-color:var(--future-mid)\"/><stop offset=\"1\" style=\"stop-color:var(--future-low)\"/></linearGradient></defs><g stroke=\"#f6ca91\" stroke-width=\"1.65\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path d=\"M11 21L20 7Q24 3 28 7L37 21\" fill=\"url(#fcBasket)\"/><path d=\"M15 21l9-13 9 13\"/><path d=\"M8 21h32l-5 19Q24 44 13 40Z\" fill=\"url(#fcBasket)\"/><path d=\"M16 25l3 15m5-15v17m8-17-3 15M11 31h26\"/><rect x=\"6\" y=\"19\" width=\"36\" height=\"6\" rx=\"3\" fill=\"url(#fcBasket)\"/></g><g fill=\"#ffe3a8\"><path d=\"M7 3Q8 9 13 10Q8 11 7 17Q6 11 1 10Q6 9 7 3\"/><path d=\"M42 3Q43 7 47 8Q43 9 42 13Q41 9 37 8Q41 7 42 3\"/><circle cx=\"42\" cy=\"35\" r=\"1.2\"/></g></svg>","purse":"<svg viewBox=\"0 0 48 48\" fill=\"none\"><defs><linearGradient id=\"fcPurse\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop style=\"stop-color:var(--future-hi)\"/><stop offset=\".52\" style=\"stop-color:var(--future-mid)\"/><stop offset=\"1\" style=\"stop-color:var(--future-low)\"/></linearGradient></defs><g stroke=\"#f8ca92\" stroke-width=\"1.8\" stroke-linejoin=\"round\"><path d=\"M17 6Q24 9 31 6L28 15Q42 24 40 34Q38 44 24 44Q10 44 8 34Q6 24 20 15Z\" fill=\"url(#fcPurse)\"/><path d=\"M18 12h12l-1 5H19Z\" style=\"fill:var(--future-hi)\"/></g><path d=\"M28 21a9 9 0 1 0 5 13 8 8 0 0 1-5-13Z\" fill=\"#ffdd9e\"/><path d=\"M34 20l1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\" fill=\"#f9d69c\"/><g fill=\"#ffe3a8\"><path d=\"M7 3Q8 9 13 10Q8 11 7 17Q6 11 1 10Q6 9 7 3\"/><path d=\"M42 3Q43 7 47 8Q43 9 42 13Q41 9 37 8Q41 7 42 3\"/><circle cx=\"42\" cy=\"35\" r=\"1.2\"/></g></svg>","crystal":"<svg viewBox=\"0 0 48 48\" fill=\"none\"><defs><linearGradient id=\"fcCrystal\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop style=\"stop-color:var(--future-hi)\"/><stop offset=\".52\" style=\"stop-color:var(--future-mid)\"/><stop offset=\"1\" style=\"stop-color:var(--future-low)\"/></linearGradient></defs><g stroke=\"#ffcf9c\" stroke-width=\"1.5\" stroke-linejoin=\"round\"><path d=\"m24 4 9 13-4 25-5 4-6-4-3-25Z\" fill=\"url(#fcCrystal)\"/><path d=\"M24 4v42M15 17l9 7 9-7\" stroke=\"#ffd6a7\"/><path d=\"m15 25-9-8 1 18 12 9-3-19Z\" style=\"fill:var(--future-mid)\"/><path d=\"m33 25 9-8-1 18-12 9 3-19Z\" style=\"fill:var(--future-hi)\"/><path d=\"m6 17 13 27m23-27L29 44\" style=\"stroke:var(--future-hi)\"/></g><g fill=\"#ffe3a8\"><path d=\"M7 3Q8 9 13 10Q8 11 7 17Q6 11 1 10Q6 9 7 3\"/><path d=\"M42 3Q43 7 47 8Q43 9 42 13Q41 9 37 8Q41 7 42 3\"/><circle cx=\"42\" cy=\"35\" r=\"1.2\"/></g></svg>"};
-  var summary='';
-  if(forecast&&forecast.kn>=5){
-    var row=function(symbol,label,value){return '<div class="fc-future-row"><span class="fc-future-symbol" aria-hidden="true">'+symbols[symbol]+'</span><span>'+label+'</span><b>−'+money(Math.max(0,value))+'</b></div>'};
-    summary='<div class="fc-future-summary" aria-label="Возможные траты до выплаты">'+
-      row('basket','Покупки по плану',forecast.pc)+
-      row('purse','Повседневные траты<span class="fc-future-note">≈ '+money(forecast.usualPace)+' в день · '+forecast.dl+' '+plw(forecast.dl,'день','дня','дней')+'</span>',forecast.usualPace*forecast.dl)+
-      row('crystal','Крупные покупки<span class="fc-future-note">(если будут)</span>',(forecast.withLargePace-forecast.usualPace)*forecast.dl)+'</div>';
+  return tipBtn('fc_pl')+tipBox('fc_pl','Например, продукты по понедельникам на 4 000, а половину вернут. Прошлые траты этой категории в этот день недели в «обычный день» не входят, чтобы не посчитать дважды.')+(form?formHtml:rows+formHtml);
+}
+function fcFutureSummary(forecast){
+  if(forecast.kn<5)return '';
+  function row(symbol,label,value){
+    return '<div class="fc-future-row"><img class="fc-future-symbol" src="assets/forecast-icons/'+symbol+'.png" alt=""><span>'+label+'</span><b>−'+money(Math.max(0,value))+'</b></div>';
   }
+  return row('basket','Покупки по плану',forecast.pc)+
+    row('pouch','Повседневные траты<span class="fc-future-note">≈ '+money(forecast.usualPace)+' в день · '+forecast.dl+' '+plw(forecast.dl,'день','дня','дней')+'</span>',forecast.usualPace*forecast.dl)+
+    row('crystals','Крупные покупки<span class="fc-future-note">(если будут)</span>',(forecast.withLargePace-forecast.usualPace)*forecast.dl);
+}
+function fcPlansButton(){
+  var n=(S.fcPlans||[]).length;
   var calendar="<svg aria-hidden=\"true\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"><rect x=\"2.5\" y=\"4\" width=\"15\" height=\"13.5\" rx=\"3\"/><path d=\"M6 2v4m8-4v4M3 8h14m-11 3h2m4 0h2m-8 3h2m4 0h2\"/></svg>";
+  return '<button type="button" class="fc-plan-toggle" data-a="fcPlansOpen" aria-haspopup="dialog">'+calendar+'<span>Мои планы · '+n+'</span><span class="fc-plan-chevron" aria-hidden="true">›</span></button>';
+}
+function fcFutureHtml(forecast){
   var sky="<svg class=\"fc-future-sky\" aria-hidden=\"true\" viewBox=\"0 0 340 40\" preserveAspectRatio=\"none\"><defs><linearGradient id=\"fcClouds\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop style=\"stop-color:var(--future-mid)\"/><stop offset=\"1\" style=\"stop-color:var(--future-low)\"/></linearGradient><radialGradient id=\"fcMoonGlow\"><stop style=\"stop-color:var(--future-hi)\" stop-opacity=\".45\"/><stop offset=\"1\" style=\"stop-color:var(--future-hi)\" stop-opacity=\"0\"/></radialGradient></defs><ellipse cx=\"170\" cy=\"25\" rx=\"32\" ry=\"22\" fill=\"url(#fcMoonGlow)\"/><path d=\"M0 12Q14 2 27 17Q40 4 54 23Q71 14 83 30Q100 24 110 40H0ZM340 11Q326 3 312 17Q299 5 284 23Q267 14 256 30Q238 24 228 40H340Z\" fill=\"url(#fcClouds)\" style=\"stroke:var(--future-hi)\" stroke-opacity=\".4\" stroke-width=\".7\"/><path d=\"M175 6a15 15 0 1 0 12 23A13 13 0 0 1 175 6Z\" fill=\"#ffda9b\"/><g style=\"fill:var(--future-hi)\"><circle cx=\"110\" cy=\"17\" r=\"1\"/><circle cx=\"232\" cy=\"13\" r=\".8\"/><path d=\"M132 20l1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"/><path d=\"M209 6l1 3 3 1-3 1-1 3-1-3-3-1 3-1Z\"/></g></svg>";
-  var futureOpen=open||!!document.querySelector('#ov .fc-future[open]');
-  var plansButton='<button type="button" class="fc-plan-toggle" data-a="fcPlansToggle" aria-expanded="'+open+'" aria-controls="fc-personal-plans">'+calendar+'Мои планы · '+n+'<span class="fc-plan-chevron" aria-hidden="true">›</span></button>';
-  return '<details class="fold fc-future"'+(futureOpen?' open':'')+'><summary><span class="fc-future-title">'+icon+'Что грядёт</span></summary><div class="fcfold"><div class="fc-future-toolbar">'+rule+plansButton+'</div>'+summary+'<div id="fc-personal-plans" class="fc-personal-plans"'+(open?'':' hidden')+'>'+body+'</div>'+sky+'</div></details>';
+  var icon='<img class="fc-future-icon" src="assets/forecast-icons/cards.png" alt="">';
+  var rule='<div class="fc-future-rule" aria-hidden="true">✦</div>';
+  var summary=fcFutureSummary(forecast);
+  return '<details class="fold fc-future"><summary><span class="fc-future-title">'+icon+'Что грядёт</span></summary><div class="fcfold"><div class="fc-future-toolbar">'+rule+fcPlansButton()+'</div>'+
+    (summary?'<div class="fc-future-summary" aria-label="Возможные траты до выплаты">'+summary+'</div>':'')+sky+'</div></details>';
 }
 function fcHowHtml(lines,forecast){
   return fcFold('Как считается',null,'<div'+(forecast?' class="fcforecast-how"':'')+'>'+lines.map(function(x){var cls=x[2]?'fcsum sub':'fcsum';return '<div class="'+cls+'"><span class="lbl">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('')+'</div>',false);
@@ -1870,18 +1878,23 @@ var FC_CARD_ORNAMENT='<svg viewBox="0 0 140 202" aria-hidden="true" fill="none" 
   '<path d="M70 72 Q73 95 96 100 Q73 105 70 128 Q67 105 44 100 Q67 95 70 72Z" fill="currentColor"/>'+
   '<path d="M66 17a10 10 0 1 0 12 12 9 9 0 0 1-12-12ZM74 185a10 10 0 1 0-12-12 9 9 0 0 1 12 12Z" fill="currentColor"/>'+
   '<path d="M22 25v10m-5-5h10m91-5v10m-5-5h10M22 166v10m-5-5h10m91-5v10m-5-5h10" stroke-linecap="round"/></svg>';
-function fcCard(key,label,value){
+function fcCardResult(value){
   var zero=fcResultText(value)==='примерно в ноль',shortfall=value<0&&!zero;
   var amount=(shortfall?'−':'~')+(zero?money(0):fcRound(Math.abs(value)));
+  return {label:(shortfall?'Не хватит ':'')+amount,html:
+    (shortfall?'<span class="fc-shortfall">Не хватит</span>':'')+
+    '<span class="fc-card-amount" style="--fc-length:'+amount.length+'">'+esc(amount)+'</span>'};
+}
+function fcCard(key,label,value){
+  var result=fcCardResult(value);
   var caption='<span class="fc-card-caption"><span class="fc-caption-stars"><em>'+label.charAt(0)+'</em>'+label.slice(1)+'</span>крупных трат'+
     '<svg class="fc-caption-curls" viewBox="0 0 100 9" fill="none" stroke="currentColor" aria-hidden="true"><path d="M0 0C7 9 15 10 17 5M100 0C100 10 83-1 78 5C76 8 80 10 80 7"/></svg></span>';
-  var title=label+' крупных трат',result=(shortfall?'Не хватит ':'')+amount;
+  var title=label+' крупных трат';
   var flipped=!!(sh.fcCards&&sh.fcCards[key]);
-  return '<button type="button" class="fc-card" data-a="fcFlip" data-v="'+key+'" data-label="'+title+'" data-result="'+esc(result)+'" aria-pressed="'+flipped+'" aria-label="'+esc(title+(flipped?' · '+result:''))+'">'+
+  return '<button type="button" class="fc-card" data-a="fcFlip" data-v="'+key+'" data-label="'+title+'" data-result="'+esc(result.label)+'" aria-pressed="'+flipped+'" aria-label="'+esc(title+(flipped?' · '+result.label:''))+'">'+
     '<span class="fc-card-turn" aria-hidden="true"><span class="fc-face fc-back">'+FC_CARD_ORNAMENT+caption+'</span>'+
     '<span class="fc-face fc-front"><img class="fc-art" src="assets/prediction/'+key+'.png" alt=""><span class="fc-value">'+
-    (shortfall?'<span class="fc-shortfall">Не хватит</span>':'')+
-    '<span class="fc-card-amount" style="--fc-length:'+amount.length+'">'+esc(amount)+'</span></span></span></span></button>';
+    result.html+'</span></span></span></button>';
 }
 function fcSheet(){
   var f=fcCalc(),h='<h3>🔮 Предсказание</h3>',foot='<div class="btns"><button type="button" class="btn" data-a="close">Понятно</button></div>';
@@ -1891,7 +1904,7 @@ function fcSheet(){
     var howIrr=[['Свободные деньги сейчас',money(balance())],['− Обычные траты','по темпу последних 2 недель']];
     if(!S.simple)howIrr.push(['− Обязательные платежи','по их датам']);
     howIrr.push(['− Запланированные покупки','по выбранным дням недели'],['Новые доходы','не учитываются заранее']);
-    openSheet(h+fcIrrBody()+fcPlansHtml(fcPace().pl.map(function(q){return {q:q,n:0,c:0}}),true)+fcHowHtml(howIrr)+foot);return}
+    openSheet(h+'<div class="fc-irregular">'+fcIrrBody()+'</div><button type="button" class="btn ghost" data-a="fcPlansOpen" aria-haspopup="dialog"><span>Мои планы · '+(S.fcPlans||[]).length+'</span></button>'+fcHowHtml(howIrr)+foot);return}
   sh.fcIrr=0;
   if(!f&&hasIncomeSchedule()){openSheet(h+'<p>Нет ближайших запланированных поступлений. Проверь график доходов или включи режим нерегулярного дохода.</p><div class="btns"><button type="button" class="btn ghost" data-a="editIncomeCalendar">График доходов</button><button type="button" class="btn" data-a="close">Закрыть</button></div><button type="button" class="btn ghost" data-a="irrOn">Доход нерегулярный</button>');return}
   if(!f){openSheet(h+'<p>Чтобы предсказать, сколько останется к зарплате, нужны дни зарплаты.</p><div class="f"><label for="fc_pd">Дни зарплаты</label><input id="fc_pd" inputmode="numeric" placeholder="например: 10, 25"></div><div class="btns"><button type="button" class="btn ghost" data-a="close">Закрыть</button><button type="button" class="btn" data-a="fcPd">Сохранить</button></div><button type="button" class="btn ghost" style="width:100%;margin-top:10px" data-a="irrOn">Доход нерегулярный (смены, почасовая)</button>');return}
@@ -1902,30 +1915,131 @@ function fcSheet(){
   }
   h='<h3 class="fc-heading" id="fc-title"><span class="fc-celestial" aria-hidden="true"><span>☾</span>✦<span>☽</span></span>Предсказание</h3>'+
     '<p class="fc-date">Сколько останется к '+dt+'?</p><div class="fc-sparks" aria-hidden="true"><i>✦</i><i>·</i><i>✧</i></div>';
-  openSheet(h+body+fcPlansHtml(f.prow,false,f)+foot.replace('class="btns"','class="btns fc-close"'));
+  openSheet(h+body+fcFutureHtml(f)+foot.replace('class="btns"','class="btns fc-close"'));
   var sheet=document.querySelector('#ov .sheet');
   sheet.classList.add('fc-magic');
-  var theme=PTHEME[petTheme()]||PTHEME.fluff;
-  var futureAccent=(theme.ov&&theme.ov.accent)||hsl(theme.h,theme.s+5,72);
-  sheet.style.setProperty('--fc-future-theme',futureAccent);
-  var future=sheet.querySelector('.fc-future');
-  if(future){
-    var probe=document.createElement('span');
+  fcApplyFutureTheme();
+  sheet.setAttribute('aria-labelledby','fc-title');
+}
+// Меняем только палитру PNG. Индексы пикселей и прозрачность остаются из исходного файла.
+var fcIconSources=new Map(),fcIconVariants=new Map();
+function fcTintPng(source,accent){
+  var png=source.slice(0),view=new DataView(png),bytes=new Uint8Array(png);
+  var rgb=accent.slice(1).match(/../g).map(function(hex){return parseInt(hex,16)});
+  var high=Math.max.apply(null,rgb),low=Math.min.apply(null,rgb),middle=(high+low)/2;
+  var tone=rgb.map(function(channel){return (channel-middle)/(255-Math.abs(high+low-255))});
+  for(var chunk=8;chunk+12<=bytes.length;){
+    var size=view.getUint32(chunk),start=chunk+8,end=start+size;
+    if(end+4>bytes.length)return null;
+    if(view.getUint32(chunk+4)===0x504c5445){ // PLTE
+      for(var i=start;i+2<end;i+=3){
+        var r=bytes[i],g=bytes[i+1],b=bytes[i+2];
+        // У золота синий канал слабее зелёного. Переходные оттенки смешиваем плавно.
+        if(b-g<=8)continue;
+        var mix=Math.min(1,(b-g-8)/24),max=Math.max(r,g,b),min=Math.min(r,g,b);
+        var light=(max+min)/2,chroma=max-min;
+        bytes[i]=Math.round(r+(light+chroma*tone[0]-r)*mix);
+        bytes[i+1]=Math.round(g+(light+chroma*tone[1]-g)*mix);
+        bytes[i+2]=Math.round(b+(light+chroma*tone[2]-b)*mix);
+      }
+      // PNG хранит CRC-32 типа и содержимого каждого блока.
+      var crc=0xffffffff;
+      for(var j=chunk+4;j<end;j++){
+        crc^=bytes[j];
+        for(var bit=0;bit<8;bit++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+      }
+      view.setUint32(end,(crc^0xffffffff)>>>0);
+      return URL.createObjectURL(new Blob([png],{type:'image/png'}));
+    }
+    chunk=end+4;
+  }
+  return null;
+}
+function fcTintIcon(img,accent){
+  if(img.dataset.fcTint===accent)return;
+  img.dataset.fcTint=accent;
+  var src=img.getAttribute('src'),key=src+'|'+accent;
+  if(!fcIconSources.has(src)){
+    fcIconSources.set(src,fetch(src).then(function(response){
+      if(!response.ok)throw new Error('Forecast icon unavailable');
+      return response.arrayBuffer();
+    }).catch(function(error){fcIconSources.delete(src);throw error}));
+  }
+  if(!fcIconVariants.has(key)){
+    fcIconVariants.set(key,fcIconSources.get(src).then(function(source){return fcTintPng(source,accent)})
+      .catch(function(){fcIconVariants.delete(key);return null}));
+  }
+  fcIconVariants.get(key).then(function(url){
+    if(!img.isConnected||img.dataset.fcTint!==accent)return;
+    if(url)img.srcset=url;
+    else{delete img.dataset.fcTint;img.removeAttribute('srcset')}
+  });
+}
+function fcApplyFutureTheme(){
+  var future=document.querySelector('#ov .fc-future');
+  if(!future)return;
+  var sheet=future.closest('.sheet'),theme=PTHEME[document.documentElement.dataset.pet]||PTHEME.fluff;
+  var accent=(theme.ov&&theme.ov.accent)||'#'+hslHex(theme.h,theme.s+5,72).slice(3);
+  if(sheet.style.getPropertyValue('--fc-future-theme')!==accent){
+    sheet.style.setProperty('--fc-future-theme',accent);
+    var probe=document.createElement('span'),sky=future.querySelector('.fc-future-sky');
     probe.hidden=true;future.appendChild(probe);
-    var resolved={};
-    ['hi','mid','low','base'].forEach(function(key){
-      probe.style.color='var(--future-'+key+')';
-      resolved[key]=getComputedStyle(probe).color;
+    ['--future-hi','--future-mid','--future-low'].forEach(function(key){
+      probe.style.color='var('+key+')';
+      sky.style.setProperty(key,getComputedStyle(probe).color);
     });
     probe.remove();
-    future.querySelectorAll('svg [style]').forEach(function(el){
-      ['stop-color','fill','stroke'].forEach(function(prop){
-        var match=el.style.getPropertyValue(prop).match(/^var\(--future-(hi|mid|low|base)\)$/);
-        if(match)el.style.setProperty(prop,resolved[match[1]]);
-      });
-    });
   }
-  sheet.setAttribute('aria-labelledby','fc-title');
+  future.querySelectorAll('img').forEach(function(img){fcTintIcon(img,accent)});
+}
+new MutationObserver(fcApplyFutureTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-pet']});
+function fcPlansRender(focus){
+  var body=document.getElementById('fc-plans-body');
+  var rows=sh.fcIrr?(S.fcPlans||[]).map(function(q){return {q:q}}):fcCalc().prow;
+  body.innerHTML=fcPlansHtml(rows,sh.fcIrr);
+  if(focus){
+    body.parentNode.scrollTop=0;
+    body.querySelector(focus).focus({preventScroll:true});
+  }
+}
+function fcPlansOpen(){
+  if(NAV.fcPlans)return;
+  var overlay=document.getElementById('fc-plans-overlay');
+  overlay.innerHTML='<div class="sheet fc-magic fc-plans-panel" role="dialog" aria-modal="true" aria-labelledby="fc-plans-title">'+
+    '<div class="fc-plans-header"><button type="button" class="btn ghost sm" data-a="fcPlansClose">Назад</button><h3 id="fc-plans-title">Мои планы</h3></div>'+
+    '<div id="fc-plans-body" class="fc-plans-body"></div></div>';
+  fcPlansRender();
+  ['ov','app','tabs'].forEach(function(id){document.getElementById(id).inert=true});
+  overlay.hidden=false;
+  NAV.fcPlans=true;
+  navPush('fcPlans');
+  overlay.querySelector('[data-a=fcPlansClose]').focus({preventScroll:true});
+}
+function fcPlansClose(fromBack){
+  if(!NAV.fcPlans)return;
+  NAV.fcPlans=false;
+  if(!fromBack)navBack();
+  pkClose();
+  var overlay=document.getElementById('fc-plans-overlay');
+  overlay.hidden=true;
+  overlay.innerHTML='';
+  sh.fcForm=false;
+  sh.fcEdit=null;
+  ['ov','app','tabs'].forEach(function(id){document.getElementById(id).inert=false});
+  document.querySelector('#ov [data-a=fcPlansOpen]').focus({preventScroll:true});
+}
+function fcRefreshAfterPlan(){
+  var sheet=document.querySelector('#ov .sheet');
+  sheet.querySelector('[data-a=fcPlansOpen]>span').textContent='Мои планы · '+(S.fcPlans||[]).length;
+  if(sh.fcIrr){sheet.querySelector('.fc-irregular').innerHTML=fcIrrBody();return}
+  var f=fcCalc(),summary=sheet.querySelector('.fc-future-summary');
+  if(summary){summary.innerHTML=fcFutureSummary(f);fcApplyFutureTheme()}
+  sheet.querySelectorAll('.fc-card').forEach(function(card){
+    var result=fcCardResult(card.dataset.v==='usual'?f.usualLeft:f.withLargeLeft);
+    card.dataset.result=result.label;
+    card.setAttribute('aria-label',card.dataset.label+(card.getAttribute('aria-pressed')==='true'?' · '+result.label:''));
+    card.querySelector('.fc-value').innerHTML=result.html;
+  });
 }
 function offMain(e){var a=e.acc&&accById(e.acc);return !!(a&&!isLive(a))}
 // Раскладка текущей выплаты не должна расходовать старый остаток, пока доход не отмечен.
@@ -4953,11 +5067,12 @@ function render(){try{document.documentElement.classList.toggle('firstrec',!S.de
 
 /* ---------- sheets ---------- */
 /* кнопка «Назад» на телефоне: закрывает окно или возвращает на главную, а не выходит из приложения */
-var NAV={sheet:false,tab:false,skip:0};
+var NAV={sheet:false,fcPlans:false,tab:false,skip:0};
 function navPush(k){try{history.pushState({sch:k},'')}catch(e){}}
-function navBack(){NAV.skip++;try{history.back()}catch(e){NAV.skip--}}
+function navBack(steps){NAV.skip++;try{history.go(-(steps||1))}catch(e){NAV.skip--}}
 window.addEventListener('popstate',function(){
   if(NAV.skip>0){NAV.skip--;return}
+  if(NAV.fcPlans){fcPlansClose(true);return}
   if(NAV.sheet){NAV.sheet=false;closeSheet(true);return}
   if(NAV.tab){NAV.tab=false;tab='home';window.scrollTo(0,0);render();return}
 });
@@ -4966,7 +5081,7 @@ function openSheet(html){if(!NAV.sheet){NAV.sheet=true;navPush('sheet')}var o=do
   o.innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';o.hidden=false;
   if(oh!==null&&st>0){var nw=o.querySelector('.sheet'),nh=nw.querySelector('h3');if(nh&&nh.textContent===oh){nw.scrollTop=st;requestAnimationFrame(function(){nw.scrollTop=st})}}
   if(window.scrollY!==wy)window.scrollTo(0,wy)}
-function closeSheet(fromBack){if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack()}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;try{applyPetTheme()}catch(e){}if(pendingR){pendingR=false;render()}}
+function closeSheet(fromBack){var hadPlans=NAV.fcPlans;if(hadPlans)fcPlansClose(true);if(NAV.sheet&&fromBack!==true){NAV.sheet=false;navBack(hadPlans?2:1)}var o=document.getElementById('ov');try{if(document.activeElement&&o.contains(document.activeElement))document.activeElement.blur()}catch(e){}o.hidden=true;o.innerHTML='';sh=null;try{applyPetTheme()}catch(e){}if(pendingR){pendingR=false;render()}}
 /* окна (и список выбора) закрываются смахиванием вниз: за название или с любого места, если окно прокручено в самый верх; страница под ними остаётся на том же месте */
 (function(){var g=null;
 function fade(o,k){if(o)o.style.background=k===null?'':'rgba(10,6,20,'+(0.6*(1-Math.min(1,k/420))).toFixed(3)+')'}
@@ -5736,7 +5851,7 @@ function newDraft(type){return {type:type||'e',amt:'',cat:'',acc:defAcc(),from:'
 document.addEventListener('click',function(ev){
   if(ev.target.closest&&ev.target.closest('.drag')||(window._dragJustEnded&&Date.now()-window._dragJustEnded<350))return;
   var b=ev.target.closest('[data-a]');
-  if(!b){if(ev.target.id==='ov')closeSheet();return}
+  if(!b){if(ev.target.id==='ov')closeSheet();else if(ev.target.id==='fc-plans-overlay')fcPlansClose();return}
   var a=b.dataset.a,v=b.dataset.v,id=b.dataset.id,k=b.dataset.k;
   if(a==='tab'){var tt=document.getElementById('toast');if(tt&&!tt.querySelector('button'))tt.style.display='none';if(v!=='home'&&!NAV.tab){NAV.tab=true;navPush('tab')}else if(v==='home'&&NAV.tab){NAV.tab=false;navBack()}tab=v;window.scrollTo(0,0);render()}
   else if(a==='tip'){var tb=document.getElementById('tip_'+v);if(tb){tb.hidden=!tb.hidden;b.setAttribute('aria-expanded',tb.hidden?'false':'true')}}
@@ -5804,19 +5919,17 @@ document.addEventListener('click',function(ev){
     b.setAttribute('aria-pressed',flipped);
     b.setAttribute('aria-label',b.dataset.label+(flipped?' · '+b.dataset.result:''));
   }
-  else if(a==='fcPlansToggle'){
-    var panel=document.getElementById('fc-personal-plans');
-    if(panel&&sh){var show=panel.hidden;panel.hidden=!show;sh.fcPlansOpen=show?1:0;b.setAttribute('aria-expanded',String(show))}
-  }
-  else if(a==='fcFormShow'){if(!sh)sh={id:'fc',fc:1};sh.fcForm=1;sh.fcEdit=id||null;sh.fcPlansOpen=1;fcSheet()}
-  else if(a==='fcFormHide'){if(sh){sh.fcForm=0;sh.fcEdit=null;sh.fcPlansOpen=1}fcSheet()}
-  else if(a==='fcAdd'){var fa=+String(document.getElementById('fc_amt').value||'').replace(',','.').replace(/\s/g,'');if(!(fa>0)){toast('Впиши сумму');return}
-    var plans=S.fcPlans||[],editingPlan=sh&&!sh.fcIrr&&plans.find(function(q){return q.id===sh.fcEdit});
-    var newPlan={id:editingPlan?editingPlan.id:'fp'+Date.now(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked};
+  else if(a==='fcPlansOpen')fcPlansOpen();
+  else if(a==='fcPlansClose')fcPlansClose();
+  else if(a==='fcFormShow'){sh.fcForm=true;sh.fcEdit=id||null;fcPlansRender('#fc_amt')}
+  else if(a==='fcFormHide'){sh.fcForm=false;sh.fcEdit=null;fcPlansRender('[data-a=fcFormShow]:not([data-id])')}
+  else if(a==='fcAdd'){var fa=+String(document.getElementById('fc_amt').value||'').replace(',','.').replace(/\s/g,'');if(!Number.isFinite(fa)||fa<=0){toast('Впиши сумму');return}
+    var plans=S.fcPlans||[],editingPlan=plans.find(function(q){return q.id===sh.fcEdit});
+    var newPlan={id:editingPlan?editingPlan.id:'fp'+uid(),cat:document.getElementById('fc_cat').value||'prod',amt:fa,wd:+document.getElementById('fc_wd').value,half:document.getElementById('fc_half').checked};
     S.fcPlans=editingPlan?plans.map(function(q){return q===editingPlan?newPlan:q}):plans.concat([newPlan]);
-    save();if(!sh)sh={id:'fc',fc:1};sh.fcForm=0;sh.fcEdit=null;sh.fcPlansOpen=1;fcSheet()}
-  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();if(!sh)sh={id:'fc',fc:1};
-    if(sh.fcEdit===id){sh.fcEdit=null;sh.fcForm=0}sh.fcPlansOpen=1;fcSheet()}
+    save();sh.fcForm=false;sh.fcEdit=null;fcRefreshAfterPlan();fcPlansRender('[data-a=fcFormShow]:not([data-id])')}
+  else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();fcRefreshAfterPlan();fcPlansRender();
+    document.querySelector('#fc-plans-overlay [data-a=fcPlansClose]').focus({preventScroll:true})}
   else if(a==='fcPd'){var fpd=String(document.getElementById('fc_pd').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);if(!fpd.length){toast('Впиши числа, например 10, 25');return}S.payDays=fpd;save();render();fcSheet()}
   else if(a==='askDel'){sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
   else if(a==='noDel'){sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}
@@ -6414,7 +6527,7 @@ document.addEventListener('change',function(ev){
   fr.readAsText(ev.target.files[0]);
 });
 document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible')return;try{var cr=localStorage.getItem(KEY);if(cr&&cr!==lastRaw){adoptStored(cr);return}}catch(e){}if(sh)return;if(iso(new Date())!==T){try{location.reload()}catch(e){}}else render()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.getElementById('ov').hidden)closeSheet()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(NAV.fcPlans)fcPlansClose();else if(!document.getElementById('ov').hidden)closeSheet()}});
 
 
 /* ---------- общее хранилище (только в веб-версии, где есть db) ---------- */

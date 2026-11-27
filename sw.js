@@ -3,7 +3,11 @@ self.addEventListener('install',function(e){
     return ch.addAll([
       'assets/prediction/CormorantGaramond.woff',
       'assets/prediction/usual.png',
-      'assets/prediction/large.png'
+      'assets/prediction/large.png',
+      'assets/forecast-icons/cards.png',
+      'assets/forecast-icons/basket.png',
+      'assets/forecast-icons/pouch.png',
+      'assets/forecast-icons/crystals.png'
     ]);
   }).then(function(){return self.skipWaiting()}));
 });

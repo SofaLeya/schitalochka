@@ -158,13 +158,17 @@ test('архив задействованного счёта сохраняет 
   await expect(page.locator('#ov .sheet')).toContainText('Резервная карта (архив)20 ₽');
 });
 
-test('уведомление банка и отметка платежа сохраняют связи', async ({ page }) => {
+test('скрытое банковское уведомление, ручная покупка и отметка платежа сохраняют учёт', async ({ page }) => {
   await openApp(page, { simple: false, bank: true, payment: true });
-  await page.locator('[data-a=bankAdd][data-id=bank1]').click();
+  await expect(page.locator('[data-a=bankAdd][data-id=bank1]')).toHaveCount(0);
+  await page.locator('.tabs .plus').click();
+  await chooseAccount(page, 'main');
+  await page.fill('#f_note', 'Пятёрочка');
+  await page.fill('#f_amt', '100');
   await expect(funding(page)).toContainText('Не хватает 20 ₽');
   await chooseAdditional(page, /Резервная карта.*20 ₽/);
   await submit(page);
-  expect((await snapshot(page)).bankQ).toEqual([]);
+  expect((await snapshot(page)).bankQ).toEqual([expect.objectContaining({ id: 'bank1' })]);
   expect(await totals(page)).toMatchObject({ life: 80, cash: 80, gross: 100 });
 
   await page.click('.tabs [data-a=tab][data-v=plan]');

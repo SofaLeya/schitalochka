@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        BankListener.purgeWhenDisabled(this);
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.parseColor("#14111C"));
@@ -297,12 +298,14 @@ public class MainActivity extends Activity {
         // траты из уведомлений банка
         @JavascriptInterface
         public boolean bankOn() {
+            if (!BankListener.IMPORT_ENABLED) return false;
             String l = android.provider.Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
             return l != null && l.contains(getPackageName());
         }
 
         @JavascriptInterface
         public void bankSettings() {
+            if (!BankListener.IMPORT_ENABLED) return;
             runOnUiThread(() -> {
                 try {
                     startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));

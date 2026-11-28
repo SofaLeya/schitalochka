@@ -65,6 +65,19 @@ public class BankListenerTest {
         assertEquals(0, take().length());
     }
 
+    @Test
+    public void disabledImportDoesNotCollectAndPurgesOldData() throws Exception {
+        listener.onNotificationPosted(new StatusBarNotification(
+                ALFA, ALFA, 1, null, 0, 0, 0, notification("Альфа-Банк", ALFA_TRANSFER), Process.myUserHandle(), TIME));
+        assertEquals(0, take().length());
+        assertEquals(0, new JSONArray(BankListener.diagnostics(listener)).length());
+        BankListener.add(listener, ALFA, "Альфа-Банк", ALFA_TRANSFER, TIME);
+        BankListener.diagnostic(listener, "org.telegram.messenger", "private", "private", "ignored", TIME);
+        BankListener.purgeWhenDisabled(listener);
+        assertEquals(0, take().length());
+        assertEquals(0, new JSONArray(BankListener.diagnostics(listener)).length());
+    }
+
     private Notification notification(String title, String text) {
         return new Notification.Builder(listener, "test")
                 .setContentTitle(title)
@@ -73,7 +86,7 @@ public class BankListenerTest {
     }
 
     private void post(String pkg, Notification notification, long time) {
-        listener.onNotificationPosted(new StatusBarNotification(
+        listener.processNotification(new StatusBarNotification(
                 pkg, pkg, 1, null, 0, 0, 0, notification, Process.myUserHandle(), time));
     }
 

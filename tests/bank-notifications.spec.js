@@ -145,3 +145,14 @@ test('bankIngest suggests the Alfa expense once and rejects similar non-transact
  expect(r.added).toBe(1);
  expect(r.queue).toEqual([expect.objectContaining({amt:570,type:'e',pkg:'ru.alfabank.mobile.android'})]);
 });
+
+test('paused bank import hides existing suggestions and never drains native queue',async({page})=>{
+ const r=await probe(page,()=>{
+  let takes=0;
+  window.AndroidApp={bankOn:()=>true,bankTake:()=>{takes++;return '[]'}};
+  S.bankQ=[{id:'old',amt:100,type:'e',raw:'old',date:'2026-11-25'}];
+  bankPull();
+  return {enabled:bankHas(),card:bankCard(),takes};
+ });
+ expect(r).toEqual({enabled:false,card:'',takes:0});
+});

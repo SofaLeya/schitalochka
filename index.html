@@ -483,6 +483,16 @@ details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:bas
 .seg.st4 button.on .sti{color:#fff;background:var(--sc);box-shadow:none}
 .amtrow{display:flex;gap:8px;align-items:stretch}.amtrow .amount{flex:1;min-width:0}
 .amtrow .curpick{flex:none;width:124px!important;min-width:0;padding:0 26px 0 12px;font-weight:800;font-size:15px;text-overflow:ellipsis;background-position:right 6px center}.plusbtn{flex:none;width:52px;padding:0;font-size:24px;font-weight:700}.plusbtn.sm{width:40px;font-size:20px}
+.funding{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);font-size:13px}
+.funding[hidden]{display:none}
+.funding-short{color:var(--out)}
+.funding-actions{display:flex;flex-wrap:wrap;gap:6px}
+.funding-rows{display:grid;gap:5px}
+.funding-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;text-align:left}
+.funding-row>span:first-child{min-width:0;overflow-wrap:anywhere}
+.funding-row>span:last-child{flex:none;text-align:right}
+.funding button:disabled{opacity:.5;cursor:default}
+.funding-reset{justify-self:start;text-decoration:underline}
 .parts{display:flex;flex-direction:column;gap:8px;background:var(--surface2);border-radius:14px;padding:12px}
 .prow2{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line)}.prow{display:flex;gap:6px;align-items:center}.prow select{flex:1;min-width:0}.prow input{flex:1;min-width:0;width:0}.addsum{flex:none;white-space:nowrap;font-size:13px;line-height:1.15;padding:6px 10px}.amtrow .addsum{width:auto;font-size:12.5px}.pdel{flex:none;width:32px;height:32px;border-radius:50%;background:none;border:0;color:inherit;opacity:.7;font-size:16px}
 .help details{background:var(--surface);border-radius:14px;padding:0 14px}
@@ -849,7 +859,7 @@ function rtFetch(force,need){
       if(j&&j[lb]&&(!best||String(j.date)>String(best.date)))best=j}).catch(function(){}).then(function(){if(--left)return;rtFetch.busy=0;
       if(!best){if(force&&typeof toast==='function')toast('Курс не загрузился. Проверь интернет или впиши свой курс.',true);return}
       RT={base:b,day:T,date:best.date||T,r:best[lb]};try{localStorage.setItem('sch-rates',JSON.stringify(RT))}catch(e){}
-      if(force&&typeof toast==='function')toast('Курс обновлён');if(typeof render==='function')render();try{fxHint()}catch(e){}
+      if(force&&typeof toast==='function')toast('Курс обновлён');if(typeof render==='function')render();try{fxHint();fundingLive()}catch(e){}
       if(force&&sh&&sh.cur&&document.getElementById('s_cur'))curSheet();else if(sh&&sh.ac&&document.getElementById('a_cur')){var hint=document.getElementById('a_ratehint'),cur=document.getElementById('a_cur').value;if(hint&&cur!==baseCur())hint.textContent='Остаток веду в '+sym(cur)+', в общие итоги он идёт по курсу: '+rateTxt(cur)+'.'}})})}
 function curOpts(sel){return Object.keys(CUR).map(function(k){return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+CUR[k][0]+' · '+CUR[k][1]+'</option>'}).join('')}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
@@ -971,7 +981,7 @@ function applyBackup(o){if(isPlanFile(o))return applyPlan(o);snapTake('pre',true
   var extra=(S&&S.entries||[]).filter(function(e){return !e.demo&&e.id&&!ids[e.id]});
   if(!Array.isArray(o.accounts)||!o.accounts.length)o.accounts=[{id:'a1',name:'Основная карта',type:'main',start:+o.start||0}];var accIds={};(o.accounts||[]).forEach(function(a){accIds[a.id]=1});
   var main=(o.accounts||[]).filter(function(a){return a.type==='main'})[0];
-  var prior=(S&&S.accounts||[]);extra.forEach(function(e){['acc','from','to'].forEach(function(k){var id=e[k];if(!id||accIds[id])return;var old=prior.filter(function(a){return a.id===id})[0];if(old&&old.type!=='main'){o.accounts.push(Object.assign({},old));accIds[id]=1}})});
+  var prior=(S&&S.accounts||[]);extra.forEach(function(e){entryAccountIds(e).forEach(function(id){if(!id||accIds[id])return;var old=prior.filter(function(a){return a.id===id})[0];if(old&&old.type!=='main'){o.accounts.push(Object.assign({},old));accIds[id]=1}})});
   o.entries=o.entries.concat(extra);
   S=migrate(o);S.demo=false;save();closeSheet();render();
   toast('Готово: восстановлено записей '+(S.entries.length-extra.length)+(extra.length?', и сохранено '+extra.length+' сделанных после копии':''));
@@ -1073,7 +1083,14 @@ function migrate(o){
   o.accounts.forEach(function(a){if(!Array.isArray(a.adj))return;a.adj=a.adj.filter(function(x){if(!x.ms)return true;a.start=(+a.start||0)+(+x.amt||0);return false});if(!a.adj.length)delete a.adj});if(o.simple===undefined)o.simple=true;
   // Старые версии удаляли сам счёт, но оставляли его id в записях. Не переносим такие операции на основную карту.
   var known=Object.create(null);o.accounts.forEach(function(a){known[a.id]=1});
-  (o.entries||[]).forEach(function(e){(e.type==='t'?['from','to']:['acc']).forEach(function(k){var id=e[k];if(!id||known[id])return;known[id]=1;o.accounts.push({id:id,name:'Удалённый счёт '+String(id).slice(-6),type:'other',start:0,live:false,planSpend:false,archived:true,unknownAccount:true})})});
+  (o.entries||[]).forEach(function(e){
+    if(e.funding&&!validFunding(e))delete e.funding;
+    entryAccountIds(e).forEach(function(id){
+      if(!id||known[id])return;known[id]=1;
+      var part=fundingPart(e,id);
+      o.accounts.push({id:id,name:'Удалённый счёт '+String(id).slice(-6),type:'other',start:0,cur:part&&part.cur,live:false,planSpend:false,archived:true,unknownAccount:true});
+    });
+  });
   if(!Array.isArray(o.rules))o.rules=[];delete o.payAcc;if(!Array.isArray(o.skips))o.skips=[];
   // payAllSave: {день: 'rules'|id копилки}; мусор с доходов (ранний прототип) не переносим
   if(o.payAllSave&&typeof o.payAllSave==='object'&&!Array.isArray(o.payAllSave)){
@@ -1085,13 +1102,38 @@ function migrate(o){
 }
 function activeAccounts(){return S.accounts.filter(function(a){return !a.archived})}
 function archivedAcc(id){var a=accById(id);return !!(a&&a.archived)}
-function archivedEntry(x){return x.type==='t'?(archivedAcc(x.from)||archivedAcc(x.to)):archivedAcc(x.acc)}
+function entryAccountIds(x){
+  return x.type==='t'?[x.from,x.to]:x.funding?x.funding.map(function(p){return p.acc}):[x.acc];
+}
+function archivedEntry(x){return entryAccountIds(x).some(archivedAcc)}
 function accountDependencies(id){return ['recur','rules','pct','carry','incomes','tpls','bankQ'].some(function(k){return (Array.isArray(S[k])?S[k]:[]).some(function(x){return x&&(x.acc===id||x.from===id||x.to===id||x.after===id)})})||S.cushion===id||(S.selfPay&&S.selfPay.acc===id)}
-function canArchiveAccount(a){if(!a||a.type==='main')return 'Основную карту нельзя архивировать.';if(Math.abs(accBalN(a))>=0.005)return 'Сначала обнули остаток карты или погаси долг. Историю не удаляю.';if(accountDependencies(a.id))return 'Сначала перенеси связанные платежи и правила на другой счёт.';if(S.entries.some(function(x){return x.date>T&&(x.acc===a.id||x.from===a.id||x.to===a.id)}))return 'Сначала перенеси будущие операции на другой счёт.';return ''}
+function canArchiveAccount(a){if(!a||a.type==='main')return 'Основную карту нельзя архивировать.';if(Math.abs(accBalN(a))>=0.005)return 'Сначала обнули остаток карты или погаси долг. Историю не удаляю.';if(accountDependencies(a.id))return 'Сначала перенеси связанные платежи и правила на другой счёт.';if(S.entries.some(function(x){return x.date>T&&entryAccountIds(x).indexOf(a.id)>=0}))return 'Сначала перенеси будущие операции на другой счёт.';return ''}
 function archiveCard(){var ar=S.accounts.filter(function(a){return a.archived});if(!ar.length)return '';return fcard('archive','📁 Архив счетов',null,ar.length+' · история сохранена','<div class="list">'+ar.map(function(a){return '<div class="row"><div class="grow"><div class="t">'+esc(a.name)+'</div><div class="s">'+(a.unknownAccount?'Исходные настройки неизвестны; сверь остатки с банком':'Закрыт')+(a.archivedAt?' · '+dlabel(a.archivedAt):'')+'</div></div><button type="button" class="btn ghost sm" data-a="unarchiveAcc" data-id="'+esc(a.id)+'">Вернуть</button></div>'}).join('')+'</div>')}
 function accById(id){for(var i=0;i<S.accounts.length;i++)if(S.accounts[i].id===id)return S.accounts[i];return null}
 function defAcc(){var m=activeAccounts().filter(function(a){return a.type==='main'})[0];return (m||activeAccounts()[0]).id}
 function accOf(x){return x.acc&&accById(x.acc)?x.acc:defAcc()}
+function validFunding(x){
+  if(x.type!=='e'||!Array.isArray(x.funding)||!x.funding.length)return false;
+  var seen=new Set(),total=0;
+  return x.funding.every(function(p){
+    if(!p||typeof p.acc!=='string'||!p.acc||seen.has(p.acc)||!Object.prototype.hasOwnProperty.call(CUR,p.cur)||
+       !Number.isFinite(p.amt)||p.amt<=0||!Number.isFinite(p.nat)||p.nat<=0)return false;
+    seen.add(p.acc);total+=Math.round(p.amt*100);return true;
+  })&&x.acc===x.funding[0].acc&&total===Math.round(x.amt*100);
+}
+function fundingPart(x,id){
+  return x.funding&&x.funding.find(function(p){return p.acc===id});
+}
+function entryUsesAccount(x,id){
+  return x.type==='t'?(x.from===id||x.to===id):x.funding?!!fundingPart(x,id):accOf(x)===id;
+}
+function expensePortion(x,keep){
+  if(!x.funding)return keep(accOf(x))?x.amt:0;
+  return Math.round(x.funding.reduce(function(s,p){return s+(keep(p.acc)?p.amt:0)},0)*100)/100;
+}
+function expenseDebit(x,a){
+  return x.funding||accOf(x)===a.id?natOf(x,a):0;
+}
 /* «на жизнь»: основная карта и карты с галочкой «Трачу с неё на жизнь» - входят в свободные деньги и план */
 function isLive(a){return !!a&&(a.type==='main'||(a.type==='other'&&!!a.live))}
 function isLiveId(id){return isLive(accById(id))}
@@ -1101,19 +1143,25 @@ function isPlanId(id){return isPlan(accById(id))}
 function cardsOn(){return activeAccounts().some(function(a){return a.type==='other'})}
 /* поправки остатка с датой: прошлые месяцы не переписываются задним числом */
 function accAdj(a,d,incl){return (a.adj||[]).reduce(function(s,x){return s+((incl?x.date<=d:x.date<d)?+x.amt||0:0)},0)}
-function addAdj(a,dlt){dlt=Math.round(dlt*100)/100;if(Math.abs(dlt)<0.005)return;var hasE=S.entries.some(function(x){return !x.hist&&!x.nobal&&(x.type==='t'?(x.from===a.id||x.to===a.id):accOf(x)===a.id)});if(!hasE&&!(a.adj||[]).length){a.start=(+a.start||0)+dlt;return}a.adj=(a.adj||[]).concat([{date:T,amt:dlt}])}
+function addAdj(a,dlt){dlt=Math.round(dlt*100)/100;if(Math.abs(dlt)<0.005)return;var hasE=S.entries.some(function(x){return !x.hist&&!x.nobal&&entryUsesAccount(x,a.id)});if(!hasE&&!(a.adj||[]).length){a.start=(+a.start||0)+dlt;return}a.adj=(a.adj||[]).concat([{date:T,amt:dlt}])}
 function natOf(x,a){ // сумма записи в валюте счёта a
+  if(x.funding){
+    var p=a&&fundingPart(x,a.id),cur=accCur(a);
+    return !p?0:p.cur===cur?p.nat:p.amt/rateOf(cur);
+  }
   if(!isFx(a))return x.amt;
   if(x.type==='t'){var v=x.from===a.id?x.fa:x.ta;if(v>0)return v}
   else if(x.ca>0)return x.ca;
   else if(x.oc===a.cur&&x.oa>0)return x.oa;
   return x.amt/rateOf(a.cur)}
-function accBalN(a){ // остаток в валюте самого счёта
-  var b=(+a.start||0)+accAdj(a,T,true);
+function accBalN(a,asOf){ // остаток в валюте самого счёта
+  asOf=asOf||T;
+  var b=(+a.start||0)+accAdj(a,asOf,true);
   S.entries.forEach(function(x){
-    if(x.date>T||x.hist||x.nobal)return;
+    if(x.date>asOf||x.hist||x.nobal)return;
     if(x.type==='t'){if(x.from===a.id)b-=natOf(x,a);if(x.to===a.id)b+=natOf(x,a)}
-    else if(accOf(x)===a.id)b+=x.type==='i'?natOf(x,a):-natOf(x,a);
+    else if(x.type==='e')b-=expenseDebit(x,a);
+    else if(accOf(x)===a.id)b+=natOf(x,a);
   });
   return b;
 }
@@ -1715,7 +1763,8 @@ function fcPace(netForecast){
     life(l0).forEach(function(x){
       if(x.type==='e'&&!x.skip){
         if(pl.some(function(q){return q.cat===x.cat&&+q.wd===wd}))return;
-        if(!isLiveId(accOf(x)))return;var v=netForecast?netOf(x,LK):receivedNetOf(x,LK);if(v>=huge){hugeS+=v;return}
+        var amt=expensePortion(x,function(id){return isLiveId(id)&&isPlanId(id)});if(!(amt>0))return;
+        var v=(netForecast?netOf(x,LK):receivedNetOf(x,LK))*amt/x.amt;if(v>=huge){hugeS+=v;return}
         all+=v;if(!EV[x.cat]&&v>=largeMin)large+=v;if(EV[x.cat]||v<big)base+=v}
       else if(x.type==='i'&&x.cat==='refund'&&!x.skip&&!LK.linked[x.id]&&isLiveId(accOf(x))){all-=x.amt;base-=x.amt}})}
   return {kn:kn,pace:kn?Math.max(0,all/kn):0,paceB:kn?Math.max(0,base/kn):0,usualPace:kn?Math.max(0,(all-large)/kn):0,withLargePace:kn?Math.max(0,(all+hugeS)/kn):0,largeMin:largeMin,hugeS:hugeS,huge:huge,pl:pl}}
@@ -1781,8 +1830,9 @@ function fcPendingRefunds(){
   var LK=refLinks(),sum=0;
   S.entries.forEach(function(x){
     if(x.type!=='e'||x.demo||x.skip||x.nobal||x.hist||x.date>T)return;
-    var a=accById(accOf(x));if(!a||a.archived||!isLive(a))return;
-    sum+=Math.min(Math.max(0,(+x.amt||0)-backOf(x,LK).back),backOf(x,LK).pend);
+    var amt=expensePortion(x,function(id){return isLiveId(id)&&!archivedAcc(id)});if(!(amt>0))return;
+    var b=backOf(x,LK);
+    sum+=Math.min(Math.max(0,x.amt-b.back),b.pend)*amt/x.amt;
   });
   return sum;
 }
@@ -2148,15 +2198,17 @@ function planInfo0(){var p0=planInfo1();if(!S.irreg||p0.src==='manual')return p0
   if(!spOn())c.save+=ii*pctSum()/100;return {v:planCalcVal(c),src:spOn()?'self':'irreg',c:c}}
 // Кассовая реконструкция: только реальные движения по картам на жизнь.
 // Возврат уменьшает spent, только если относится к расходу, который сам входит в spent (не rid/rare).
-function cashLifeExpense(x){return x&&x.type==='e'&&!x.demo&&!x.hist&&!x.nobal&&!x.skip&&!x.rid&&!isRareExpense(x)&&isLiveId(accOf(x))}
+function cashLifeAmount(x){
+  return x&&x.type==='e'&&!x.demo&&!x.hist&&!x.nobal&&!x.skip&&!x.rid&&!isRareExpense(x)?expensePortion(x,isLiveId):0;
+}
 function cashPlanSpent(from,to){
   var spent=0,LK=refLinks(),byId={};S.entries.forEach(function(x){byId[x.id]=x});
   S.entries.forEach(function(x){
-    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
-    if(x.type==='e'&&cashLifeExpense(x))spent+=+x.amt||0;
-    else if(x.type==='i'&&x.cat==='refund'){
+    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip)return;
+    if(x.type==='e')spent+=cashLifeAmount(x);
+    else if(x.type==='i'&&x.cat==='refund'&&isLiveId(accOf(x))){
       var eid=LK.linked[x.id],e=eid?byId[eid]:null;
-      if(e){if(cashLifeExpense(e)&&e.date>=from&&e.date<=to)spent-=+x.amt||0}
+      if(e){if(e.amt>0&&e.date>=from&&e.date<=to)spent-=x.amt*(cashLifeAmount(e)/e.amt)}
       else if(!(x.for&&x.for!=='none'&&!byId[x.for]))spent-=+x.amt||0; // непривязанный возврат на карте на жизнь; сироту не вычитаем
     }
   });
@@ -2164,9 +2216,9 @@ function cashPlanSpent(from,to){
 function cycleRarePaid(from,to){
   var paid=0,LK=refLinks(),byId={};S.entries.forEach(function(x){byId[x.id]=x});
   S.entries.forEach(function(x){
-    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip||!isLiveId(accOf(x)))return;
-    if(x.type==='e'&&isRareExpense(x))paid+=+x.amt||0;
-    else if(x.type==='i'&&x.cat==='refund'){var e=LK.linked[x.id]?byId[LK.linked[x.id]]:null;if(e&&isRareExpense(e)&&isLiveId(accOf(e)))paid-=+x.amt||0}
+    if(x.date<from||x.date>to||x.demo||x.hist||x.nobal||x.skip)return;
+    if(x.type==='e'&&isRareExpense(x))paid+=expensePortion(x,isLiveId);
+    else if(x.type==='i'&&x.cat==='refund'&&isLiveId(accOf(x))){var e=LK.linked[x.id]?byId[LK.linked[x.id]]:null;if(e&&e.amt>0&&isRareExpense(e))paid-=x.amt*(expensePortion(e,isLiveId)/e.amt)}
   });
   return Math.max(0,paid)}
 function cycleDayPlan(){
@@ -2547,11 +2599,15 @@ function life(list){
   // Одни правила учёта факта в обоих режимах: со свободных денег, без платежей (rid),
   // без редких и без чужих счетов. Устаревшее поле S.planOut на факт не влияет.
   // nobal («не с моих счетов») в историю входит, но личный дневной бюджет не уменьшает.
-  return list.filter(function(x){
-    if(x.nobal)return false;
-    if((x.type==='e'||(x.type==='i'&&x.cat==='refund'))&&!isPlanId(accOf(x)))return false;
-    if(x.type==='e'&&(x.rid||isRareExpense(x)))return false;
-    return true;
+  return list.flatMap(function(x){
+    if(x.nobal)return [];
+    if(x.type==='i'&&x.cat==='refund'&&!isPlanId(accOf(x)))return [];
+    if(x.type!=='e')return [x];
+    if(x.rid||isRareExpense(x))return [];
+    var amt=expensePortion(x,isPlanId);
+    if(!(amt>0))return [];
+    // Срез для плана. Полная сумма нужна для пропорционального учёта возврата.
+    return [amt===x.amt?x:Object.assign({},x,{amt:amt,planGross:x.planGross||x.amt})];
   });
 }
 /* траты на жизнь за вычетом возвратов, привязанный возврат - в день своей траты */
@@ -3280,7 +3336,8 @@ function balanceBefore(d){ // «Свободные деньги» на нача�
     (a.adj||[]).forEach(function(x){if(x.date>=d&&x.date<=T)b-=(+x.amt||0)*rt});
     S.entries.forEach(function(x){if(x.date<d||x.date>T||x.nobal||x.demo&&!S.demo)return;
       if(x.type==='t'){if(x.from===a.id)b+=natOf(x,a)*rt;if(x.to===a.id)b-=natOf(x,a)*rt}
-      else if(accOf(x)===a.id){var v=natOf(x,a)*rt;b-=x.type==='i'?v:-v}})});
+      else if(x.type==='e')b+=expenseDebit(x,a)*rt;
+      else if(accOf(x)===a.id)b-=natOf(x,a)*rt})});
   return b}
 function payPraise(){
   if(S.demo||!isPayDay(T))return null;
@@ -3442,7 +3499,7 @@ function goalPlan(a){ // сколько в месяц откладываю: по
 }
 function goalPace(a){ // чистый приток за последние 30 дней (≈ темп в месяц)
   var to=petDay(),fr=iso(addDays(parse(to),-30)),net=0;
-  S.entries.forEach(function(x){if(x.demo||x.date<fr||x.date>to)return;if(x.type==='t'){if(x.to===a.id)net+=x.amt;if(x.from===a.id)net-=x.amt}else if(x.acc===a.id)net+=x.type==='i'?x.amt:-x.amt});
+  S.entries.forEach(function(x){if(x.demo||x.date<fr||x.date>to)return;if(x.type==='t'){if(x.to===a.id)net+=x.amt;if(x.from===a.id)net-=x.amt}else if(x.type==='e')net-=expensePortion(x,function(id){return id===a.id});else if(x.acc===a.id)net+=x.amt});
   return net;
 }
 function goalLine(a){if(!(a.goal>0))return '';var gc=isFx(a)?a.cur:baseCur(),gk=isFx(a)?1/rateOf(a.cur):1,b=accBalN(a),p=Math.max(0,Math.min(100,b/a.goal*100)),left=a.goal-b,eta='';
@@ -3525,7 +3582,7 @@ function accountsCard(){
 /* части одного разложенного чека */
 function grpOf(x){if(!x||!x.grp)return [];var g=S.entries.filter(function(e){return e.grp===x.grp&&e.type==='e'});return g.length>1?g:[]}
 function grpTag(x){var g=grpOf(x);if(!g.length)return '';return ' · 🧩 часть чека '+money(g.reduce(function(a,e){return a+e.amt},0))}
-function accTag(x){if(x.type==='t'||x.nobal)return '';var id=accOf(x);if(!id||id===defAcc())return '';var a=accById(id);return a?' · 💳 '+esc(accName(a)):''}
+function accTag(x){if(x.type==='t'||x.nobal)return '';if(x.funding)return ' · '+x.funding.length+' '+plw(x.funding.length,'источник','источника','источников');var id=accOf(x);if(!id||id===defAcc())return '';var a=accById(id);return a?' · 💳 '+esc(accName(a)):''}
 function transferHistoryNote(x){
  var note=String(x.note||'').trim();
  if(/(?:^|·\s*)по плану$/i.test(note))return 'по плану';
@@ -3553,7 +3610,7 @@ function histMatch(x){
   if(hfrom&&x.date<hfrom)return false;if(hto&&x.date>hto)return false;
   if(ha){var v=x.amt;if(ha==='lt300'&&v>=lc(300))return false;if(ha==='lt500'&&v>=lc(500))return false;if(ha==='500_2000'&&(v<lc(500)||v>lc(2000)))return false;if(ha==='gt2000'&&v<=lc(2000))return false;if(ha==='gt10000'&&v<=lc(10000))return false}
   if(hc){if(hc==='__t'){if(x.type!=='t')return false}else if(x.cat!==hc)return false}
-  if(hacc){if(x.type==='t'){if(x.from!==hacc&&x.to!==hacc)return false}else if(accOf(x)!==hacc)return false}
+  if(hacc&&!entryUsesAccount(x,hacc))return false;
   if(hsk==='skip'&&!x.skip)return false;if(hsk==='split'&&!(x.split>0))return false;
   if(!hq)return true;var q=norm(hq),c=x.type==='t'?'перевод':norm((CMAP[x.cat]||CMAP.other).name);
   if(norm(x.note).indexOf(q)>=0||c.indexOf(q)>=0)return true;var qn=q.replace(/\s/g,'');return /^\d+$/.test(qn)&&String(Math.round(x.amt)).indexOf(qn)>=0;
@@ -3593,10 +3650,10 @@ function refLinks(){
   return {byExp:byExp,linked:linked,gb:gb,gp:gp};
 }
 function backOf(x,LK){
-  if(LK.gb&&LK.gb[x.id]!=null){var back=LK.gb[x.id]||0;return {back:back,pend:Math.max(0,(LK.gp[x.id]||0)-back)}}
-  var back=(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0);
-  var split=x.split>0&&!x.splitDone?Math.min(x.split,x.amt):0;
-  return {back:back,pend:Math.max(0,split-back)};
+  var gross=x.planGross||x.amt,share=gross>0?x.amt/gross:1,group=LK.gb&&LK.gb[x.id]!=null;
+  var back=group?LK.gb[x.id]||0:(LK.byExp[x.id]||[]).reduce(function(a,r){return a+r.amt},0);
+  var split=group?LK.gp[x.id]||0:x.split>0&&!x.splitDone?Math.min(x.split,gross):0;
+  return {back:back*share,pend:Math.max(0,split-back)*share};
 }
 function receivedNetOf(x,LK){return Math.max(0,x.amt-backOf(x,LK).back)}
 function netOf(x,LK){
@@ -4650,7 +4707,15 @@ function splitBub(){ // пока ждёшь возврат, монстрик н�
 /* лимиты: S.catLim - постоянные, S.catLimM[ym] - правки только на месяц (0 = без лимита в этом месяце) */
 function catLimits(ym){var b=Object.assign({},S.catLim||{});if(!ym)return b;var o=(S.catLimM||{})[ym]||{};Object.keys(o).forEach(function(k){if(+o[k]>0)b[k]=+o[k];else delete b[k]});return b}
 /* сколько ушло по категориям за месяц для лимитов: траты со свободных денег за вычетом возвратов, без отмеченных платежей */
-function limSpent(ym){var mn=defAcc(),to=petDay();return netByCat(S.entries.filter(function(x){return !x.demo&&x.date.slice(0,7)===ym&&x.date<=to&&!(x.type==='e'&&(x.rid||!isLiveId(accOf(x))))}))}
+function limSpent(ym){
+  var to=petDay();
+  return netByCat(S.entries.flatMap(function(x){
+    if(x.demo||x.date.slice(0,7)!==ym||x.date>to)return [];
+    if(x.type!=='e')return [x];
+    var amt=x.rid?0:expensePortion(x,isLiveId);
+    return amt>0?[amt===x.amt?x:Object.assign({},x,{amt:amt,planGross:x.amt})]:[];
+  }));
+}
 function catLimSheet(){
   var lim=catLimits(),from=nextYM(T.slice(0,7),-3)+'-01',to=T.slice(0,7)+'-01',avg={};
   S.entries.forEach(function(x){if(x.demo||x.type!=='e'||x.skip||x.date<from||x.date>=to)return;avg[x.cat]=(avg[x.cat]||0)+x.amt/3});
@@ -4759,13 +4824,17 @@ function onbFinish(){onbRead();var d=sh.d,ob=num(d.bal),ol=num(d.lim);
   S.pet=Object.assign({},S.pet||{},{kind:d.kind||'fluff',name:String(d.name||'').trim().slice(0,20)});if(d.irr)S.irreg=true;S.onbAt=petDay();S.setup=1;S.onb=1;S.seenVer=APP_VER;save();closeSheet();render();toast('Готово! Нажми "+" и запиши первую трату')}
 /* меню «Платежи и из копилок»: траты месяца, которые не входят в траты на жизнь (раскрывается по нажатию) */
 function outCard(me){
-  var inLife={};life(me).forEach(function(x){inLife[x.id]=1});
-  var out=me.filter(function(x){return x.type==='e'&&!x.skip&&!x.demo&&!inLife[x.id]}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
+  var inLife={};life(me).forEach(function(x){inLife[x.id]=x.amt});
+  var out=me.flatMap(function(x){
+    if(x.type!=='e'||x.skip||x.demo)return [];
+    var amt=Math.round((x.amt-(inLife[x.id]||0))*100)/100;
+    return amt>0?[{entry:x,amt:amt}]:[];
+  }).sort(function(a,b){return a.entry.date<b.entry.date?1:a.entry.date>b.entry.date?-1:0});
   if(!out.length)return '';
   var sum=out.reduce(function(a,x){return a+x.amt},0);
   return fcard('payout',(!S.simple&&rareCats()?'Платежи, редкие траты':'Платежи')+(activeAccounts().some(function(a){return a.type==='save'})?' и из копилок':''),money(sum),out.length+' '+plw(out.length,'запись','записи','записей')+' · не входят в траты на жизнь',
-    '<div class="list">'+out.map(function(x){var c=CMAP[x.cat]||CMAP.other,a=accById(accOf(x));
-      return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(x.note||c.name)+'</div><div class="s">'+dlabel(x.date)+(a?' · из «'+esc(accName(a))+'»':'')+' · '+esc(c.name)+'</div></div><span class="amt out">−'+money(x.amt)+'</span></button>'}).join('')+'</div>')}
+    '<div class="list">'+out.map(function(o){var x=o.entry,c=CMAP[x.cat]||CMAP.other,a=accById(accOf(x));
+      return '<button class="row" data-a="edit" data-id="'+x.id+'">'+cdot(c)+'<div class="grow"><div class="t">'+esc(x.note||c.name)+'</div><div class="s">'+dlabel(x.date)+(x.funding?accTag(x):a?' · из «'+esc(accName(a))+'»':'')+' · '+esc(c.name)+'</div></div><span class="amt out">−'+money(o.amt)+'</span></button>'}).join('')+'</div>')}
 /* полный режим: траты на жизнь против плана на месяц; платежи, траты из копилок и доходы - отдельно */
 function lifeCard(me,n){
   var cur=vym===T.slice(0,7),dd=cur?parseInt(T.slice(8),10):n,left=n-dd,lim=dayLimit(),mps=monthPlanStatus(vym),planM=mps.complete?monthEnvelope(vym):0,lnet=Math.max(0,lifeNet(me)),rest=planM-lnet;
@@ -4789,6 +4858,11 @@ function lifeCard(me,n){
   return '<div class="card"><div class="tiprow"><h2>🧺 Траты на жизнь</h2>'+tipBtn('life')+'</div>'+tipBox('life','Только траты со свободных денег: без платежей и трат из копилок, минус возвраты. Задай план трат на день, и здесь появится сравнение с ним.')+
     '<div class="note info"><b>'+money(lnet)+'</b><span class="fine">'+(dd?'В день: '+money(lnet/dd):'')+'</span></div>'+
     '<div class="row"><div class="grow fine">Пришло за месяц</div><span class="amt in">'+money(incR)+'</span></div></div>'}
+function categoryAnalysis(list){
+  // Покупка с распределением попадает в категорию целиком. Дневной и
+  // категорийный планы продолжают использовать только свой срез расходов.
+  return netByCat(life(list.filter(function(x){return !x.funding})).concat(list.filter(function(x){return x.funding})));
+}
 function viewAn(){
   var me=monthEntries(vym),inc=sum(me,'i'),exp=sum(me,'e'),a=vym.split('-'),n=dim(+a[0],+a[1]-1);
   var curYM=T.slice(0,7),isCur=vym===curYM,upto=vym>curYM?0:isCur?parseInt(T.slice(8),10):n,lim=dayLimit();
@@ -4816,16 +4890,16 @@ function viewAn(){
   var rated=cnt.good+cnt.over,dsum=upto?(rated?'<span style="color:var(--in)">в плане '+cnt.good+'</span> · <span style="color:var(--out)">выше '+cnt.over+'</span> · ':cnt.nolim?'с тратами '+cnt.nolim+' · ':'')+'<span style="color:var(--gold)">★ без трат '+cnt.nospend+'</span>'+(cnt.unknown?' · без записей '+cnt.unknown:'')+(cnt.nolim&&rated?' · без плана '+cnt.nolim:''):'';
   var dayCard='<div class="card"><div class="tiprow"><h2>📆 Траты по дням</h2>'+tipBtn('days')+'</div>'+tipBox('days','Нажми на столбик, чтобы открыть записи за этот день. '+(lim>0?'Зелёный - день в плане, красный - выше плана, серый - лимит на день неизвестен, пунктир - текущий план на день. ':'Серый - день без известного плана. ')+'★ - день без трат. Дни без записей не считаются ни хорошими, ни плохими.')+
     '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Расходы по дням месяца" style="width:100%;height:auto;display:block">'+svg+'</svg>'+(dsum?'<div class="fine">Дней: '+dsum+'</div>':'')+'</div>';
-  var cat=netByCat(life(me)),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
+  var cat=categoryAnalysis(me),budgetCat=netByCat(life(me)),catSum=Object.keys(cat).reduce(function(s,k){return s+cat[k]},0);
   var cl=Object.keys(cat).sort(function(p,q){return cat[q]-cat[p]});
   var LM=catLimits(vym);Object.keys(LM).forEach(function(k){if(!(k in cat)&&CMAP[k]){cat[k]=0;cl.push(k)}});
   /* стрелки к прошлому месяцу: в текущем месяце - к тому же числу прошлого */
   var pym=nextYM(vym,-1),pme=monthEntries(pym),hasP=pme.some(function(x){return x.type==='e'&&!x.skip});
-  var pcat=hasP?netByCat(life(isCur?pme.filter(function(x){return parseInt(x.date.slice(8),10)<=upto}):pme)):{};
+  var pcat=hasP?categoryAnalysis(isCur?pme.filter(function(x){return parseInt(x.date.slice(8),10)<=upto}):pme):{};
   function arrow(k){if(!hasP)return '';var dv=(cat[k]||0)-(pcat[k]||0);if(Math.abs(dv)<Math.max(300,(pcat[k]||0)*0.1))return '';
     return '<span style="color:var('+(dv>0?'--out':'--in')+')">'+(dv>0?'↑':'↓')+' '+money(Math.abs(dv))+'</span>'}
-  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],over=lm&&cat[k]>lm;return '<button type="button" data-a="catHist" data-v="'+k+'" style="display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer"><div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+[lm?'из '+money(lm)+(cat[k]>lm?' · сверху '+money(cat[k]-lm):''):(catSum?Math.max(1,Math.round(cat[k]/catSum*100))+'% трат':''),arrow(k)].filter(Boolean).join(' · ')+'</div></div><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?cat[k]/lm*100:(catSum?cat[k]/catSum*100:0))+'%;background:'+(lm?(over?'var(--out)':cat[k]>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></button>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
-  var catTip='Траты на жизнь со свободных денег, после вычета возвратов. Платежи и траты из копилок вынесены в отдельное меню ниже. '+'Процент - какая доля всех трат на жизнь за месяц пришлась на категорию, полоска показывает то же. Если у категории есть лимит («План по категориям»), вместо процента видно «из суммы лимита». '+(hasP?'Стрелка - насколько больше или меньше, чем в прошлом месяце'+(isCur?' к этому же числу':'')+'. ':'')+'Нажми на категорию, чтобы открыть эти траты в «Истории».';
+  var catHtml=cl.length?cl.map(function(k){var c=CMAP[k]||CMAP.other,lm=LM[k],used=budgetCat[k]||0,over=lm&&used>lm;return '<button type="button" data-a="catHist" data-v="'+k+'" style="display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer"><div class="row">'+cdot(c)+'<div class="grow"><div class="t">'+esc(c.name)+'</div><div class="s">'+[lm?(used===cat[k]?'':money(used)+' по лимиту ')+ 'из '+money(lm)+(over?' · сверху '+money(used-lm):''):(catSum?Math.max(1,Math.round(cat[k]/catSum*100))+'% трат':''),arrow(k)].filter(Boolean).join(' · ')+'</div></div><span class="amt'+(over?' out':'')+'">'+money(cat[k])+'</span></div><div class="bar"><i style="width:'+Math.min(100,lm?used/lm*100:(catSum?cat[k]/catSum*100:0))+'%;background:'+(lm?(over?'var(--out)':used>lm*0.85?'var(--warn)':'var(--in)'):c.color)+'"></i></div></button>'}).join(''):'<p class="empty">Трат на жизнь за этот месяц нет.</p>';
+  var catTip='Траты на жизнь после возвратов. Покупки из нескольких источников входят в свою категорию целиком. Суммы вне дневного плана можно посмотреть ниже. '+'Процент показывает долю категории, полоска показывает то же. Если у категории есть лимит («План по категориям»), вместо процента видно «из суммы лимита». '+(hasP?'Стрелка - насколько больше или меньше, чем в прошлом месяце'+(isCur?' к этому же числу':'')+'. ':'')+'Нажми на категорию, чтобы открыть эти траты в «Истории».';
   if(!me.some(function(x){return x.type==='e'||x.type==='i'}))return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div><div class="card"><h2>📊 Тут будет разбор месяца</h2><p class="fine">'+(isCur?'Как только появятся записи, здесь будут траты по дням и по категориям, сравнение с планом и подсказки.':'В этом месяце записей нет.')+'</p>'+(isCur?'<div class="btns"><button class="btn sm" data-a="newEntry">Записать трату</button></div>':'')+'</div>';
   return '<div class="stick"><div class="top"><h1>Анализ</h1>'+topBtns()+'</div>'+monthNav()+'</div>'+reviewCard()+
    
@@ -5113,7 +5187,7 @@ function sortCats(list){return list.slice().sort(function(a,b){var ao=a.name==='
 function opts(list,sel){return (sel?'':'<option value="" selected disabled>Выбери категорию…</option>')+sortCats(list).map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')}
 
 function accOpts(sel){var rk={main:0,other:1,save:2,debt:3};return activeAccounts().map(function(a,i){return [a,i]}).sort(function(x,y){return (rk[x[0].type]||0)-(rk[y[0].type]||0)||x[1]-y[1]}).map(function(z){var a=z[0],ic=a.type==='debt'?(dkOf(a)?dkOf(a)[0]:'🏦'):a.type==='save'?accIco(a):'💳';return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+ic+' '+esc(accName(a))+(a.type==='debt'?' (долг)':'')+'</option>'}).join('')}
-function srcOpts(sel){var rk={main:0,other:1,save:2};return activeAccounts().filter(function(a){return a.type==='main'||a.type==='save'||a.type==='other'}).map(function(a,i){return [a,i]}).sort(function(x,y){return rk[x[0].type]-rk[y[0].type]||x[1]-y[1]}).map(function(z){return z[0]}).map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+(a.type==='main'?'':' · '+mon(accBalN(a),isFx(a)?a.cur:baseCur()))+'</option>'}).join('')}
+function srcOpts(sel){var rk={main:0,other:1,save:2};return fundingAccounts().map(function(a,i){return [a,i]}).sort(function(x,y){return rk[x[0].type]-rk[y[0].type]||x[1]-y[1]}).map(function(z){return z[0]}).map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(accName(a))+(a.type==='main'?'':' · '+mon(accBalN(a),isFx(a)?a.cur:baseCur()))+'</option>'}).join('')}
 function tDefaults(d){
   if(!d.from||!accById(d.from)||archivedAcc(d.from))d.from=defAcc();
   if(!d.to||d.to===d.from||!accById(d.to)||archivedAcc(d.to)){var o=activeAccounts().filter(function(x){return x.id!==d.from})[0];d.to=o?o.id:''}
@@ -5200,12 +5274,14 @@ function entrySheet(){
   var moreOpen=sh.more!==undefined?sh.more:entryMode(d)!=='own';
   var moreH=isT?'':'<details class="emore" id="f_more"'+(moreOpen?' open':'')+'><summary><span>Ещё</span><span class="fine" id="f_moresum">'+esc(moreSum(d))+'</span></summary><div class="f" style="gap:10px;margin-top:10px">'+(cardsOn()?'':accH)+modeH+'</div></details>';
   openSheet('<h3>'+(sh.id?'Запись':'Новая запись')+'</h3>'+
-   '<div class="seg st4">'+segs+'</div>'+
+   (d.rid?'':'<div class="seg st4">'+segs+'</div>')+
    '<form id="fm" class="f ent" style="gap:10px" autocomplete="off">'+
    '<div class="f"><div class="amtrow"><input id="f_amt" class="amount" aria-label="Сумма, '+sym(cc)+'" inputmode="decimal" placeholder="0 '+sym(cc)+'" value="'+esc(d.amt||'')+'">'+(isT?'':curPick(d))+''+(isT?'':'<button type="button" class="btn ghost addsum" data-a="amtMore" aria-label="Ещё сумма">+ ещё<br>сумма</button>')+'</div>'+(!isT&&!sh.id&&qrCan()?'<button type="button" class="fine" data-a="qrScan" style="align-self:flex-start;text-decoration:underline;background:none;border:0;cursor:pointer;margin-top:4px">📷 Сумма и дата из QR-кода на чеке</button>':'')+(!isT&&d.amtMore&&!(d.parts&&d.parts.length)?'<div class="amtmore" style="margin-top:8px"><span class="fine">Ещё одна сумма - куда?</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px"><button type="button" class="btn ghost sm" data-a="amtPlus" data-v="f_amt">➕ В ту же категорию</button><button type="button" class="btn ghost sm" data-a="partsOn">🧩 В другую</button></div></div>':'')+'<span class="fine" id="f_amtsum" hidden></span><span class="fine" id="f_fx" hidden></span>'+(!isT&&cc!==entAccCur(d)?'<div class="f" style="margin-top:6px"><label for="f_chg">'+(isE?'Списали с карты':'Пришло на карту')+', '+sym(entAccCur(d))+'</label><input id="f_chg" inputmode="decimal" value="'+esc(d.chg||'')+'" placeholder="по курсу"><span class="fine">Если знаешь точную сумму по банку - впиши, иначе посчитаю по курсу.</span></div>':'')+''+(d.payLeft?'<span class="fine">Остаток с прошлой зарплаты: '+money(d.payLeft)+'. Можно отложить не всё, просто поменяй сумму.</span>':'')+'</div>'+
+   (isE?'<div id="f_funding" class="funding" hidden></div>':'')+
    qk+body+(cardsOn()||d.type==='i'?accH:'')+(d.type==='i'&&d.cat!=='refund'&&S.irreg&&!sh.id?'<label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="checkbox" id="f_owed"> Ещё не пришло - в «Мне должны»</label>':'')+
    (sh.id&&(S.entries.filter(function(e){return e.id===sh.id})[0]||{}).hist?'<p class="note info fine" style="margin:0">Эта запись загружена из выписки. Она входит в траты и анализ, но остатки на счетах не меняет: при загрузке остатки выставлялись по банку. Если остаток в копилке неверный, нажми на копилку на главной и поправь сумму.</p>':'')+
-   '<div class="f"><label>Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'" hidden><div class="seg" id="f_dseg">'+dSeg+'</div></div>'+
+   (d.rid?'<p class="fine" style="margin:0">Дата платежа · '+dlabel(d.date)+'</p>':
+     '<div class="f"><label>Дата</label><input id="f_date" type="date" data-req="1" value="'+d.date+'" hidden><div class="seg" id="f_dseg">'+dSeg+'</div></div>')+
    splitH+moreH+
    '<p class="fine" id="f_err" style="color:var(--out)" hidden></p>'+
    '<div class="btns stickb"><button type="button" class="btn ghost" data-a="close">Отмена</button><button type="submit" class="btn">Сохранить</button></div>'+
@@ -5216,7 +5292,7 @@ function entrySheet(){
     if(!initialAmt||!initialAmt.isConnected||document.getElementById('f_amt')!==initialAmt||initialAmt.value)return;
     if(document.activeElement===document.body||document.activeElement===initialAmt)initialAmt.focus();
   },50)}
-  setTimeout(partsLive,0);setTimeout(fxHint,0);
+  fundingLive();setTimeout(partsLive,0);setTimeout(fxHint,0);
 }
 function accCur(a){return isFx(a)?a.cur:baseCur()}
 function entAccCur(d){ // валюта счёта, с которого платят / куда приходит
@@ -5226,8 +5302,137 @@ function entCur(d){ // в какой валюте вводится сумма з
   if(d.type!=='t'&&d.cur&&CUR[d.cur])return d.cur;
   return entAccCur(d)}
 function multiCur(){var b=baseCur();return S.accounts.some(function(a){return a.cur&&a.cur!==b})||S.entries.some(function(e){return e.cur&&e.cur!==b})||!!S.curOn}
-function needNat(d,tot){ // сколько уйдёт со счёта в его валюте
-  var ec=entCur(d),ac=entAccCur(d);if(ec===ac)return tot;var c=sumAmt(d.chg);if(c>0)return c;return tot*rateOf(ec)/rateOf(ac)}
+function entryFx(d,total,old){
+  var ec=entCur(d),ac=entAccCur(d),chg=ec!==ac?sumAmt(d.chg):NaN;
+  var rate=chg>0?chg*rateOf(ac)/total:
+    old&&old.oc===ec&&old.oa>0&&old.amt>0&&!old.ca?old.amt/old.oa:rateOf(ec);
+  return {cur:ec,rate:rate,charge:chg>0?chg/total:0};
+}
+function fundingAccounts(){
+  return activeAccounts().filter(function(a){return a.type==='main'||a.type==='other'||a.type==='save'});
+}
+function fundingAvailable(a,old,date){
+  var asOf=date>T?date:T;
+  var restored=old&&old.type==='e'&&old.date<=asOf&&!old.hist&&!old.nobal?expenseDebit(old,a):0;
+  return Math.max(0,Math.floor((accBalN(a,asOf)+restored)*100+1e-7)/100);
+}
+function expenseFunding(d,total,old){
+  if(d.type!=='e'||d.nobal||old&&old.hist||!(total>0))return null;
+  var primary=accById(d.acc||defAcc());
+  if(!primary||primary.archived)return null;
+  var others=d.fundingAccounts||[],ids=[primary.id].concat(others);
+  var fx=entryFx(d,total,old),needed=Math.round(total*fx.rate*100);
+  var existing=old&&old.funding;
+  if(existing&&old.date===d.date&&old.acc===primary.id&&total===(old.oa||old.amt)&&
+     fx.cur===(old.oc||baseCur())&&(sumAmt(d.chg)||0)===(old.ca||0)&&
+     existing.length===ids.length&&existing.every(function(p,i){return p.acc===ids[i]})){
+    return {parts:existing,missing:0,chosen:true};
+  }
+  var left=needed,parts=[];
+  ids.forEach(function(id){
+    if(left<=0)return;
+    var a=accById(id);if(!a||a.archived)return;
+    var cur=accCur(a),rate=rateOf(cur);
+    var available=fundingAvailable(a,old,d.date),amount=Math.min(left,Math.round(available*rate*100));
+    if(!(amount>0))return;
+    var nat=Math.min(available,Math.round(amount/rate)/100);
+    if(!(nat>0))return;
+    parts.push({acc:id,amt:amount/100,nat:nat,cur:cur});left-=amount;
+  });
+  return {parts:parts,missing:left/100,chosen:others.length>0,primary:primary.id};
+}
+function fundingMoney(n,cur){
+  return n.toLocaleString('ru-RU',{maximumFractionDigits:2}).replace(/\s/g,' ')+' '+sym(cur);
+}
+function fundingLabel(p){
+  return fundingMoney(p.nat,p.cur)+(p.cur!==baseCur()?' (≈ '+fundingMoney(p.amt)+')':'');
+}
+function fundingRows(parts){
+  return '<div class="funding-rows">'+parts.map(function(p){
+    var a=accById(p.acc);
+    return '<div class="funding-row"><span>'+esc(a?accName(a):p.acc)+'</span><span>'+esc(fundingLabel(p))+'</span></div>';
+  }).join('')+'</div>';
+}
+function fundingOptions(d,old){
+  var used=[d.acc||defAcc()].concat(d.fundingAccounts||[]);
+  return fundingAccounts().filter(function(a){return used.indexOf(a.id)<0}).map(function(a){
+    return {account:a,available:fundingAvailable(a,old,d.date)};
+  });
+}
+function fundingRequired(plan,options,d){
+  // Для основной карты без доступных дополнительных источников остаётся ручной учёт перерасхода.
+  return plan.missing>0&&(plan.chosen||plan.primary!==defAcc()||d.accManual||options.some(function(o){return o.available>0}));
+}
+function fundingLive(){
+  var el=document.getElementById('f_funding');if(!el||!sh||!sh.d)return;
+  var draft=sh.d,d=Object.assign({},draft),get=function(id){return document.getElementById(id)};
+  d.acc=(get('f_acc')||{}).value||d.acc;
+  d.chg=(get('f_chg')||{}).value||'';
+  d.date=(get('f_date')||{}).value||d.date;
+  d.nobal=(get('f_mode')||{}).value==='other';
+  var old=sh.id&&S.entries.find(function(x){return x.id===sh.id});
+  var plan=expenseFunding(d,sumAmt(get('f_amt').value),old);
+  var options=plan&&plan.missing>0?fundingOptions(d,old):[];
+  var focus=el.contains(document.activeElement)?document.activeElement.dataset.a:null;
+  var visible=plan&&(plan.chosen||plan.missing>0);
+  el.hidden=!visible;
+  if(!visible){el.innerHTML='';return}
+  var free=options.some(function(o){return o.available>0&&isLive(o.account)});
+  el.innerHTML=(plan.chosen?'<b>Распределение по источникам</b>'+fundingRows(plan.parts):'')+
+    (plan.missing>0?'<b class="funding-short" role="status">Не хватает '+esc(fundingMoney(plan.missing))+'</b><div class="funding-actions">'+
+     (d.acc!==defAcc()||free?'<button type="button" class="btn ghost sm" data-a="fundingFree"'+(free?'':' disabled')+'>Добрать из свободных средств</button>':'')+
+     '<button type="button" class="btn ghost sm" data-a="fundingOpen" aria-expanded="'+!!draft.fundingOpen+'"'+(options.length?'':' disabled')+'>Добрать с другого счёта</button>'+'</div>'+
+     (draft.fundingOpen&&options.length?'<div id="f_sources" class="funding-rows">'+options.map(function(o,i){
+       return '<button type="button" class="btn ghost sm funding-row" data-a="fundingAdd" data-i="'+i+'"'+(o.available>0?'':' disabled')+'><span>'+esc(accName(o.account))+'</span><span>'+esc(fundingMoney(o.available,accCur(o.account)))+'</span></button>';
+     }).join('')+'</div>':''):'')+
+    (plan.chosen?'<button type="button" class="fine funding-reset" data-a="fundingReset">Сбросить дополнительные источники</button>':'');
+  var opener=el.querySelector('[data-a=fundingOpen]');
+  if(focus==='fundingOpen'&&opener)opener.focus({preventScroll:true});
+}
+function fundingAction(action,index){
+  var d=readEntry(),old=sh.id&&S.entries.find(function(x){return x.id===sh.id});
+  var total=sumAmt(d.amt),plan=expenseFunding(d,total,old);
+  if(!plan)return;
+  var options=fundingOptions(d,old);
+  if(action==='fundingReset'){d.fundingAccounts=[];d.fundingOpen=false}
+  if(action==='fundingOpen')d.fundingOpen=!d.fundingOpen;
+  if(action==='fundingAdd'){
+    var option=options[index];
+    if(option&&option.available>0)d.fundingAccounts=(d.fundingAccounts||[]).concat(option.account.id);
+    d.fundingOpen=false;
+  }
+  if(action==='fundingFree'){
+    d.fundingAccounts=d.fundingAccounts||[];
+    options.filter(function(o){return o.available>0&&isLive(o.account)}).sort(function(a,b){
+      return Number(b.account.type==='main')-Number(a.account.type==='main');
+    }).some(function(o){
+      d.fundingAccounts.push(o.account.id);
+      return expenseFunding(d,total,old).missing===0;
+    });
+    d.fundingOpen=false;
+  }
+  d.accManual=true;
+  var err=document.getElementById('f_err');if(err)err.hidden=true;
+  fundingLive();
+}
+function entryDraft(x){
+  var d=Object.assign(newDraft(x.type),{
+    cur:x.oc&&CUR[x.oc]?x.oc:x.funding?baseCur():'',
+    curSet:!!(x.oc&&CUR[x.oc]||x.funding),
+    chg:x.ca>0?String(x.ca):'',
+    amt:x.type==='t'?Math.round(natOf(x,accById(x.from))*100)/100:
+      x.oa>0?x.oa:x.funding?x.amt:Math.round(natOf(x,accById(accOf(x)))*100)/100,
+    amt2:x.type==='t'?String(Math.round(natOf(x,accById(x.to))*100)/100):'',
+    cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,
+    acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,clsManual:!!x.clsSet,
+    accManual:!!x.funding,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,
+    splitAmt:x.split?String(Math.round(x.split/(x.oc&&x.oa>0?x.amt/x.oa:1)*100)/100):'',
+    for:x.for==='none'?'':x.for||(x.type==='i'&&x.cat==='refund'?(refLinks().linked[x.id]||''):''),
+    forManual:x.for==='none'
+  });
+  if(x.funding)d.fundingAccounts=x.funding.slice(1).map(function(p){return p.acc});
+  return d;
+}
 /* QR-код на кассовом чеке: t=20261120T1907&s=369.00&fn=...&i=...&fp=...&n=1 (n=2 - возврат). Работает без интернета */
 function qrCan(){return typeof window!=='undefined'&&'BarcodeDetector' in window}
 function qrParse(raw){raw=String(raw||'');var m={};raw.split('&').forEach(function(kv){var i=kv.indexOf('=');if(i>0)m[kv.slice(0,i).toLowerCase()]=kv.slice(i+1)});
@@ -5286,6 +5491,13 @@ function readEntry(){
 }
 function exCat(c){return (CMAP[c]||CMAP.other).name}
 function exAmt(n){return String(Math.round(n*100)/100).replace('.',',')}
+function exportEntryAccount(x){
+  if(x.funding)return x.funding.map(function(p){
+    var a=accById(p.acc);
+    return (a?accName(a):p.acc)+' '+fundingLabel(p);
+  }).join(' / ');
+  var a=accById(accOf(x));return a?accName(a):'';
+}
 function exportText(scope){
   var list=S.entries.filter(function(x){return !x.demo&&(scope==='all'||x.date.slice(0,7)===vym)}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
   var per=scope==='all'?'все записи':(function(){var a=vym.split('-');return MONTHS[+a[1]-1]+' '+a[0]})();
@@ -5296,8 +5508,15 @@ function exportText(scope){
   list.forEach(function(x){
     if(x.skip)return;
     if(x.type==='i'){inc+=x.amt;if(x.cat==='refund')refS+=x.amt}
-    else if(x.type==='e'){exp+=x.amt;var a=accById(accOf(x));var nm=a?accName(a):'?';byAcc[nm]=(byAcc[nm]||0)+x.amt;if(isLive(a))expMain+=x.amt;else if(a&&a.type==='save')expFund+=x.amt;else expOther+=x.amt;
-      var c=cat[x.cat]||(cat[x.cat]={sum:0,n:0,acc:{}});c.sum+=x.amt;c.n++;c.acc[nm]=(c.acc[nm]||0)+x.amt}
+    else if(x.type==='e'){
+      exp+=x.amt;
+      var c=cat[x.cat]||(cat[x.cat]={sum:0,n:0,acc:{}});c.sum+=x.amt;c.n++;
+      (x.funding||[{acc:accOf(x),amt:x.amt}]).forEach(function(p){
+        var a=accById(p.acc),nm=a?accName(a):'?';
+        byAcc[nm]=(byAcc[nm]||0)+p.amt;c.acc[nm]=(c.acc[nm]||0)+p.amt;
+        if(isLive(a))expMain+=p.amt;else if(a&&a.type==='save')expFund+=p.amt;else expOther+=p.amt;
+      });
+    }
   });
   L.push('Итого за период: расходы '+exAmt(exp)+' (со свободных денег '+exAmt(expMain)+', из копилок '+exAmt(expFund)+', с других счетов '+exAmt(expOther)+'); возвраты '+exAmt(refS)+'; ЧИСТЫЕ РАСХОДЫ (расходы минус возвраты) '+exAmt(exp-refS)+(S.simple?'':'; прочие доходы '+exAmt(inc-refS))+'.');
   L.push('Траты по дневному плану (с учётом привязанных и ожидаемых возвратов): '+exAmt(lifeNet(list.filter(function(x){return x.date<=T})))+'.');
@@ -5312,7 +5531,7 @@ function exportText(scope){
   list.forEach(function(x){
     var nt=String(x.note||'').replace(/[|\n]/g,' ').trim();
     if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);L.push(x.date+' | перевод | '+exAmt(x.amt)+' | - | '+nt+' | '+(fa?accName(fa):'?')+' → '+(ta?accName(ta):'?'))}
-    else{var a=accById(accOf(x));L.push(x.date+' | '+(x.type==='i'?(x.cat==='refund'?'возврат':'доход'):'расход')+' | '+exAmt(x.amt)+' | '+exCat(x.cat)+' | '+nt+(x.skip?' [не считать]':'')+' | '+(a?accName(a):'?'))}
+    else L.push(x.date+' | '+(x.type==='i'?(x.cat==='refund'?'возврат':'доход'):'расход')+' | '+exAmt(x.amt)+' | '+exCat(x.cat)+' | '+nt+(x.skip?' [не считать]':'')+' | '+(exportEntryAccount(x)||'?'))
   });
   return L.join('\n');
 }
@@ -5330,7 +5549,7 @@ function csvGo(){
   function q(v){v=String(v==null?'':v);return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
   var TY={e:'Расход',i:'Доход',t:'Перевод'},rows=[['Дата','Тип','Категория','Сумма','Заметка','Счёт','Не считать в тратах']];
   L.forEach(function(x){var d=x.date.split('-'),ty=x.type==='i'&&x.cat==='refund'?'Возврат':TY[x.type]||x.type,acc='';
-    if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);acc=(fa?accName(fa):'?')+' → '+(ta?accName(ta):'?')}else{var aa=accById(accOf(x));acc=aa?accName(aa):''}
+    if(x.type==='t'){var fa=accById(x.from),ta=accById(x.to);acc=(fa?accName(fa):'?')+' → '+(ta?accName(ta):'?')}else acc=exportEntryAccount(x)
     rows.push([d[2]+'.'+d[1]+'.'+d[0],ty,x.type==='t'?'':(CMAP[x.cat]||CMAP.other).name,String(Math.round(x.amt*100)/100).replace('.',','),x.note||'',acc,x.skip?'да':''])});
   var csv='﻿'+rows.map(function(r){return r.map(q).join(';')}).join('\r\n'),name='schitalochka-'+f+'_'+t+'.csv';
   try{var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
@@ -5870,9 +6089,18 @@ document.addEventListener('click',function(ev){
   else if(a==='hClear'){hq='';ha='';hc='';hacc='';hsk='';hfrom='';hto='';hd=null;hfo=false;render()}
   else if(a==='hPer'){if(!hd)hd={};var tp=petDay(),ymp=tp.slice(0,7);if(v==='m0'){hd.from=ymp+'-01';hd.to=tp}else if(v==='m1'){var pm=nextYM(ymp,-1),pa=pm.split('-');hd.from=pm+'-01';hd.to=pm+'-'+p2(dim(+pa[0],+pa[1]-1))}else if(v==='d7'){hd.from=iso(addDays(parse(tp),-6));hd.to=tp}else if(v==='d30'){hd.from=iso(addDays(parse(tp),-29));hd.to=tp}else{hd.from='';hd.to=''}var f1=document.getElementById('h_from'),f2=document.getElementById('h_to');if(f1)f1.value=hd.from;if(f2)f2.value=hd.to;hdSync()}
   else if(a==='newEntry'){sh={id:null,d:newDraft('e')};entrySheet()}
-  else if(a==='edit'){var x=S.entries.filter(function(e){return e.id===id})[0];if(x&&archivedEntry(x)){toast('Операция в архиве. Для изменения верни счёт из архива.');return}if(x){sh={id:id,d:{type:x.type,cur:x.type!=='t'&&x.oc&&CUR[x.oc]?x.oc:'',curSet:!!(x.type!=='t'&&x.oc&&CUR[x.oc]),chg:x.ca>0?String(x.ca):'',amt:x.type==='t'?Math.round(natOf(x,accById(x.from))*100)/100:x.oc&&x.oa>0?x.oa:Math.round(natOf(x,accById(accOf(x)))*100)/100,amt2:x.type==='t'?String(Math.round(natOf(x,accById(x.to))*100)/100):'',cat:x.cat,date:x.date,note:x.note||'',cls:x.cls||'need',clsSet:!!x.clsSet,acc:x.acc||defAcc(),from:x.from||'',to:x.to||'',manual:true,auto:false,clsManual:!!x.clsSet,skip:!!x.skip,nobal:!!x.nobal,split:!!x.split,splitAmt:x.split?String(Math.round(x.split/(x.oc&&x.oa>0?x.amt/x.oa:1)*100)/100):'',for:x.for==='none'?'':x.for||(x.type==='i'&&x.cat==='refund'?(refLinks().linked[x.id]||''):''),forManual:x.for==='none'}};entrySheet()}}
-  else if(a==='stype'){var d=readEntry(),ref=v==='r',tv=ref?'i':v,curR=d.type==='i'&&d.cat==='refund';if(d.type!==tv||ref!==curR){d.type=tv;d.cat='';if(tv==='i')d.acc=defAcc();d.manual=false;d.auto=false;if(ref){d.cat='refund';d.manual=true}else if(tv==='t')tDefaults(d);else{var g=guess(d.note,tv);if(g&&!(tv==='i'&&g==='refund')){d.cat=g;d.auto=true}}}entrySheet()}
-  else if(a==='quick'){var dq=readEntry(),qq=(sh.q||[])[+b.dataset.i];if(qq){dq.note=qq.note;dq.cat=qq.cat;dq.manual=true;dq.auto=false;if(qq.y||!(num(dq.amt)>0))dq.amt=qq.amt;if(dq.type==='e'){dq.cls=qq.cls||dq.cls;dq.clsManual=true}if(qq.acc&&accById(qq.acc)&&!archivedAcc(qq.acc))dq.acc=qq.acc;entrySheet()}}
+  else if(a==='edit'){
+    var x=S.entries.find(function(e){return e.id===id});if(!x)return;
+    if(archivedEntry(x)){
+      if(!x.funding){toast('Операция в архиве. Для изменения верни счёт из архива.');return}
+      sh={};
+      openSheet('<h3>Распределение по источникам</h3><div class="funding">'+fundingRows(x.funding)+'</div><p class="fine">Для изменения операции верни счёт из архива.</p><button type="button" class="btn ghost" data-a="close">Закрыть</button>');return;
+    }
+    sh={id:id,d:entryDraft(x)};entrySheet();
+  }
+  else if(a==='fundingOpen'||a==='fundingAdd'||a==='fundingFree'||a==='fundingReset')fundingAction(a,+b.dataset.i);
+  else if(a==='stype'){var d=readEntry(),ref=v==='r',tv=ref?'i':v,curR=d.type==='i'&&d.cat==='refund';if(d.type!==tv||ref!==curR){d.type=tv;d.cat='';d.fundingAccounts=[];d.fundingOpen=false;if(tv==='i')d.acc=defAcc();d.manual=false;d.auto=false;if(ref){d.cat='refund';d.manual=true}else if(tv==='t')tDefaults(d);else{var g=guess(d.note,tv);if(g&&!(tv==='i'&&g==='refund')){d.cat=g;d.auto=true}}}entrySheet()}
+  else if(a==='quick'){var dq=readEntry(),qq=(sh.q||[])[+b.dataset.i];if(qq){dq.note=qq.note;dq.cat=qq.cat;dq.manual=true;dq.auto=false;if(qq.y||!(num(dq.amt)>0))dq.amt=qq.amt;if(dq.type==='e'){dq.cls=qq.cls||dq.cls;dq.clsManual=true}if(qq.acc&&qq.acc!==dq.acc&&accById(qq.acc)&&!archivedAcc(qq.acc)){dq.acc=qq.acc;dq.fundingAccounts=[];dq.fundingOpen=false}entrySheet()}}
   else if(a==='sdate'){var fi=document.getElementById('f_date');if(fi){if(v==='o')dpOpen(fi);else{fi.value=v==='t'?T:iso(addDays(parse(T),-1));fi.dispatchEvent(new Event('change',{bubbles:true}))}}}
   else if(a==='partsOn'){var dp=readEntry();dp.amtMore=false;dp.parts=[{cat:dp.cat==='home'?'':'home',amt:''}];entrySheet();setTimeout(function(){var e=document.getElementById('pa0');if(e)e.focus();partsLive()},60)}
   else if(a==='partsOff'){var dq=readEntry();dq.parts=null;entrySheet()}
@@ -5890,7 +6118,7 @@ document.addEventListener('click',function(ev){
   else if(a==='bankClear'){S.bankQ=[];save();render()}
   else if(a==='bankAdd'){var bx=(S.bankQ||[]).filter(function(x){return x.id===id})[0];if(bx){var bd=newDraft(bx.type);bd.amt=String(bx.amt).replace('.',',');bd.note=bx.note||'';bd.date=bx.date<=T?bx.date:T;bd.bankId=bx.id;if(bx.type==='i'&&bx.refund)bd.cat='refund';sh={id:null,d:bd};entrySheet()}}
   else if(a==='amtMore'){var dm=readEntry();dm.amtMore=!dm.amtMore;entrySheet()}
-  else if(a==='amtPlus'){var dmx=sh&&sh.d;if(dmx&&v==='f_amt')dmx.amtMore=false;var amb=document.querySelector('.amtmore');if(amb&&v==='f_amt')amb.remove();var ai=document.getElementById(v);if(ai){var av=ai.value.trim();if(av&&!/\+$/.test(av))ai.value=av+'+';ai.focus();try{ai.setSelectionRange(ai.value.length,ai.value.length)}catch(e){}partsLive()}}
+  else if(a==='amtPlus'){var dmx=sh&&sh.d;if(dmx&&v==='f_amt')dmx.amtMore=false;var amb=document.querySelector('.amtmore');if(amb&&v==='f_amt')amb.remove();var ai=document.getElementById(v);if(ai){var av=ai.value.trim();if(av&&!/\+$/.test(av))ai.value=av+'+';ai.focus();try{ai.setSelectionRange(ai.value.length,ai.value.length)}catch(e){}partsLive();fundingLive()}}
   else if(a==='qcat'){var dc=readEntry();dc.cat=v;dc.manual=true;dc.auto=false;if(dc.type==='e'){dc.cls=NEEDC[v]?'need':'mind'}entrySheet()}
   else if(a==='scls'){var d2=readEntry();d2.cls=v;d2.clsManual=true;d2.clsSet=true;entrySheet()}
   else if(a==='close')closeSheet();
@@ -5931,8 +6159,8 @@ document.addEventListener('click',function(ev){
   else if(a==='fcDel'){S.fcPlans=(S.fcPlans||[]).filter(function(q){return q.id!==id});save();fcRefreshAfterPlan();fcPlansRender();
     document.querySelector('#fc-plans-overlay [data-a=fcPlansClose]').focus({preventScroll:true})}
   else if(a==='fcPd'){var fpd=String(document.getElementById('fc_pd').value||'').split(/[^\d]+/).map(Number).filter(function(n,i,ar){return n>=1&&n<=31&&ar.indexOf(n)===i}).sort(function(x,y){return x-y}).slice(0,4);if(!fpd.length){toast('Впиши числа, например 10, 25');return}S.payDays=fpd;save();render();fcSheet()}
-  else if(a==='askDel'){sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
-  else if(a==='noDel'){sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}
+  else if(a==='askDel'){if(document.getElementById('f_amt'))readEntry();sh.confirm=true;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.id!==undefined&&sh.d&&sh.d.type)entrySheet();else settingsSheet()}
+  else if(a==='noDel'){if(document.getElementById('f_amt'))readEntry();sh.confirm=false;if(sh.ac)accSheet();else if(sh.ru)ruleSheet();else if(sh.k!==undefined)planSheet();else if(sh.d&&sh.d.type)entrySheet();else settingsSheet()}
   else if(a==='delEntry'){var did=sh.id;closeSheet();delEntryUndo(did)}
   else if(a==='delEntryAll'){var e0=S.entries.filter(function(e){return e.id===sh.id})[0],refs=e0?linkedRefundsOf(e0.id):[],did=sh.id;closeSheet();delEntryUndo(did,refs.map(function(r){return r.id}))}
   else if(a==='delEntryKeepRef'){var did2=sh.id;closeSheet();delEntryUndo(did2)}
@@ -5948,6 +6176,9 @@ document.addEventListener('click',function(ev){
     var eDate=isR?(curM?T:itemDate(k,item,ym)):T;
     var incomeDone=!isR&&(doneFor(f,id,ym)||doneFor(f,id,period)||incomeReceived(item,period).length>0);
     if(isR?doneFor(f,id,ym):incomeDone){
+      if(isR&&S.entries.some(function(e){return e.rid===id&&e.date.slice(0,7)===ym&&e.funding&&archivedEntry(e)})){
+        toast('Для отмены платежа верни счёт из архива.');return;
+      }
       S.entries=S.entries.filter(function(e){
         if(e[f]!==id)return true;
         if(!isR&&(e.payYm===period||incomeIidMatch(e.iid,item)&&(e.date===T||(item.scheduled&&e.date===item.scheduled)||e.date.slice(0,7)===ym||e.date.slice(0,7)===period)))return false;
@@ -5970,6 +6201,16 @@ document.addEventListener('click',function(ev){
         if(val===null)return;var am=num(val);if(!(am>0)){toast('Сумма должна быть больше нуля',true);return}
         var own=!isR&&sourceOwner(item.id),side=!isR&&item.sourceOccurrence&&own&&own.source&&own.source.kind!=='tk';
         var en0={id:uid(),type:isR?'e':'i',amt:am,cat:isR?item.cat:(side?'side':'salary'),date:eDate,note:item.name,cls:isR?'need':''};if(isR&&item.acc&&accById(item.acc))en0.acc=item.acc;en0[f]=id;if(!isR)en0.payYm=period;
+        if(isR){
+          var draft=Object.assign(newDraft('e'),{
+            amt:am,cur:baseCur(),curSet:true,cat:item.cat,date:eDate,note:item.name,
+            acc:en0.acc||defAcc(),accManual:!!en0.acc,manual:true,rid:id
+          });
+          var oldPlan=expenseFunding(draft,am,null);
+          if(oldPlan&&fundingRequired(oldPlan,fundingOptions(draft,null),draft)){
+            sh={id:null,d:draft,onPaid:after};entrySheet();return;
+          }
+        }
         S.entries.push(en0);save();render();after(am)})};
     var cands=S.entries.filter(function(e){return !e.demo&&!e.rule&&e.type===want&&(e.date.slice(0,7)===ym||(!isR&&item.scheduled&&e.date===item.scheduled))&&(isR?e.cat===item.cat:e.cat!=='refund')&&lost(e)&&Math.abs(e.amt-expected)<=Math.max(1,expected*0.3)});
     if(!cands.length){addNew();return}
@@ -6062,7 +6303,22 @@ document.addEventListener('click',function(ev){
   else if(a==='climSave'){climSave(v)}
   else if(a==='climMove'){sh={clmv:true};clmvSheet()}
   else if(a==='climMoveSave'){clmvSave(v)}
-  else if(a==='repeatEntry'&&sh&&sh.id){var src=S.entries.filter(function(e){return e.id===sh.id})[0];if(src&&archivedEntry(src)){toast('Сначала верни счёт из архива.');return}if(src){var cp={id:uid(),type:src.type,amt:src.amt,cat:src.cat,date:petDay(),note:src.note||'',cls:src.cls||'',clsSet:!!src.clsSet};if(src.type==='t'){cp.from=src.from;cp.to=src.to}else if(src.acc&&accById(src.acc))cp.acc=src.acc;if(src.skip)cp.skip=true;S.entries.push(cp);save();closeSheet();render();toast('Повторено: '+money(cp.amt)+(cp.note?' · '+cp.note:''))}}
+  else if(a==='repeatEntry'&&sh&&sh.id){
+    var src=S.entries.find(function(e){return e.id===sh.id});if(!src||archivedEntry(src))return;
+    if(src.type==='e'){
+      var draft=entryDraft(src);draft.date=petDay();draft.split=false;draft.splitAmt='';draft.nobal=!!src.nobal;
+      var plan=expenseFunding(draft,sumAmt(draft.amt),null);
+      if(src.funding||plan&&fundingRequired(plan,fundingOptions(draft,null),draft)){
+        sh={id:null,d:draft};entrySheet();return;
+      }
+    }
+    var cp={id:uid(),type:src.type,amt:src.amt,cat:src.cat,date:petDay(),note:src.note||'',cls:src.cls||'',clsSet:!!src.clsSet};
+    if(src.type==='t'){cp.from=src.from;cp.to=src.to}
+    else if(src.acc&&accById(src.acc))cp.acc=src.acc;
+    if(src.skip)cp.skip=true;
+    if(src.nobal)cp.nobal=true;
+    S.entries.push(cp);save();closeSheet();render();toast('Повторено: '+money(cp.amt)+(cp.note?' · '+cp.note:''));
+  }
   else if(a==='csvOpen'){var t1=new Date();sh={csv:true};csvSheet()}
   else if(a==='csvGo'){csvGo()}
   else if(a==='csvRange'){var tt=petDay(),ff;if(v==='m')ff=tt.slice(0,8)+'01';else if(v==='3')ff=nextYM(tt.slice(0,7),-2)+'-01';else if(v==='y')ff=iso(addDays(parse(tt),-364));else{ff=S.entries.filter(function(x){return !x.demo}).reduce(function(m,x){return x.date<m?x.date:m},tt)}document.getElementById('cv_f').value=ff;document.getElementById('cv_t').value=tt}
@@ -6368,25 +6624,45 @@ document.addEventListener('submit',function(ev){
     if(!d.cat&&d.type!=='t')return showErr('Выбери категорию.');
     if(!d.date)return showErr('Укажи дату.');
     if(d.type==='i'&&!accById(d.acc))d.acc=defAcc();
-    if(d.type==='e'){var sa=accById(d.acc);if(sa&&(sa.type==='save'||sa.type==='other')){var had=0;if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id&&e.type==='e'&&e.acc===sa.id)had=natOf(e,sa)})}if(accBalN(sa)+had<needNat(d,n+pUsed)-0.005)return showErr('В «'+sa.name+'» только '+mon(accBalN(sa)+had,accCur(sa))+'. Выбери другой источник или сначала положи туда деньги.')}}
+    var old1=sh.id?S.entries.find(function(e){return e.id===sh.id}):null;
+    var funding=expenseFunding(d,n+pUsed,old1);
+    if(funding&&fundingRequired(funding,fundingOptions(d,old1),d)){
+      fundingLive();return showErr('Добавь источник, чтобы хватило на всю покупку.');
+    }
+    if(funding&&funding.chosen&&parts.length)return showErr('Для оплаты из нескольких источников оставь одну категорию покупки.');
     var rec=d.type==='t'?{type:'t',amt:n,cat:'',date:d.date,note:d.note.trim(),cls:'',from:d.from,to:d.to}:{type:d.type,amt:n,cat:d.cat,date:d.date,note:d.note.trim(),cls:d.type==='e'?(d.cls||'need'):'',clsSet:d.type==='e'&&!!d.clsSet,acc:d.acc||defAcc(),skip:!!d.skip,nobal:!!d.nobal};
     if(d.type==='i'&&d.cat==='refund'){if(d.for)rec.for=d.for;else if(d.forManual)rec.for='none'}
     if(d.type==='e'&&d.split){var spv=num(d.splitAmt);if(!(spv>0))spv=n/2;rec.split=Math.round(spv*100)/100}
     /* другая валюта: вводили в валюте счёта, храним в основной + исходную сумму */
-    var fxR=1,caR=0,fxC=baseCur(),old1=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;
+    var fxR=1,caR=0,fxC=baseCur();
     if(d.type==='t'){var fA=accById(d.from),tA=accById(d.to),fC=accCur(fA),tC=accCur(tA),bc=baseCur();
       if(fC!==tC||fC!==bc){var n2=fC!==tC?sumAmt(d.amt2):n;if(!(n2>0))n2=Math.round(n*rateOf(fC)/rateOf(tC)*100)/100;
         if(isFx(fA))rec.fa=n;if(isFx(tA))rec.ta=n2;fxC=fC;
         rec.amt=fC===bc?n:tC===bc?n2:Math.round(n*rateOf(fC)*100)/100}}
     else{var xa=accById(rec.acc),ac=accCur(xa),ec=d.cur&&CUR[d.cur]?d.cur:ac,bc2=baseCur(),tot=n+pUsed;
-      if(ec!==bc2||ac!==bc2){var chg=ec!==ac?sumAmt(d.chg):NaN;
-        if(chg>0){caR=chg/tot;fxR=chg*rateOf(ac)/tot}
-        else fxR=old1&&old1.oc===ec&&old1.oa>0&&old1.amt>0&&!old1.ca?old1.amt/old1.oa:rateOf(ec);
+      if(ec!==bc2||ac!==bc2){
+        var fx=entryFx(d,tot,old1);fxR=fx.rate;caR=fx.charge;
         fxC=ec;rec.oc=ec;rec.oa=n;rec.amt=Math.round(n*fxR*100)/100;if(caR)rec.ca=Math.round(n*caR*100)/100;
         if(rec.split)rec.split=Math.round(rec.split*fxR*100)/100}}
+    if(funding&&funding.chosen&&funding.parts.length&&
+       (funding.parts.length>1||funding.parts[0].acc!==rec.acc||old1&&old1.funding&&funding.parts===old1.funding)){
+      rec.funding=funding.parts;
+      rec.amt=expensePortion(rec,function(){return true});
+      rec.acc=rec.funding[0].acc;
+      if(rec.acc!==d.acc)delete rec.ca;
+      if(rec.split&&rec.oa)rec.split=Math.round((rec.split/fxR)*rec.amt/rec.oa*100)/100;
+    }
     var gid=null;if(parts.length){var old0=sh.id?S.entries.filter(function(e){return e.id===sh.id})[0]:null;gid=(old0&&old0.grp)||uid();rec.grp=gid}
-    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for','oa','oc','fa','ta','ca'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
-    else{rec.id=uid();if(d.tpl)rec.tpl=d.tpl;S.entries.push(rec);if(d.payLeft)S.payNote={d:T,st:'put'}}
+    var onPaid=sh.onPaid;
+    if(sh.id){S.entries.forEach(function(e){if(e.id===sh.id){['acc','from','to','for','oa','oc','fa','ta','ca','funding'].forEach(function(k){delete e[k]});if(!rec.split){delete e.split;delete e.splitDone}Object.keys(rec).forEach(function(k){e[k]=rec[k]})}})}
+    else{
+      rec.id=uid();
+      if(d.tpl)rec.tpl=d.tpl;
+      if(d.rid)rec.rid=d.rid;
+      S.entries.push(rec);
+      if(d.bankId)S.bankQ=(S.bankQ||[]).filter(function(x){return x.id!==d.bankId});
+      if(d.payLeft)S.payNote={d:T,st:'put'};
+    }
     var extraIds=parts.map(function(pt){var r2={id:uid(),grp:gid,type:'e',amt:pt.amt,cat:pt.cat,date:rec.date,note:rec.note,cls:NEEDC[pt.cat]?'need':(rec.cls||'need'),clsSet:false,acc:rec.acc,skip:rec.skip,nobal:rec.nobal};if(rec.oc){r2.oc=rec.oc;r2.oa=pt.amt;r2.amt=Math.round(pt.amt*fxR*100)/100;if(caR)r2.ca=Math.round(pt.amt*caR*100)/100}S.entries.push(r2);learn(r2);return r2.id});
     var wasNew=!sh.id,newId=rec.id;
     if(rec.type!=='t')learn(rec);
@@ -6394,7 +6670,7 @@ document.addEventListener('submit',function(ev){
     save();closeSheet();render();
     if(extraIds.length){toast('Записано: '+(extraIds.length+1)+' '+plw(extraIds.length+1,'трата','траты','трат')+' на '+mon(n+pUsed,fxC)+', разложено по категориям',false,function(){S.entries=S.entries.filter(function(e){return extraIds.indexOf(e.id)<0&&(!wasNew||e.id!==newId)});save();render();toast('Отменено')})}
     else toast(savedMsg(rec,wasNew),false,wasNew?function(){S.entries=S.entries.filter(function(e){return e.id!==newId});save();render();toast('Запись отменена')}:null);
-    if(wasNew&&d.bankId){S.bankQ=(S.bankQ||[]).filter(function(x){return x.id!==d.bankId});save();render()}
+    if(onPaid)onPaid(rec.amt);
     if(wasNew&&rec.type==='i'&&rec.cat!=='refund'&&!rec.skip&&!rec.nobal&&S.irreg&&pctSum()>0)setTimeout(function(){pctOffer(newId)},350);
   }else if(document.getElementById('x_name')){
     var xn=document.getElementById('x_name').value.trim(),xa=num(document.getElementById('x_amt').value),xm=+document.getElementById('x_mon').value||0,xc=document.getElementById('x_cat').value||'other';
@@ -6443,7 +6719,7 @@ function autoFund(note){
   Object.keys(TKEY).forEach(function(k){if(!hit&&new RegExp(TKEY[k]).test(n)){var id=findAcc(k);if(id&&accBal(accById(id))>0)hit=id}});
   var sel=document.getElementById('f_acc'),hint=document.getElementById('f_fh');
   if(hit){d.acc=hit;d.fund=true}else if(d.fund){d.acc=defAcc();d.fund=false}
-  if(sel)sel.value=d.acc;if(hint){hint.hidden=!d.fund;hint.textContent='Копилка найдена по заметке. Можно поменять.'}moreUpd();
+  if(sel)sel.value=d.acc;fundingLive();if(hint){hint.hidden=!d.fund;hint.textContent='Копилка найдена по заметке. Можно поменять.'}moreUpd();
 }
 document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target&&ev.target.id==='un_in'){ev.preventDefault();var ub=document.querySelector('[data-a=unameOk]');if(ub)ub.click();return}});
 document.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target&&ev.target.id==='f_catq'){ev.preventDefault();var l=document.getElementById('f_catl'),f=l&&!l.hidden&&ev.target.value.trim()?l.querySelector('button[data-cv]:not(.add)'):null;if(f)catPick(f.dataset.cv);else ev.target.blur()}});
@@ -6458,6 +6734,7 @@ document.addEventListener('input',function(ev){
   if(/^pc_/.test(ev.target.id)){planCalcOut();return}
   if(ev.target.id==='pu_name'&&sh&&sh.d){sh.d.uname=ev.target.value;return}
   if((ev.target.id==='f_amt'||ev.target.hasAttribute&&ev.target.hasAttribute('data-pa'))&&sh&&sh.d)partsLive();
+  if(ev.target.id==='f_amt'||ev.target.id==='f_chg')fundingLive();
   if(ev.target.id==='f_amt'||ev.target.id==='f_acc')setTimeout(fxHint,0);
   if(/^ob_(bal|lim|name)$/.test(ev.target.id)&&sh&&sh.onb){onbRead();onbLive();if(ev.target.id==='ob_lim'){var nb=document.querySelector('#ob_btns [data-a=onbNext]');if(nb)nb.textContent=num(sh.d.lim)>0?'Дальше':'Пропустить'}return}
   if(ev.target.id==='f_catq'){catList(ev.target.value);return}
@@ -6469,8 +6746,8 @@ document.addEventListener('input',function(ev){
 });
 document.addEventListener('change',function(ev){
   if(/^is_/.test(ev.target.id)||ev.target.name==='is_wd'){if(ev.target.id==='is_link'&&ev.target.value){var linked=S.incomes.find(function(r){return r.id===ev.target.value});if(linked)document.getElementById('is_second').value=linked.day}sourceFormLive();return}
-  if(ev.target.id==='f_mode'){var mh=document.getElementById('f_modeh');if(mh)mh.textContent=MODEH[ev.target.value]||'';moreUpd();return}
-  if(ev.target.id==='f_date'&&sh&&sh.d){var ds=document.getElementById('f_dseg');if(ds)ds.innerHTML=dateSeg(ev.target.value)}
+  if(ev.target.id==='f_mode'){var mh=document.getElementById('f_modeh');if(mh)mh.textContent=MODEH[ev.target.value]||'';moreUpd();fundingLive();return}
+  if(ev.target.id==='f_date'&&sh&&sh.d){var ds=document.getElementById('f_dseg');if(ds)ds.innerHTML=dateSeg(ev.target.value);fundingLive()}
   if(ev.target.id==='f_split'){var bx=document.getElementById('f_splitbox'),sa=document.getElementById('f_splitamt'),fa=document.getElementById('f_amt');if(bx)bx.hidden=!ev.target.checked;if(ev.target.checked&&sa&&!sa.value&&fa&&num(fa.value)>0)sa.value=String(Math.round(num(fa.value)/2*100)/100);moreUpd();return}
   if(ev.target.id==='h_a'){if(hd)hd.a=ev.target.value;hdSync();return}
   if(ev.target.id==='t_rep'&&sh&&sh.tp){tplRead();tplSheet();return}
@@ -6488,7 +6765,7 @@ document.addEventListener('change',function(ev){
   if(ev.target.id==='s_cur'&&CUR[ev.target.value]&&ev.target.value!==baseCur()){S.cur=ev.target.value;if(S.mrate)S.mrate={};save();try{TCOIN=TCOIN.replace(/>[^<]*<\/text>/,'>'+coinS()+'</text>')}catch(e){}render();curSheet();rtFetch(true);toast('Основная валюта: '+CUR[S.cur][1]);return}
   if(ev.target.id==='ob_cur'&&CUR[ev.target.value]){S.cur=ev.target.value;save();onbRead();onbSheet();return}
   if((ev.target.id==='f_from'||ev.target.id==='f_to')&&sh&&sh.d&&sh.d.type==='t'){readEntry();entrySheet();return}
-  if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true;moreUpd();if(document.getElementById('f_cur')){readEntry();entrySheet();return}}
+  if(ev.target.id==='f_acc'&&sh&&sh.d){sh.d.accManual=true;sh.d.acc=ev.target.value;sh.d.fund=false;sh.d.fundingAccounts=[];sh.d.fundingOpen=false;var fh=document.getElementById('f_fh');if(fh)fh.hidden=true;moreUpd();if(document.getElementById('f_cur')){readEntry();sh.d.chg='';entrySheet();return}fundingLive()}
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__newq'){var q0=document.getElementById('f_catq'),t0=q0?q0.value.trim():'';t0=t0.charAt(0).toUpperCase()+t0.slice(1);var el0=ev.target;el0.value=sh.d.cat||'';uiPrompt('Название новой категории',t0).then(function(nm0){if(!sh||!sh.d)return;var nid0=nm0?newCat(nm0,sh.d.type==='i'):null;if(q0)q0.value='';el0.innerHTML=opts(catPool(),nid0||sh.d.cat)+NEWCAT;if(nid0){el0.value=nid0;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid0;toast('Категория «'+CMAP[nid0].name+'» добавлена')}else{el0.value=sh.d.cat||''}var h1=document.getElementById('f_hint');if(h1)h1.hidden=true;catShow()});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d&&ev.target.value==='__new'){var el1=ev.target;el1.value=sh.d.cat||'';uiPrompt('Название новой категории').then(function(nm){if(!sh||!sh.d)return;var nid=nm?newCat(nm,sh.d.type==='i'):null;el1.innerHTML=opts(catPool(),nid||sh.d.cat)+NEWCAT;if(nid){el1.value=nid;sh.d.manual=true;sh.d.auto=false;sh.d.cat=nid;toast('Категория «'+CMAP[nid].name+'» добавлена')}else{el1.value=sh.d.cat||''}var h0=document.getElementById('f_hint');if(h0)h0.hidden=true;catShow()});return}
   if(ev.target.id==='f_cat'&&sh&&sh.d){sh.d.manual=true;sh.d.auto=false;sh.d.cat=ev.target.value;var h=document.getElementById('f_hint');if(h)h.hidden=true}
@@ -6746,6 +7023,8 @@ function m3eq(a,b){return JSON.stringify(a)===JSON.stringify(b)}
 function m3obj(x){return !!x&&typeof x==='object'&&!Array.isArray(x)}
 function m3ids(a){return Array.isArray(a)&&a.every(function(x){return m3obj(x)&&x.id!=null})}
 function m3prims(a){return Array.isArray(a)&&a.every(function(x){return x===null||typeof x!=='object'})}
+var FUNDING_FIELDS=['type','amt','acc','funding','oa','oc','ca','fa','ta','from','to','date','nobal','hist'];
+function fundingFields(e){return FUNDING_FIELDS.map(function(k){return e&&e[k]})}
 function merge3(b,l,r){
   if(m3eq(l,r))return l;
   if(m3eq(b,l))return r;
@@ -6753,7 +7032,13 @@ function merge3(b,l,r){
   if(l===undefined)return r;
   if(r===undefined)return l;
   if(m3obj(l)&&m3obj(r)){var bo=m3obj(b)?b:{},o={},ks={};
-    Object.keys(r).concat(Object.keys(l)).forEach(function(k){if(ks[k])return;ks[k]=1;var v=merge3(bo[k],l[k],r[k]);if(v!==undefined)o[k]=v});return o}
+    // Сумма и списания должны прийти из одной версии операции.
+    var payment=(bo.funding||l.funding||r.funding)?(m3eq(fundingFields(bo),fundingFields(l))?r:l):null;
+    Object.keys(r).concat(Object.keys(l)).forEach(function(k){
+      if(ks[k])return;ks[k]=1;
+      var v=payment&&FUNDING_FIELDS.indexOf(k)>=0?payment[k]:merge3(bo[k],l[k],r[k]);
+      if(v!==undefined)o[k]=v;
+    });return o}
   if(Array.isArray(l)&&Array.isArray(r)&&m3ids(l)&&m3ids(r)&&(l.length||r.length)){
     var bm={},lm={},rm={},order=[],seen={};
     if(m3ids(b))b.forEach(function(x){bm[x.id]=x});

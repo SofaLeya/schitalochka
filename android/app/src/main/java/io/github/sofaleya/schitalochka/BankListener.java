@@ -111,6 +111,10 @@ public class BankListener extends NotificationListenerService {
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         if (!IMPORT_ENABLED) return;
+        processNotification(sbn);
+    }
+
+    void processNotification(StatusBarNotification sbn) {
         try {
             String pkg = sbn.getPackageName();
             if (pkg == null || pkg.equals(getPackageName())) return;

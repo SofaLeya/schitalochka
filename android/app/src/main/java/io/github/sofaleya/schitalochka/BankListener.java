@@ -22,6 +22,11 @@ import java.util.regex.Pattern;
 public class BankListener extends NotificationListenerService {
 
     static final String PREFS = "bank";
+    static final boolean IMPORT_ENABLED = false;
+
+    static void purgeWhenDisabled(Context c) {
+        if (!IMPORT_ENABLED) c.getSharedPreferences(PREFS, MODE_PRIVATE).edit().remove("diag").remove("q").apply();
+    }
     private static final int IGNORE_CASE = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
     private static final Pattern MONEY = Pattern.compile(
             "\\d[\\d ]*(?:[.,]\\d{1,2})? *(?:₽|(?:руб(?:лей|ля|ль)?|RU[BR])(?![\\p{L}\\p{N}_])|р\\.)",
@@ -105,6 +110,7 @@ public class BankListener extends NotificationListenerService {
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
+        if (!IMPORT_ENABLED) return;
         try {
             String pkg = sbn.getPackageName();
             if (pkg == null || pkg.equals(getPackageName())) return;
